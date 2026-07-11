@@ -21,6 +21,9 @@ import { TermsModule } from './modules/terms/terms.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { CbtModule } from './modules/cbt/cbt.module';
+import { FeesModule } from './modules/fees/fees.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { envValidationSchema } from './config/env.validation';
@@ -48,6 +51,9 @@ import { envValidationSchema } from './config/env.validation';
     InsightsModule,
     UploadsModule,
     CbtModule,
+    FeesModule,
+    InventoryModule,
+    AccountingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

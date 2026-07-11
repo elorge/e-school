@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { ResultsService } from '../results/results.service';
-import { CBT_PRICE_PER_STUDENT_KOBO } from '../../common/constants';
+import { SchoolsService } from '../schools/schools.service';
 import { CbtAttemptStatus, CbtTestStatus } from '@prisma/client';
 
 const TEMPLATE_HEADERS = ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer (A/B/C/D)', 'Points'];
@@ -15,6 +15,7 @@ export class CbtService {
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly resultsService: ResultsService,
+    private readonly schoolsService: SchoolsService,
   ) {}
 
   createTest(
@@ -82,59 +83,101 @@ export class CbtService {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
 
-    const dataRows = rows.slice(1); // skip header row
+// Rows that are entirely blank (common after a Google Sheets export,
+    // or a merged-cell artifact) shouldn't even count as errors — only
+    // report a row if it has SOME content but is malformed.
+    const dataRows = rows
+      .slice(1)
+      .map((row, i) => ({ row, rowNumber: i + 2 }))
+      .filter(({ row }) => row.some((cell) => cell !== undefined && String(cell).trim() !== ''));
+
     const added: string[] = [];
     const errors: { row: number; reason: string }[] = [];
-
     let order = test.questions.length;
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-      const rowNumber = i + 2; // +2 = 1-indexed, plus the header row
-      const [questionText, optA, optB, optC, optD, correctLetter, points] = row;
 
-      if (!questionText || !optA || !optB) {
-        errors.push({ row: rowNumber, reason: 'Missing question text or options' });
+    const clean = (v: unknown) => (v === undefined || v === null ? '' : String(v).trim());
+    // Accepts "A", "a", "A)", "A.", "Answer A" — strips everything but the first letter.
+    const extractLetter = (v: unknown) => {
+      const match = clean(v).toUpperCase().match(/[A-D]/);
+      return match ? match[0] : null;
+    };
+
+    for (const { row, rowNumber } of dataRows) {
+      const questionText = clean(row[0]);
+      const options = [clean(row[1]), clean(row[2]), clean(row[3]), clean(row[4])].filter((o) => o !== '');
+      const correctLetter = extractLetter(row[5]);
+      const pointsRaw = clean(row[6]);
+
+      if (!questionText) {
+        errors.push({ row: rowNumber, reason: 'Missing question text' });
         continue;
       }
-      const options = [optA, optB, optC, optD].filter((o) => o !== undefined && o !== '');
-      const letterIndex = { A: 0, B: 1, C: 2, D: 3 }[String(correctLetter).trim().toUpperCase()];
-      if (letterIndex === undefined || letterIndex >= options.length) {
-        errors.push({ row: rowNumber, reason: `Correct Answer "${correctLetter}" is not a valid option for this row` });
+      if (options.length < 2) {
+        errors.push({ row: rowNumber, reason: 'Needs at least 2 options' });
+        continue;
+      }
+      if (!correctLetter) {
+        errors.push({ row: rowNumber, reason: 'Correct Answer column is missing or unreadable — use A, B, C, or D' });
+        continue;
+      }
+      const letterIndex = { A: 0, B: 1, C: 2, D: 3 }[correctLetter]!;
+      if (letterIndex >= options.length) {
+        errors.push({ row: rowNumber, reason: `Correct Answer "${correctLetter}" has no matching option in this row` });
         continue;
       }
 
+      const points = Number(pointsRaw);
       await this.prisma.cbtQuestion.create({
         data: {
           testId,
           order: order++,
-          questionText: String(questionText),
+          questionText,
           options,
           correctOptionIndex: letterIndex,
-          points: Number(points) > 0 ? Number(points) : 1,
+          points: Number.isFinite(points) && points > 0 ? points : 1,
         },
       });
-      added.push(String(questionText));
+      added.push(questionText);
     }
 
     return { addedCount: added.length, errors };
   }
 
-  /**
-   * Debits the wallet (idempotent per idempotencyKey, same pattern as
-   * PIN generation), creates one attempt per assigned student, and
-   * moves the test to PUBLISHED. Assigned students = every ACTIVE
-   * student in the test's class at publish time.
+/**
+   * studentIds, if given, restricts BOTH the assignment and the wallet
+   * debit to exactly those students — e.g. only students an admin has
+   * separately confirmed as fee-paid. Omit it to assign the whole class
+   * (previous default behavior, unchanged for schools that don't need
+   * selective assignment).
    */
-  async publishTest(schoolId: string, testId: string, idempotencyKey: string) {
+  async publishTest(schoolId: string, testId: string, idempotencyKey: string, studentIds?: string[]) {
     const test = await this.findOneOrThrow(schoolId, testId);
     if (test.status !== CbtTestStatus.DRAFT) throw new BadRequestException('Test has already been published');
     if (test.questions.length === 0) throw new BadRequestException('Add at least one question before publishing');
 
-    const students = await this.prisma.student.findMany({ where: { classId: test.classId, status: 'ACTIVE' } });
-    if (students.length === 0) throw new BadRequestException('No active students in this class to assign the test to');
+    const allActiveInClass = await this.prisma.student.findMany({ where: { classId: test.classId, status: 'ACTIVE' } });
+    let students = allActiveInClass;
 
-    const totalCostKobo = students.length * CBT_PRICE_PER_STUDENT_KOBO;
-    await this.walletService.debitForPinGeneration(schoolId, totalCostKobo, idempotencyKey); // reuses the same generic wallet-debit primitive
+    if (studentIds && studentIds.length > 0) {
+      const allowedIds = new Set(allActiveInClass.map((s) => s.id));
+      const invalid = studentIds.filter((id) => !allowedIds.has(id));
+      if (invalid.length > 0) {
+        throw new BadRequestException('Some selected students are not active members of this test\'s class');
+      }
+      students = allActiveInClass.filter((s) => studentIds.includes(s.id));
+    }
+
+if (students.length === 0) throw new BadRequestException('No students selected to assign the test to');
+
+    // Same per-student-per-term charge PIN generation uses — a student
+    // already charged for this term (via PIN generation) is NOT charged
+    // again here. CBT and PIN access are billed as one product.
+    const pricePerStudentKobo = await this.schoolsService.getEffectivePricePerStudentKobo(schoolId);
+    let newlyCharged = 0;
+    for (const student of students) {
+      const { alreadyCharged } = await this.walletService.debitPlatformAccessFee(schoolId, student.id, test.termId, pricePerStudentKobo);
+      if (!alreadyCharged) newlyCharged++;
+    }
 
     const objectiveMaxScore = test.questions.reduce((sum, q) => sum + q.points, 0);
 
@@ -147,7 +190,9 @@ export class CbtService {
         }),
       ]);
     } catch (err) {
-      await this.walletService.refund(schoolId, totalCostKobo, `refund-${idempotencyKey}`);
+      for (const student of students) {
+        await this.walletService.refund(schoolId, pricePerStudentKobo, `refund-cbt-${testId}-${student.id}`);
+      }
       throw err;
     }
 

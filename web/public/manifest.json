@@ -1,0 +1,15 @@
+{
+  "name": "Elorge Schools",
+  "short_name": "Elorge Schools",
+  "description": "School management built for Nigerian schools — works even when the internet doesn't.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBFCFE",
+  "theme_color": "#0B3D91",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

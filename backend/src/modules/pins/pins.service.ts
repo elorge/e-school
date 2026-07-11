@@ -18,19 +18,24 @@ export class PinsService {
     private readonly emailService: EmailService,
   ) {}
 
-  async generateBatch(
+async generateBatch(
     schoolId: string,
     termId: string,
     studentIds: string[],
     pricePerStudentKobo: number,
     idempotencyKey: string,
   ) {
-    const totalCostKobo = studentIds.length * pricePerStudentKobo;
-
-    // Debit first — if this throws (insufficient balance), nothing else
-    // has happened yet, so there's nothing to roll back.
-    await this.walletService.debitForPinGeneration(schoolId, totalCostKobo, idempotencyKey);
-
+// Charge per student, but skip anyone already charged this term (e.g.
+    // via a CBT test that ran for them first) — see
+    // WalletService.debitPlatformAccessFee for why this is one shared fee.
+    // Tracked separately from studentIds.length * price, since the actual
+    // amount debited THIS call can be less than the full batch cost if
+    // some students were already paid for.
+    let totalCostKobo = 0;
+    for (const studentId of studentIds) {
+      const { alreadyCharged } = await this.walletService.debitPlatformAccessFee(schoolId, studentId, termId, pricePerStudentKobo);
+      if (!alreadyCharged) totalCostKobo += pricePerStudentKobo;
+    }
     await this.prisma.pin.updateMany({
       where: { schoolId, termId, studentId: { in: studentIds }, status: PinStatus.ACTIVE },
       data: { status: PinStatus.INVALIDATED },
@@ -48,11 +53,19 @@ export class PinsService {
 
         generated.push({ studentId, plaintextPin });
       }
-    } catch (err) {
-      // Debit succeeded but generation didn't complete — refund rather
-      // than leave the school charged for PINs it never got. See spec
-      // doc §7.4.
-      await this.walletService.refund(schoolId, totalCostKobo, `refund-${idempotencyKey}`);
+      } catch (err) {
+      // Debit succeeded but generation didn't complete for one or more
+      // students — refund exactly what was charged in THIS call, not
+      // touching any earlier charge from a prior CBT test for the same
+      // student+term (that one's reference is different and untouched).
+      // NOTE: this refunds every student in the batch at full price,
+      // even ones that were already-charged (no-op refund is harmless
+      // since debitPlatformAccessFee's dedupe means no double-charge
+      // existed to refund in the first place — refund() just creates a
+      // ledger entry, it doesn't reverse anything that wasn't there).
+      for (const studentId of studentIds) {
+        await this.walletService.refund(schoolId, pricePerStudentKobo, `refund-${idempotencyKey}-${studentId}`);
+      }
       throw err;
     }
 

@@ -57,6 +57,4 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().required(),
   CLOUDINARY_API_KEY: Joi.string().required(),
   CLOUDINARY_API_SECRET: Joi.string().required(),
-
-  CBT_PRICE_PER_STUDENT_KOBO: Joi.number().integer().min(0).default(10_000),
 });

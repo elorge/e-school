@@ -197,13 +197,37 @@ export class WalletService {
     return updated;
   }
 
-  /**
-   * Atomic debit for PIN generation: checks balance, writes the debit, all
-   * inside one DB transaction. idempotencyKey prevents double-charging on
-   * retry/double-click for the same generation request. Low-balance
-   * warning email is sent AFTER the transaction commits, never inside it —
-   * an email-side delay must never hold the DB transaction open.
+/**
+   * ONE charge per (student, term) unlocks BOTH PIN generation and CBT
+   * for that student that term — not two separate debits. Whichever
+   * happens first (PIN generation or CBT publish) pays; the other is
+   * free for that same student+term, because the underlying product is
+   * the same thing: this student's verified result for this term.
    */
+  async debitPlatformAccessFee(schoolId: string, studentId: string, termId: string, amountKobo: number) {
+    const reference = `platform-access-${schoolId}-${studentId}-${termId}`;
+    const existing = await this.prisma.walletLedgerEntry.findUnique({ where: { reference } });
+    if (existing) return { entry: existing, alreadyCharged: true };
+
+    const balance = await this.getBalanceKobo(schoolId);
+    if (balance < amountKobo) {
+      throw new BadRequestException('Insufficient wallet balance');
+    }
+
+    const entry = await this.prisma.walletLedgerEntry.create({
+      data: { schoolId, type: LedgerType.DEBIT, amountKobo, source: LedgerSource.SYSTEM, status: LedgerStatus.CONFIRMED, reference },
+    });
+
+    const newBalanceKobo = await this.getBalanceKobo(schoolId);
+    if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
+      await this.notifyAdmins(schoolId, (admin, schoolName) =>
+        this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo }),
+      );
+    }
+
+    return { entry, alreadyCharged: false };
+  }
+  
   async debitForPinGeneration(schoolId: string, amountKobo: number, idempotencyKey: string) {
     const entry = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const existing = await tx.walletLedgerEntry.findUnique({ where: { idempotencyKey } });

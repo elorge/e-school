@@ -43,6 +43,13 @@ model School {
   calendarEvents    AcademicCalendarEvent[]
   cbtTests          CbtTest[]
 
+  feeStructures     FeeStructure[]
+  feeInvoices       FeeInvoice[]
+  feePayments       FeePayment[]
+  inventoryItems    InventoryItem[]
+  inventoryTx       InventoryTransaction[]
+  expenseEntries    ExpenseEntry[]
+
   @@map("schools")
 }
 
@@ -71,6 +78,10 @@ model User {
   approvedLedgerEntries WalletLedgerEntry[]  @relation("ApprovedBy")
   passwordResetTokens   PasswordResetToken[]
 
+  feePaymentsRecorded    FeePayment[]            @relation("FeePaymentRecordedBy")
+  inventoryTxRecorded    InventoryTransaction[]  @relation("InventoryRecordedBy")
+  expensesRecorded       ExpenseEntry[]          @relation("ExpenseRecordedBy")
+
   @@map("users")
 }
 
@@ -87,8 +98,9 @@ model Class {
   classTeacher     User?    @relation("ClassTeacher", fields: [classTeacherId], references: [id])
   createdAt        DateTime @default(now())
 
-  students Student[]
-  cbtTests CbtTest[]
+  students      Student[]
+  cbtTests      CbtTest[]
+  feeStructures FeeStructure[]
 
   @@map("classes")
 }
@@ -148,6 +160,7 @@ model Student {
   attendanceRecords AttendanceRecord[]
   pins              Pin[]
   cbtAttempts       CbtAttempt[]
+  feeInvoices       FeeInvoice[]
 
   @@index([schoolId, admissionYear, status]) // serves the sequence-count query in createAndAssignId
   @@map("students")
@@ -167,6 +180,8 @@ model Term {
   pins           Pin[]
   calendarEvents AcademicCalendarEvent[]
   cbtTests       CbtTest[]
+  feeStructures  FeeStructure[]
+  feeInvoices    FeeInvoice[]
 
   @@unique([schoolId, academicSession, termNumber])
   @@index([schoolId, academicSession])
@@ -449,4 +464,125 @@ model CbtAttempt {
 
   @@unique([testId, studentId])
   @@map("cbt_attempts")
+}
+
+// ─── Fees ────────────────────────────────────────────────────────────────
+
+enum FeeInvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+model FeeStructure {
+  id        String   @id @default(uuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  termId    String
+  term      Term     @relation(fields: [termId], references: [id])
+  classId   String?  // null = applies to every class this term
+  class     Class?   @relation(fields: [classId], references: [id])
+  name      String   // e.g. "Tuition", "Books", "Boarding"
+  amountKobo Int
+  createdAt DateTime @default(now())
+
+  @@map("fee_structures")
+}
+
+model FeeInvoice {
+  id           String           @id @default(uuid())
+  schoolId     String
+  school       School           @relation(fields: [schoolId], references: [id])
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id])
+  termId       String
+  term         Term             @relation(fields: [termId], references: [id])
+  totalKobo    Int
+  paidKobo     Int              @default(0)
+  status       FeeInvoiceStatus @default(UNPAID)
+  createdAt    DateTime         @default(now())
+
+  payments FeePayment[]
+
+  @@unique([schoolId, studentId, termId])
+  @@map("fee_invoices")
+}
+
+enum FeePaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+}
+
+model FeePayment {
+  id          String           @id @default(uuid())
+  schoolId    String
+  school      School           @relation(fields: [schoolId], references: [id])
+  invoiceId   String
+  invoice     FeeInvoice       @relation(fields: [invoiceId], references: [id])
+  amountKobo  Int
+  method      FeePaymentMethod
+  reference   String           @unique
+  recordedById String
+  recordedBy  User             @relation("FeePaymentRecordedBy", fields: [recordedById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@map("fee_payments")
+}
+
+// ─── Inventory ──────────────────────────────────────────────────────────
+
+model InventoryItem {
+  id           String   @id @default(uuid())
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id])
+  name         String
+  category     String?  // e.g. "Furniture", "IT Equipment", "Consumables"
+  unit         String   @default("pcs")
+  quantityOnHand Int    @default(0)
+  reorderLevel Int      @default(0) // below this, flag as low-stock
+  unitCostKobo Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  transactions InventoryTransaction[]
+
+  @@map("inventory_items")
+}
+
+enum InventoryTransactionType {
+  STOCK_IN
+  STOCK_OUT
+}
+
+model InventoryTransaction {
+  id           String                    @id @default(uuid())
+  schoolId     String
+  school       School                    @relation(fields: [schoolId], references: [id])
+  itemId       String
+  item         InventoryItem             @relation(fields: [itemId], references: [id])
+  type         InventoryTransactionType
+  quantity     Int
+  note         String?
+  recordedById String
+  recordedBy   User                      @relation("InventoryRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime                  @default(now())
+
+  @@map("inventory_transactions")
+}
+
+// ─── Accounting (lean: expenses + a derived income/expenditure report) ───
+
+model ExpenseEntry {
+  id           String   @id @default(uuid())
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id])
+  category     String   // e.g. "Salaries", "Utilities", "Maintenance", "Inventory Purchase"
+  description  String
+  amountKobo   Int
+  incurredAt   DateTime
+  recordedById String
+  recordedBy   User     @relation("ExpenseRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@map("expense_entries")
 }

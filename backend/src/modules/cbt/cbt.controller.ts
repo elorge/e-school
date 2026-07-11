@@ -62,8 +62,8 @@ export class CbtController {
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Post(':id/publish')
-  publish(@Req() req: Request, @Param('id') id: string, @Body() body: { idempotencyKey: string }) {
-    return this.cbtService.publishTest(req.schoolId!, id, body.idempotencyKey);
+  publish(@Req() req: Request, @Param('id') id: string, @Body() body: { idempotencyKey: string; studentIds?: string[] }) {
+    return this.cbtService.publishTest(req.schoolId!, id, body.idempotencyKey, body.studentIds);
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)

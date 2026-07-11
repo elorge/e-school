@@ -8,7 +8,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.enableCors();
+  const allowedOrigins = process.env.FRONTEND_ORIGINS?.split(',').map((o) => o.trim());
+  app.enableCors({ origin: allowedOrigins ?? true }); // true = allow all, used only if FRONTEND_ORIGINS isn't set yet
 
   const port = process.env.PORT || 4000;
   await app.listen(port);

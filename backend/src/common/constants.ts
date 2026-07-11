@@ -63,5 +63,3 @@ export const SUBJECT_CAREER_FIELDS: Record<string, string[]> = {
   'Christian Religious Studies': ['Theology', 'Public Administration', 'Law'],
   'Islamic Religious Studies': ['Theology', 'Public Administration', 'Law'],
 };
-
-export const CBT_PRICE_PER_STUDENT_KOBO = Number(process.env.CBT_PRICE_PER_STUDENT_KOBO ?? 10_000);

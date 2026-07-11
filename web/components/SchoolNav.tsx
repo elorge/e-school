@@ -39,6 +39,9 @@ export default function SchoolNav({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         {user?.role === 'SCHOOL_ADMIN' && <Link href={`/${slug}/admin`}>Admin</Link>}
         {user?.role === 'SCHOOL_ADMIN' && <Link href={`/${slug}/admin/documents`}>Documents</Link>}
+        {user?.role === 'SCHOOL_ADMIN' && <Link href={`/${slug}/admin/fees`}>Fees</Link>}
+        {user?.role === 'SCHOOL_ADMIN' && <Link href={`/${slug}/admin/inventory`}>Inventory</Link>}
+        {user?.role === 'SCHOOL_ADMIN' && <Link href={`/${slug}/admin/accounting`}>Accounting</Link>}
         {(user?.role === 'SCHOOL_ADMIN' || user?.role === 'STAFF') && <Link href={`/${slug}/staff`}>Staff</Link>}
         {sessionWrapEnabled && (user?.role === 'SCHOOL_ADMIN' || user?.role === 'STAFF') && (
           <Link href={`/${slug}/staff/session-wrap`}>Session Wrap</Link>

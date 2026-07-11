@@ -69,10 +69,10 @@ export function addQuestion(
   return apiFetch(`/${school}/cbt/tests/${testId}/questions`, { method: 'POST', body: JSON.stringify(body) });
 }
 
-export function publishTest(school: string, testId: string) {
+export function publishTest(school: string, testId: string, studentIds?: string[]) {
   return apiFetch(`/${school}/cbt/tests/${testId}/publish`, {
     method: 'POST',
-    body: JSON.stringify({ idempotencyKey: crypto.randomUUID() }),
+    body: JSON.stringify({ idempotencyKey: crypto.randomUUID(), studentIds }),
   });
 }
 

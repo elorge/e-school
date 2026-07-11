@@ -4,9 +4,10 @@ import { CbtService } from './cbt.service';
 import { CbtController } from './cbt.controller';
 import { WalletModule } from '../wallet/wallet.module';
 import { ResultsModule } from '../results/results.module';
+import { SchoolsModule } from '../schools/schools.module';
 
 @Module({
-  imports: [WalletModule, ResultsModule],
+  imports: [WalletModule, ResultsModule, SchoolsModule],
   providers: [CbtService],
   controllers: [CbtController],
 })

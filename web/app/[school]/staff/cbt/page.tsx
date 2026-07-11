@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { listClasses } from '@/lib/endpoints/classes';
+import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import Link from 'next/link';
 import {
@@ -26,6 +27,8 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [tests, setTests] = useState<CbtTest[]>([]);
   const [selectedTest, setSelectedTest] = useState<CbtTest | null>(null);
   const [attempts, setAttempts] = useState<any[]>([]);
+  const [classStudents, setClassStudents] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({ termId: '', classId: '', subject: '', title: '', durationMinutes: 30, theoryMaxScore: 0 });
@@ -41,16 +44,28 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       .catch(() => setError('Failed to load setup data'));
   }, [params.school]);
 
-  async function handleCreateTest(e: React.FormEvent) {
+async function handleCreateTest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
       const test = await createTest(params.school, form);
       setTests((t) => [test, ...t]);
       setSelectedTest(test);
+      const students = await listStudents(params.school, test.classId);
+      setClassStudents(students);
+      setSelectedStudentIds(new Set(students.map((s) => s.id))); // default: everyone in the class selected
     } catch {
       setError('Could not create test');
     }
+  }
+
+  function toggleStudent(id: string) {
+    setSelectedStudentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
   async function handleAddQuestion(e: React.FormEvent) {
@@ -65,11 +80,11 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
     }
   }
 
-  async function handlePublish() {
+async function handlePublish() {
     if (!selectedTest) return;
     setError(null);
     try {
-      const updated = await publishTest(params.school, selectedTest.id);
+      const updated = await publishTest(params.school, selectedTest.id, Array.from(selectedStudentIds));
       setSelectedTest(updated);
       setTests((t) => t.map((x) => (x.id === updated.id ? updated : x)));
     } catch (err: any) {
@@ -217,8 +232,24 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               Add question
             </button>
           </form>
+{classStudents.length > 0 && (
+            <div className="mt-4 rounded border p-3">
+              <p className="mb-2 text-sm font-medium">
+                Assign to ({selectedStudentIds.size} of {classStudents.length} selected — only selected students are charged
+                and get an attempt)
+              </p>
+              <div className="flex flex-col gap-1">
+                {classStudents.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={selectedStudentIds.has(s.id)} onChange={() => toggleStudent(s.id)} />
+                    {s.firstName} {s.lastName}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <button onClick={handlePublish} className="mt-4 rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-            Publish test (debits wallet per assigned student)
+            Publish test (debits wallet for {selectedStudentIds.size} selected student(s))
           </button>
         </section>
       )}
