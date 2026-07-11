@@ -1,0 +1,166 @@
+// backend/src/modules/schools/schools.service.ts
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../../prisma/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
+import { EmailService } from '../email/email.service';
+import { SignupRequestStatus } from '@prisma/client';
+import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO } from '../../common/constants';
+
+@Injectable()
+export class SchoolsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly walletService: WalletService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  findBySlug(slug: string) {
+    return this.prisma.school.findUnique({ where: { slug } });
+  }
+
+  async findByIdOrThrow(id: string) {
+    const school = await this.prisma.school.findUnique({ where: { id } });
+    if (!school) throw new NotFoundException('School not found');
+    return school;
+  }
+
+  /**
+   * Onboards a new school, grants the one-time welcome bonus (spec doc
+   * §7.5), and emails the school's first admin. `adminEmail`/`adminName`
+   * are the credentials of the SCHOOL_ADMIN this school is being created
+   * for — the controller/caller is responsible for also creating that
+   * User via AuthService (order: school first, then admin user, since the
+   * admin user's schoolId FK needs the school to already exist).
+   */
+  async create(data: {
+    slug: string;
+    name: string;
+    code: string;
+    logoUrl?: string;
+    adminEmail: string;
+    adminName: string;
+  }) {
+    const school = await this.prisma.school.create({
+      data: { slug: data.slug, name: data.name, code: data.code, logoUrl: data.logoUrl },
+    });
+    await this.walletService.grantWelcomeBonus(school.id, WELCOME_BONUS_KOBO);
+
+    await this.emailService.sendSchoolWelcome({
+      toEmail: data.adminEmail,
+      toName: data.adminName,
+      schoolName: school.name,
+      slug: school.slug,
+      welcomeBonusKobo: WELCOME_BONUS_KOBO,
+    });
+
+    return school;
+  }
+
+  async setPriceOverride(slug: string, koboAmount: number | null | undefined) {
+    return this.prisma.school.update({
+      where: { slug },
+      data: { pricePerStudentKoboOverride: koboAmount ?? null },
+    });
+  }
+
+  async setSessionWrapEnabled(slug: string, enabled: boolean) {
+    return this.prisma.school.update({
+      where: { slug },
+      data: { sessionWrapEnabled: enabled },
+    });
+  }
+
+  async getEffectivePricePerStudentKobo(schoolId: string): Promise<number> {
+    const school = await this.findByIdOrThrow(schoolId);
+    return school.pricePerStudentKoboOverride ?? PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO;
+  }
+
+  /** Public entry point — creates nothing yet, just queues a request for SUPER_ADMIN review. */
+  async createSignupRequest(data: {
+    schoolName: string;
+    slug: string;
+    code: string;
+    adminName: string;
+    adminEmail: string;
+    adminPassword: string;
+    phone?: string;
+  }) {
+    const [slugTaken, codeTaken] = await Promise.all([
+      this.prisma.school.findUnique({ where: { slug: data.slug } }),
+      this.prisma.school.findUnique({ where: { code: data.code } }),
+    ]);
+    if (slugTaken) throw new ConflictException('That workspace name is already taken');
+    if (codeTaken) throw new ConflictException('That school code is already taken');
+
+    const adminPasswordHash = await bcrypt.hash(data.adminPassword, 10);
+    return this.prisma.schoolSignupRequest.create({
+      data: {
+        schoolName: data.schoolName,
+        slug: data.slug,
+        code: data.code,
+        adminName: data.adminName,
+        adminEmail: data.adminEmail,
+        adminPassword: adminPasswordHash,
+        phone: data.phone,
+      },
+      select: { id: true, schoolName: true, slug: true, status: true, createdAt: true },
+    });
+  }
+
+  listSignupRequests(status?: SignupRequestStatus) {
+    return this.prisma.schoolSignupRequest.findMany({
+      where: status ? { status } : {},
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Approves a pending request: creates the real School + its first
+   * SCHOOL_ADMIN user directly from the already-hashed password on file
+   * — no second password prompt needed. Reuses `create()` below to stay
+   * consistent with the existing sales-assisted flow.
+   */
+  async approveSignupRequest(requestId: string) {
+    const request = await this.prisma.schoolSignupRequest.findUniqueOrThrow({ where: { id: requestId } });
+    if (request.status !== SignupRequestStatus.PENDING) {
+      throw new ConflictException('This request has already been reviewed');
+    }
+
+    const school = await this.create({
+      slug: request.slug,
+      name: request.schoolName,
+      code: request.code,
+      adminEmail: request.adminEmail,
+      adminName: request.adminName,
+    });
+
+    // Insert the admin user directly with the ALREADY-HASHED password
+    // from signup — bypasses AuthService.createUser (which hashes a raw
+    // password) since we only ever stored the hash.
+    await this.prisma.user.create({
+      data: {
+        schoolId: school.id,
+        role: 'SCHOOL_ADMIN',
+        email: request.adminEmail,
+        passwordHash: request.adminPassword,
+        fullName: request.adminName,
+      },
+    });
+
+    await this.prisma.schoolSignupRequest.update({
+      where: { id: requestId },
+      data: { status: SignupRequestStatus.APPROVED, reviewedAt: new Date() },
+    });
+
+    return school;
+  }
+
+  async rejectSignupRequest(requestId: string) {
+    return this.prisma.schoolSignupRequest.update({
+      where: { id: requestId },
+      data: { status: SignupRequestStatus.REJECTED, reviewedAt: new Date() },
+    });
+  }
+
+}

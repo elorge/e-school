@@ -1,0 +1,452 @@
+// backend/prisma/schema.prisma
+// Eschools — complete data model.
+// This file is the single source of truth for the database schema.
+// Row-Level Security policies (see spec doc §3, Multi-Tenancy Strategy)
+// are NOT expressible in Prisma's schema language — add them as raw SQL
+// inside a migration (prisma migrate dev --create-only, then hand-edit
+// the generated .sql file) before going to production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Platform & tenancy ─────────────────────────────────────────────────
+
+model School {
+  id                          String   @id @default(uuid())
+  slug                        String   @unique // path-based tenant id, e.g. "greenwood-college"
+  name                        String
+  code                        String   @unique // short code used to build Admission IDs, e.g. "GRW"
+  logoUrl                     String?
+  info                        Json? // address, contact info — rendered onto reports
+  pricePerStudentKoboOverride Int? // null = use platform default
+  sessionWrapEnabled          Boolean  @default(false) // per-school flag — off by default, turned on per pilot school
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  
+  users             User[]
+  classes           Class[]
+  students          Student[]
+  terms             Term[]
+  subjects          Subject[]
+  pins              Pin[]
+  pinLookupAttempts PinLookupAttempt[]
+  ledgerEntries     WalletLedgerEntry[]
+  reportTemplate    ReportTemplate?
+  idCards           IdCard[]
+  attendanceRecords AttendanceRecord[]
+  calendarEvents    AcademicCalendarEvent[]
+  cbtTests          CbtTest[]
+
+  @@map("schools")
+}
+
+enum Role {
+  SUPER_ADMIN // Elorge — platform-wide, cross-tenant
+  FINANCE_OPS // Elorge — platform-wide, billing only
+  SCHOOL_ADMIN // single school
+  STAFF // single school, assigned class(es)
+}
+
+model User {
+  id           String   @id @default(uuid())
+  schoolId     String? // null for SUPER_ADMIN / FINANCE_OPS
+  school       School?  @relation(fields: [schoolId], references: [id])
+  role         Role
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  createdAt    DateTime @default(now())
+
+  classesCreated        Class[]              @relation("ClassCreatedBy")
+  classesTeaching       Class[]              @relation("ClassTeacher")
+  cbtTestsCreated       CbtTest[]            @relation("CbtTestCreatedBy")
+  studentsCreated       Student[]            @relation("StudentCreatedBy")
+  attendanceScans       AttendanceRecord[]   @relation("ScannedBy")
+  approvedLedgerEntries WalletLedgerEntry[]  @relation("ApprovedBy")
+  passwordResetTokens   PasswordResetToken[]
+
+  @@map("users")
+}
+
+// ─── Academic structure ─────────────────────────────────────────────────
+
+model Class {
+  id               String   @id @default(uuid())
+  schoolId         String
+  school           School   @relation(fields: [schoolId], references: [id])
+  name             String
+  createdByStaffId String
+  createdBy        User     @relation("ClassCreatedBy", fields: [createdByStaffId], references: [id])
+  classTeacherId   String?
+  classTeacher     User?    @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  createdAt        DateTime @default(now())
+
+  students Student[]
+  cbtTests CbtTest[]
+
+  @@map("classes")
+}
+
+enum SignupRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Self-service school onboarding request — a prospective School Admin
+/// submits this before a School row exists. SUPER_ADMIN reviews and, on
+/// approval, the service layer creates the actual School + first User
+/// from these fields. No FK to School here on purpose: this row exists
+/// precisely because no School exists yet.
+model SchoolSignupRequest {
+  id            String              @id @default(uuid())
+  schoolName    String
+  slug          String              @unique
+  code          String
+  adminName     String
+  adminEmail    String
+  adminPassword String // hashed immediately on submit — never stored plaintext, see service
+  phone         String?
+  status        SignupRequestStatus @default(PENDING)
+  createdAt     DateTime            @default(now())
+  reviewedAt    DateTime?
+
+  @@map("school_signup_requests")
+}
+
+enum StudentStatus {
+  PENDING_ID // created offline, awaiting server-assigned sequential ID — see spec doc §9.1
+  ACTIVE
+  WITHDRAWN // removed from their class by a class teacher/admin; history (results, attendance) stays intact
+}
+
+model Student {
+  id                 String        @id @default(uuid())
+  schoolId           String
+  school             School        @relation(fields: [schoolId], references: [id])
+  classId            String
+  class              Class         @relation(fields: [classId], references: [id])
+  studentId          String?       @unique // e.g. "GRW/2026/0001" — assigned server-side at sync, never on-device
+  clientReferenceId  String?       @unique // client-generated UUID, set at creation time on-device — prevents duplicate rows if an offline-queued registration is retried after a partial success
+  status             StudentStatus @default(PENDING_ID)
+  firstName          String
+  lastName           String
+  photoUrl           String?
+  admissionYear      Int
+  createdByStaffId   String
+  createdBy          User          @relation("StudentCreatedBy", fields: [createdByStaffId], references: [id])
+  createdAt          DateTime      @default(now())
+
+  results           ResultEntry[]
+  idCards           IdCard[]
+  attendanceRecords AttendanceRecord[]
+  pins              Pin[]
+  cbtAttempts       CbtAttempt[]
+
+  @@index([schoolId, admissionYear, status]) // serves the sequence-count query in createAndAssignId
+  @@map("students")
+}
+
+model Term {
+  id               String   @id @default(uuid())
+  schoolId         String
+  school           School   @relation(fields: [schoolId], references: [id])
+  name             String // e.g. "2025/2026 — Term 1"
+  academicSession  String // e.g. "2025/2026" — groups terms 1-3 for session-level analysis
+  termNumber       Int // 1, 2, or 3
+  startDate        DateTime
+  endDate          DateTime
+
+  results        ResultEntry[]
+  pins           Pin[]
+  calendarEvents AcademicCalendarEvent[]
+  cbtTests       CbtTest[]
+
+  @@unique([schoolId, academicSession, termNumber])
+  @@index([schoolId, academicSession])
+  @@map("terms")
+}
+
+model Subject {
+  id       String @id @default(uuid())
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+  name     String
+
+  @@map("subjects")
+}
+
+model ResultEntry {
+  id             String   @id @default(uuid())
+  schoolId       String
+  studentId      String
+  student        Student  @relation(fields: [studentId], references: [id])
+  termId         String
+  term           Term     @relation(fields: [termId], references: [id])
+  subjectScores  Json // { "Mathematics": 78, "English": 82, ... }
+  teacherComment String?
+  classTeacherId String // NOTE: intentionally a plain string, not a User FK — see below
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Performance trend is computed at render time from prior ResultEntry
+  // rows for the same student — deliberately not stored, so a later
+  // correction to an old term's score doesn't leave a stale trend cached
+  // anywhere. See spec doc §10.2.
+
+  @@unique([schoolId, studentId, termId]) // one result per student per term; enables a real upsert
+  @@map("result_entries")
+}
+
+// ─── Report cards ────────────────────────────────────────────────────────
+
+model ReportTemplate {
+  id                   String @id @default(uuid())
+  schoolId             String @unique
+  school               School @relation(fields: [schoolId], references: [id])
+  schoolLogoUrl        String // pulled from School.logoUrl — never an Elorge asset, see spec doc §10.1
+  headerFooterInfo     Json // pulled from School.info
+  verificationQrPrefix String @default("https://elorgeschools.com/verify") // renders small, alongside the school's own branding
+
+  @@map("report_templates")
+}
+
+// ─── Student PIN access ─────────────────────────────────────────────────
+
+enum PinStatus {
+  ACTIVE
+  INVALIDATED // set immediately when a new term's PIN is generated — no grace period, see spec doc §6
+}
+
+model Pin {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id])
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id])
+  termId      String
+  term        Term      @relation(fields: [termId], references: [id])
+  pinHash     String // never store plaintext
+  status      PinStatus @default(ACTIVE)
+  generatedAt DateTime  @default(now())
+
+  @@unique([schoolId, studentId, termId])
+  @@index([schoolId, studentId, status]) // serves lookupResult's (schoolId, studentId, ACTIVE) query
+  @@map("pins")
+}
+
+/// Rate limiting for the public, unauthenticated /results/lookup endpoint
+/// (spec doc §6). Keyed on (schoolId, admissionId) as raw strings rather
+/// than a Student FK, since a guessed admission ID may not correspond to
+/// any real student and still needs to be throttled.
+model PinLookupAttempt {
+  id             String    @id @default(uuid())
+  schoolId       String
+  school         School    @relation(fields: [schoolId], references: [id])
+  admissionId    String // as typed by the client — matches Student.studentId when valid
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime? // null = not locked
+  lastAttemptAt  DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([schoolId, admissionId])
+  @@map("pin_lookup_attempts")
+}
+
+/// Single-use, expiring, hashed password-reset tokens. Backs the
+/// self-service reset flow (forgot-password / reset-password endpoints).
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique // never store the raw token, only its hash
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ─── ID cards & attendance ──────────────────────────────────────────────
+
+model IdCard {
+  id        String   @id @default(uuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  qrCode    String   @unique // encodes school_id + student_id; scanned for attendance
+  issuedAt  DateTime @default(now())
+
+  // Digital card generation is free/bundled — see spec doc §9.2. If
+  // physical card fulfillment ships later, model it as a separate
+  // PrintOrder entity with its own pricing, not a field here.
+
+  @@map("id_cards")
+}
+
+model AttendanceRecord {
+  id                String   @id @default(uuid())
+  schoolId          String
+  school            School   @relation(fields: [schoolId], references: [id])
+  studentId         String
+  student           Student  @relation(fields: [studentId], references: [id])
+  scannedByStaffId  String
+  scannedBy         User     @relation("ScannedBy", fields: [scannedByStaffId], references: [id])
+  source            String   @default("qr")
+  occurredAt        DateTime // when the scan actually happened on-device — trusted within a clamp, see AttendanceService
+  syncedAt          DateTime @default(now()) // when this record reached the server — kept separate from occurredAt so a late sync never looks like a late arrival
+  clientReferenceId String   @unique // dedupes retried offline-queued scans, same pattern as Student.clientReferenceId
+
+  @@index([schoolId, studentId])
+  @@map("attendance_records")
+}
+
+// ─── Wallet & billing ───────────────────────────────────────────────────
+
+enum LedgerType {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerSource {
+  GATEWAY
+  MANUAL_TRANSFER
+  DVA
+  PROMO // includes the one-time ₦100,000 welcome bonus — see spec doc §7.5
+  SYSTEM // internal debits (e.g. PIN generation) that aren't funding-sourced
+  REFUND // reversal of a debit whose downstream work failed
+}
+
+enum LedgerStatus {
+  PENDING // manual transfer claim awaiting Finance/Ops review
+  CONFIRMED
+  REJECTED
+}
+
+/// Append-only. Never update or delete a row here, and never derive the
+/// wallet balance from anywhere other than
+/// SUM(confirmed credits) - SUM(confirmed debits) for a given schoolId.
+/// See spec doc §7.4.
+model WalletLedgerEntry {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id])
+  type           LedgerType
+  amountKobo     Int // always integer kobo, never a float Naira value
+  source         LedgerSource
+  status         LedgerStatus @default(PENDING)
+  reference      String       @unique // gateway tx ref, ELG-{school_id}-XXXX for transfers, welcome-bonus-{school_id}, or refund-{idempotencyKey}
+  approvedById   String?
+  approvedBy     User?        @relation("ApprovedBy", fields: [approvedById], references: [id])
+  idempotencyKey String?      @unique // required on debits tied to a PIN generation request
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, type, status]) // serves getBalanceKobo's two aggregate queries
+  @@map("wallet_ledger")
+}
+
+enum CalendarEventType {
+  TERM_START
+  TERM_END
+  MIDTERM_BREAK
+  EXAM_PERIOD
+  RESUMPTION
+  PTA_MEETING
+  HOLIDAY
+  CUSTOM
+}
+
+model AcademicCalendarEvent {
+  id          String            @id @default(uuid())
+  schoolId    String
+  school      School            @relation(fields: [schoolId], references: [id])
+  termId      String?
+  term        Term?             @relation(fields: [termId], references: [id])
+  type        CalendarEventType
+  title       String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  createdAt   DateTime          @default(now())
+
+  @@index([schoolId, termId])
+  @@map("academic_calendar_events")
+}
+
+enum CbtTestStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum CbtAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+model CbtTest {
+  id                 String        @id @default(uuid())
+  schoolId           String
+  school             School        @relation(fields: [schoolId], references: [id])
+  termId             String
+  term               Term          @relation(fields: [termId], references: [id])
+  classId            String
+  class              Class         @relation(fields: [classId], references: [id])
+  subject            String // matches the subject key used in ResultEntry.subjectScores
+  title              String
+  durationMinutes    Int
+  objectiveMaxScore  Int // sum of all question points — computed on publish, cached here for quick display
+  theoryMaxScore     Int @default(0) // 0 = objectives-only test, no theory portion
+  status             CbtTestStatus @default(DRAFT)
+  createdByStaffId   String
+  createdBy          User          @relation("CbtTestCreatedBy", fields: [createdByStaffId], references: [id])
+  createdAt          DateTime      @default(now())
+
+  questions CbtQuestion[]
+  attempts  CbtAttempt[]
+
+  @@map("cbt_tests")
+}
+
+model CbtQuestion {
+  id                 String   @id @default(uuid())
+  testId             String
+  test               CbtTest  @relation(fields: [testId], references: [id])
+  questionText       String
+  options            Json // string[]
+  correctOptionIndex Int
+  points             Int      @default(1)
+  order              Int
+
+  @@map("cbt_questions")
+}
+
+model CbtAttempt {
+  id             String            @id @default(uuid())
+  testId         String
+  test           CbtTest           @relation(fields: [testId], references: [id])
+  studentId      String
+  student        Student           @relation(fields: [studentId], references: [id])
+  answers        Json              @default("{}") // { [questionId]: selectedOptionIndex }
+  objectiveScore Int?
+  theoryScore    Int?
+  status         CbtAttemptStatus  @default(IN_PROGRESS)
+  createdAt      DateTime          @default(now()) // when the attempt row was created (at publish)
+  beginAt        DateTime? // when the student actually started — set on first getAttemptForStudent call, drives the countdown deadline
+  submittedAt    DateTime?
+  gradedAt       DateTime?
+
+  @@unique([testId, studentId])
+  @@map("cbt_attempts")
+}

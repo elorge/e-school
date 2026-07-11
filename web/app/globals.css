@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-blue: #0b3d91;
+  --brand-green: #1f9d55;
+  --ink: #0b1220;
+  --paper: #fbfcfe;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Visible keyboard focus everywhere — accessibility floor, not optional */
+:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Perforated / torn-edge motif — the signature device, used sparingly */
+.torn-edge {
+  position: relative;
+}
+.torn-edge::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 12px;
+  background-image: radial-gradient(circle at 6px 0, transparent 6px, var(--paper) 6.5px);
+  background-size: 12px 12px;
+  background-repeat: repeat-x;
+}
