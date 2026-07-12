@@ -423,6 +423,9 @@ model CbtTest {
   durationMinutes    Int
   objectiveMaxScore  Int // sum of all question points — computed on publish, cached here for quick display
   theoryMaxScore     Int @default(0) // 0 = objectives-only test, no theory portion
+  accessCode         String? @unique // generated at publish — student self-service uses this + Admission ID, spoken aloud on test day, NOT the parent's result PIN
+  scheduledDate      DateTime // the calendar day this test is meant to run — access code only works on this day
+  accessWindowMinutes Int @default(60) // how long AFTER scheduledDate's start the code stays valid — covers late starters, not an open-ended window
   status             CbtTestStatus @default(DRAFT)
   createdByStaffId   String
   createdBy          User          @relation("CbtTestCreatedBy", fields: [createdByStaffId], references: [id])

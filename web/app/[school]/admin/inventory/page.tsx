@@ -3,20 +3,26 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import LoadingScreen from '@/components/LoadingScreen';
 import { listItems, listLowStock, createItem, recordTransaction, type InventoryItem } from '@/lib/endpoints/inventory';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
 export default function InventoryPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [lowStock, setLowStock] = useState<InventoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', category: '', unit: 'pcs', reorderLevel: 0, unitCostKobo: 0 });
 
   async function load() {
-    setItems(await listItems(params.school));
-    setLowStock(await listLowStock(params.school));
+    try {
+      setItems(await listItems(params.school));
+      setLowStock(await listLowStock(params.school));
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -46,6 +52,8 @@ export default function InventoryPage({ params }: { params: { school: string } }
       setError('Could not record transaction — check stock levels');
     }
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">

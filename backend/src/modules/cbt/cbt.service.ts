@@ -1,5 +1,6 @@
 // backend/src/modules/cbt/cbt.service.ts
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -18,13 +19,38 @@ export class CbtService {
     private readonly schoolsService: SchoolsService,
   ) {}
 
-  createTest(
+createTest(
     schoolId: string,
     createdByStaffId: string,
-    data: { termId: string; classId: string; subject: string; title: string; durationMinutes: number; theoryMaxScore: number },
+    data: {
+      termId: string;
+      classId: string;
+      subject: string;
+      title: string;
+      durationMinutes: number;
+      theoryMaxScore: number;
+      scheduledDate: string;
+      accessWindowMinutes?: number;
+    },
   ) {
+    // Default window = the test's own duration + 30 minutes grace for
+    // staggered starts in a lab — long enough for stragglers, short
+    // enough that the code is dead well before end of day.
+    const accessWindowMinutes = data.accessWindowMinutes ?? data.durationMinutes + 30;
     return this.prisma.cbtTest.create({
-      data: { schoolId, createdByStaffId, ...data, objectiveMaxScore: 0 },
+      data: {
+        schoolId,
+        createdByStaffId,
+        termId: data.termId,
+        classId: data.classId,
+        subject: data.subject,
+        title: data.title,
+        durationMinutes: data.durationMinutes,
+        theoryMaxScore: data.theoryMaxScore,
+        scheduledDate: new Date(data.scheduledDate),
+        accessWindowMinutes,
+        objectiveMaxScore: 0,
+      },
     });
   }
 
@@ -181,9 +207,14 @@ if (students.length === 0) throw new BadRequestException('No students selected t
 
     const objectiveMaxScore = test.questions.reduce((sum, q) => sum + q.points, 0);
 
+const accessCode = String(randomInt(0, 1_000_000)).padStart(6, '0');
+
     try {
       await this.prisma.$transaction([
-        this.prisma.cbtTest.update({ where: { id: testId }, data: { status: CbtTestStatus.PUBLISHED, objectiveMaxScore } }),
+        this.prisma.cbtTest.update({
+          where: { id: testId },
+          data: { status: CbtTestStatus.PUBLISHED, objectiveMaxScore, accessCode },
+        }),
         this.prisma.cbtAttempt.createMany({
           data: students.map((s) => ({ testId, studentId: s.id })),
           skipDuplicates: true,
@@ -199,17 +230,47 @@ if (students.length === 0) throw new BadRequestException('No students selected t
     return this.findOneOrThrow(schoolId, testId);
   }
 
- /**
-   * Invigilating staff starts a session for a student physically in
-   * front of the device. beginAt is set ONLY on the first call — calling
-   * this again (e.g. the device was closed and reopened, or the same
-   * attempt is resumed after an offline gap) must never push the
-   * deadline forward, or a student could "restart the clock" by closing
-   * the tab.
+async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId: string) {
+    const test = await this.prisma.cbtTest.findFirst({ where: { schoolId, accessCode, status: CbtTestStatus.PUBLISHED } });
+    if (!test) throw new NotFoundException('Invalid or expired access code');
+
+    this.assertWithinScheduledWindow(test);
+
+    const student = await this.prisma.student.findFirst({ where: { schoolId, studentId: admissionId } });
+    if (!student) throw new NotFoundException('Admission ID not recognized');
+
+    return this.getAttemptForStudent(schoolId, test.id, student.id);
+  }
+
+  /**
+   * The window opens at midnight (device-server time) on scheduledDate
+   * and closes accessWindowMinutes later — not "the whole day," so a
+   * code generated for a 9am test can't be reused at 4pm the same day.
+   * Also blocks entry entirely on any OTHER day, before or after.
    */
-  async getAttemptForStudent(schoolId: string, testId: string, studentId: string) {
+  private assertWithinScheduledWindow(test: { scheduledDate: Date; accessWindowMinutes: number }) {
+    const now = new Date();
+    const scheduledStart = new Date(test.scheduledDate);
+    scheduledStart.setHours(0, 0, 0, 0);
+    const scheduledEnd = new Date(scheduledStart.getTime() + test.accessWindowMinutes * 60 * 1000);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (today.getTime() !== scheduledStart.getTime()) {
+      throw new ForbiddenException(
+        `This test is scheduled for ${scheduledStart.toDateString()} — the access code only works on that day.`,
+      );
+    }
+    if (now > scheduledEnd) {
+      throw new ForbiddenException('The access window for this test has closed for today.');
+    }
+  }
+
+async getAttemptForStudent(schoolId: string, testId: string, studentId: string) {
     const test = await this.findOneOrThrow(schoolId, testId);
     if (test.status !== CbtTestStatus.PUBLISHED) throw new ForbiddenException('This test is not currently open');
+    this.assertWithinScheduledWindow(test);
 
     let attempt = await this.prisma.cbtAttempt.findUnique({ where: { testId_studentId: { testId, studentId } } });
     if (!attempt) throw new NotFoundException('This student is not assigned to this test');

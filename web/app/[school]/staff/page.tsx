@@ -9,11 +9,13 @@ import { uploadStudentPhoto } from '@/lib/endpoints/uploads';
 import { listTerms } from '@/lib/endpoints/terms';
 import { getResult, saveResult } from '@/lib/endpoints/results';
 import { getSessionUser } from '@/lib/session';
+import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
 import type { Class, Student, Term } from '@/lib/types';
 
 export default function StaffPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -30,13 +32,15 @@ export default function StaffPage({ params }: { params: { school: string } }) {
   const [subjectScoresText, setSubjectScoresText] = useState('{\n  "Mathematics": 0,\n  "English": 0\n}');
   const [teacherComment, setTeacherComment] = useState('');
 
-  async function loadClasses() {
+async function loadClasses() {
     try {
       const [classList, termList] = await Promise.all([listClasses(params.school), listTerms(params.school)]);
       setClasses(classList);
       setTerms(termList);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load classes/terms');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -137,12 +141,13 @@ export default function StaffPage({ params }: { params: { school: string } }) {
     );
   }
 
+  if (isLoading) return <LoadingScreen />;
+
   return (
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">{school.name} — Staff</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
-
       <section>
         <h2 className="mb-2 font-medium">Classes &amp; Students</h2>
         <select

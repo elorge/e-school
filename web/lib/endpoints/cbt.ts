@@ -19,7 +19,16 @@ export function listTests(school: string): Promise<CbtTest[]> {
 
 export function createTest(
   school: string,
-  body: { termId: string; classId: string; subject: string; title: string; durationMinutes: number; theoryMaxScore: number },
+  body: {
+    termId: string;
+    classId: string;
+    subject: string;
+    title: string;
+    durationMinutes: number;
+    theoryMaxScore: number;
+    scheduledDate: string;
+    accessWindowMinutes?: number;
+  },
 ): Promise<CbtTest> {
   return apiFetch(`/${school}/cbt/tests`, { method: 'POST', body: JSON.stringify(body) });
 }
@@ -93,6 +102,11 @@ export function saveAnswer(school: string, attemptId: string, questionId: string
 
 export function submitAttempt(school: string, attemptId: string) {
   return apiFetch(`/${school}/cbt/tests/attempts/${attemptId}/submit`, { method: 'POST' });
+}
+
+/** Public — student self-service, no staff login involved. */
+export function studentLogin(school: string, accessCode: string, admissionId: string): Promise<AttemptSession> {
+  return apiFetch(`/${school}/cbt/tests/student-login`, { method: 'POST', body: JSON.stringify({ accessCode, admissionId }) });
 }
 
 export function gradeTheory(school: string, attemptId: string, theoryScore: number) {

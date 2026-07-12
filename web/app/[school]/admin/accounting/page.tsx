@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import LoadingScreen from '@/components/LoadingScreen';
 import { recordExpense, listExpenses, getSummary, type ExpenseEntry, type IncomeExpenditureSummary } from '@/lib/endpoints/accounting';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -17,6 +18,7 @@ function today() {
 
 export default function AccountingPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [from, setFrom] = useState(firstDayOfMonth());
   const [to, setTo] = useState(today());
   const [summary, setSummary] = useState<IncomeExpenditureSummary | null>(null);
@@ -24,12 +26,14 @@ export default function AccountingPage({ params }: { params: { school: string } 
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ category: '', description: '', amountKobo: 0, incurredAt: today() });
 
-  async function load() {
+async function load() {
     try {
       setSummary(await getSummary(params.school, from, to));
       setExpenses(await listExpenses(params.school, from, to));
     } catch {
       setError('Failed to load accounting data');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -49,6 +53,8 @@ export default function AccountingPage({ params }: { params: { school: string } 
       setError('Could not record expense');
     }
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">

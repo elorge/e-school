@@ -1,5 +1,5 @@
 // backend/src/modules/cbt/dto/create-test.dto.ts
-import { IsInt, IsString, IsUUID, Min, MinLength } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Min, MinLength } from 'class-validator';
 
 export class CreateTestDto {
   @IsUUID()
@@ -23,4 +23,12 @@ export class CreateTestDto {
   @IsInt()
   @Min(0)
   theoryMaxScore!: number; // 0 if objectives-only
+
+  @IsDateString()
+  scheduledDate!: string; // e.g. "2026-07-15" — the one day this test is meant to run
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  accessWindowMinutes?: number; // defaults server-side to durationMinutes + a grace buffer if omitted
 }

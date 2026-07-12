@@ -1,9 +1,9 @@
 // web/app/layout.tsx
-// web/app/layout.tsx
 import type { Metadata } from 'next';
 import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
+import InstallPrompt from '@/components/InstallPrompt';
 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', weight: ['500', '600', '700'] });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -30,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         {children}
         <ServiceWorkerRegistration />
+        <InstallPrompt />
       </body>
     </html>
   );

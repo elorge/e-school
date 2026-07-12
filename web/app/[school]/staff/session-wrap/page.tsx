@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import LoadingScreen from '@/components/LoadingScreen';
 import { listStudents } from '@/lib/endpoints/students';
 import { listSessions } from '@/lib/endpoints/terms';
 import { getSessionWrap, fetchSessionWrapPdf, type SessionWrap } from '@/lib/endpoints/insights';
@@ -12,6 +13,7 @@ import type { Student } from '@/lib/types';
 
 export default function StaffSessionWrapPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<string[]>([]);
   const [studentId, setStudentId] = useState('');
@@ -20,9 +22,14 @@ export default function StaffSessionWrapPage({ params }: { params: { school: str
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    listStudents(params.school).then(setStudents).catch(() => setError('Failed to load students'));
-    listSessions(params.school).then(setSessions).catch(() => setError('Failed to load sessions'));
+useEffect(() => {
+    Promise.all([listStudents(params.school), listSessions(params.school)])
+      .then(([s, sess]) => {
+        setStudents(s);
+        setSessions(sess);
+      })
+      .catch(() => setError('Failed to load students/sessions'))
+      .finally(() => setIsPageLoading(false));
   }, [params.school]);
 
   async function handleGenerate() {
@@ -43,6 +50,8 @@ export default function StaffSessionWrapPage({ params }: { params: { school: str
     const blob = await fetchSessionWrapPdf(params.school, studentId, academicSession);
     openPdfBlob(blob);
   }
+
+if (isPageLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-6">

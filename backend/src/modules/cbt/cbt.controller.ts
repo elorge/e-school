@@ -1,11 +1,13 @@
 // backend/src/modules/cbt/cbt.controller.ts
 import { Body, Controller, Get, Param, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { CbtService } from './cbt.service';
+import { Public } from '../../common/decorators/roles.decorator';
+import { TenantGuard } from '../../common/guards/tenant.guard';
 import { CreateTestDto } from './dto/create-test.dto';
 import { AddQuestionDto } from './dto/add-question.dto';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -100,5 +102,19 @@ export class CbtController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.cbtService.gradeTheory(req.schoolId!, attemptId, body.theoryScore, user.id);
+  }
+
+  /**
+   * Public — no staff login, no account. A student on any lab computer
+   * enters their own Admission ID + the code the invigilator read out.
+   * Throttled same as result lookup, since it's an unauthenticated,
+   * guessable-credential endpoint.
+   */
+  @Public()
+  @UseGuards(TenantGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('student-login')
+  studentLogin(@Req() req: Request, @Body() body: { accessCode: string; admissionId: string }) {
+    return this.cbtService.startAttemptByAccessCode(req.schoolId!, body.accessCode, body.admissionId);
   }
 }

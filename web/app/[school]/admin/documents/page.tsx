@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import LoadingScreen from '@/components/LoadingScreen';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import { fetchReportCardPdf, fetchIdCardPdf, fetchCalendarPdf, openPdfBlob } from '@/lib/endpoints/documents';
@@ -15,6 +16,7 @@ import type { Student, Term } from '@/lib/types';
  */
 export default function DocumentsPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -22,13 +24,14 @@ export default function DocumentsPage({ params }: { params: { school: string } }
   const [error, setError] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  useEffect(() => {
+useEffect(() => {
     Promise.all([listStudents(params.school), listTerms(params.school)])
       .then(([s, t]) => {
         setStudents(s);
         setTerms(t);
       })
-      .catch(() => setError('Failed to load students/terms'));
+      .catch(() => setError('Failed to load students/terms'))
+      .finally(() => setIsLoading(false));
   }, [params.school]);
 
   async function handleDownload(action: string, fetcher: () => Promise<Blob>) {
@@ -43,6 +46,8 @@ export default function DocumentsPage({ params }: { params: { school: string } }
       setLoadingAction(null);
     }
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">

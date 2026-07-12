@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import LoadingScreen from '@/components/LoadingScreen';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
@@ -22,6 +23,7 @@ import type { Class, Term } from '@/lib/types';
 
 export default function StaffCbtPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [tests, setTests] = useState<CbtTest[]>([]);
@@ -30,8 +32,17 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [classStudents, setClassStudents] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const [form, setForm] = useState({ termId: '', classId: '', subject: '', title: '', durationMinutes: 30, theoryMaxScore: 0 });
+  const [form, setForm] = useState({
+    termId: '',
+    classId: '',
+    subject: '',
+    title: '',
+    durationMinutes: 30,
+    theoryMaxScore: 0,
+    scheduledDate: new Date().toISOString().slice(0, 10),
+  });
   const [question, setQuestion] = useState({ questionText: '', options: ['', '', '', ''], correctOptionIndex: 0, points: 1 });
 
   useEffect(() => {
@@ -41,10 +52,11 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
         setTerms(t);
         setTests(ts);
       })
-      .catch(() => setError('Failed to load setup data'));
+      .catch(() => setError('Failed to load setup data'))
+      .finally(() => setIsLoading(false));
   }, [params.school]);
 
-async function handleCreateTest(e: React.FormEvent) {
+  async function handleCreateTest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
@@ -80,13 +92,17 @@ async function handleCreateTest(e: React.FormEvent) {
     }
   }
 
-async function handlePublish() {
+  async function handlePublish() {
     if (!selectedTest) return;
     setError(null);
     try {
       const updated = await publishTest(params.school, selectedTest.id, Array.from(selectedStudentIds));
       setSelectedTest(updated);
       setTests((t) => t.map((x) => (x.id === updated.id ? updated : x)));
+      const scheduledLabel = new Date(updated.scheduledDate).toDateString();
+      setNotice(
+        `Published for ${scheduledLabel}. Access code: ${updated.accessCode} — write this on the board that day. Students self-serve at ${window.location.origin}/${params.school}/cbt/login. The code will stop working outside that day's window.`,
+      );
     } catch (err: any) {
       setError(err?.message ?? 'Could not publish — check wallet balance and that questions exist');
     }
@@ -103,6 +119,8 @@ async function handlePublish() {
     if (selectedTest) loadAttempts(selectedTest);
   }
 
+  if (isLoading) return <LoadingScreen />;
+
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
@@ -112,6 +130,7 @@ async function handlePublish() {
         </Link>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {notice && <p className="text-sm text-brand-green">{notice}</p>}
 
       <section className="rounded-lg border p-4">
         <h2 className="mb-3 font-medium">Create a test</h2>
@@ -142,6 +161,16 @@ async function handlePublish() {
             onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
             required
           />
+          <label className="flex flex-col text-xs">
+            Test date
+            <input
+              className="rounded border px-2 py-1.5"
+              type="date"
+              value={form.scheduledDate}
+              onChange={(e) => setForm((f) => ({ ...f, scheduledDate: e.target.value }))}
+              required
+            />
+          </label>
           <label className="flex flex-col text-xs">
             Theory max (0 = objectives only)
             <input
@@ -232,7 +261,7 @@ async function handlePublish() {
               Add question
             </button>
           </form>
-{classStudents.length > 0 && (
+          {classStudents.length > 0 && (
             <div className="mt-4 rounded border p-3">
               <p className="mb-2 text-sm font-medium">
                 Assign to ({selectedStudentIds.size} of {classStudents.length} selected — only selected students are charged

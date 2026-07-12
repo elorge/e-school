@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import LoadingScreen from '@/components/LoadingScreen';
 import { listTerms } from '@/lib/endpoints/terms';
 import { listClasses } from '@/lib/endpoints/classes';
 import {
@@ -21,6 +22,7 @@ const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
 export default function FeesPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [terms, setTerms] = useState<Term[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [termId, setTermId] = useState('');
@@ -36,7 +38,7 @@ export default function FeesPage({ params }: { params: { school: string } }) {
     Promise.all([listTerms(params.school), listClasses(params.school)]).then(([t, c]) => {
       setTerms(t);
       setClasses(c);
-    });
+    }).finally(() => setIsLoading(false));
   }, [params.school]);
 
   useEffect(() => {
@@ -82,6 +84,8 @@ export default function FeesPage({ params }: { params: { school: string } }) {
     await recordPayment(params.school, invoiceId, amountKobo, method);
     refresh();
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">

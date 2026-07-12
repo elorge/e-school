@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { getBalance, initializePayment } from '@/lib/endpoints/wallet';
 import { listStaff, removeStaff } from '@/lib/endpoints/users';
+import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
 
 export default function SchoolAdminPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const [isLoading, setIsLoading] = useState(true);
   const [balanceKobo, setBalanceKobo] = useState<number | null>(null);
   const [staff, setStaff] = useState<User[]>([]);
   const [fundAmount, setFundAmount] = useState('');
@@ -25,6 +27,8 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       setStaff(staffList);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load dashboard');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -64,6 +68,8 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       }
     }
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">

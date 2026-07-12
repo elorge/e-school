@@ -11,11 +11,13 @@ import {
   type SignupRequest,
 } from '@/lib/endpoints/schools';
 import { getSessionUser } from '@/lib/session';
+import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
 
 export default function SuperAdminPage() {
   const [requests, setRequests] = useState<SignupRequest[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [featureSlug, setFeatureSlug] = useState('');
   const [featureSchoolName, setFeatureSchoolName] = useState<string | null>(null);
@@ -30,12 +32,14 @@ export default function SuperAdminPage() {
     loadRequests();
   }, []);
 
-  async function loadRequests() {
+async function loadRequests() {
     try {
       const data = await listSignupRequests('PENDING');
       setRequests(data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load signup requests');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -86,6 +90,8 @@ export default function SuperAdminPage() {
       setError(err instanceof ApiError ? err.message : 'Could not update this school');
     }
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">

@@ -4,9 +4,11 @@
 import { useEffect, useState } from 'react';
 import { listPendingTransfers, resolveTransfer, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
 import { getSessionUser } from '@/lib/session';
+import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
 
 export default function FinanceDashboard() {
+  const [isLoading, setIsLoading] = useState(true);
   const [transfers, setTransfers] = useState<PendingTransfer[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,11 +21,13 @@ export default function FinanceDashboard() {
     load();
   }, []);
 
-  async function load() {
+async function load() {
     try {
       setTransfers(await listPendingTransfers());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load pending transfers');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -36,6 +40,8 @@ export default function FinanceDashboard() {
       setError(err instanceof ApiError ? err.message : 'Could not resolve this transfer');
     }
   }
+
+if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
