@@ -2,7 +2,7 @@
   "name": "eschools-web",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.7.0",
+  "packageManager": "pnpm@10.28.0",
   "description": "Elorge Schools web app — staff/admin PWA and student PIN portal",
   "scripts": {
     "dev": "next dev",

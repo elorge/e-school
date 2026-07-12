@@ -62,9 +62,10 @@ export function requestSignup(body: {
 }
 
 /** SUPER_ADMIN only. */
-export function listSignupRequests(status?: string): Promise<SignupRequest[]> {
+export async function listSignupRequests(status?: string): Promise<SignupRequest[]> {
   const qs = status ? `?status=${status}` : '';
-  return apiFetch(`/schools/signup-requests${qs}`);
+  const result = await apiFetch<SignupRequest[]>(`/schools/signup-requests${qs}`);
+  return result ?? []; // apiFetch resolves undefined on a genuinely empty body — never let that leak into UI code expecting an array
 }
 
 export function approveSignupRequest(id: string): Promise<School> {

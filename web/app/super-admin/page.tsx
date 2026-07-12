@@ -101,9 +101,9 @@ if (isLoading) return <LoadingScreen />;
 
       <section className="mb-10">
         <h2 className="mb-3 font-medium">Pending signup requests</h2>
-        {requests.length === 0 && <p className="text-sm text-ink/50">No pending requests.</p>}
+        {(requests ?? []).length === 0 && <p className="text-sm text-ink/50">No pending requests.</p>}
         <ul className="flex flex-col gap-2">
-          {requests.map((r) => (
+          {(requests ?? []).map((r) => (
             <li key={r.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
               <span>
                 {r.schoolName} — <span className="text-ink/50">{r.slug}</span>

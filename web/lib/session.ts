@@ -9,6 +9,7 @@ export interface SessionUser {
   fullName: string;
   role: Role;
   schoolId: string | null;
+  schoolSlug: string | null;
 }
 
 export function setSessionUser(user: SessionUser) {

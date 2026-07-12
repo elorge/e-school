@@ -7,7 +7,6 @@ import { login } from '@/lib/endpoints/auth';
 import { ApiError } from '@/lib/api';
 
 export default function LoginPage() {
-  const [schoolSlug, setSchoolSlug] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +17,7 @@ export default function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const data = await login(email, password); // stores token + session user
+      const data = await login(email, password); // stores token + session user, including schoolSlug
 
       if (data.user.role === 'SUPER_ADMIN') {
         window.location.href = '/super-admin';
@@ -28,11 +27,18 @@ export default function LoginPage() {
         window.location.href = '/finance';
         return;
       }
-
+      if (!data.user.schoolSlug) {
+        setError('Your account is not linked to a school workspace yet. Contact your school administrator.');
+        return;
+      }
       const destination = data.user.role === 'SCHOOL_ADMIN' ? 'admin' : 'staff';
-      window.location.href = `/${schoolSlug || 'unknown-school'}/${destination}`;
+      window.location.href = `/${data.user.schoolSlug}/${destination}`;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError('Could not reach the server. Check that the backend is running and reachable, and that CORS allows this origin.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -40,17 +46,8 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto mt-16 max-w-sm px-4">
-      <h1 className="mb-6 text-xl font-semibold">Sign in</h1>
+      <h1 className="mb-6 font-display text-2xl font-semibold">Sign in</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          School workspace (slug)
-          <input
-            className="rounded border px-3 py-2"
-            value={schoolSlug}
-            onChange={(e) => setSchoolSlug(e.target.value)}
-            placeholder="greenwood-college"
-          />
-        </label>
         <label className="flex flex-col gap-1 text-sm">
           Email
           <input className="rounded border px-3 py-2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

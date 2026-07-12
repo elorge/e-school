@@ -1,6 +1,7 @@
 // web/components/SchoolNav.tsx
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getSessionUser, clearSessionUser, type SessionUser } from '@/lib/session';
@@ -66,7 +67,10 @@ export default function SchoolNav({
   return (
     <nav className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center justify-between">
-        <span className="font-display font-semibold">{schoolName}</span>
+        <div className="flex items-center gap-2.5">
+          <Image src="/logo.png" alt="" width={36} height={36} className="rounded-full" aria-hidden />
+          <span className="font-display font-semibold">{schoolName}</span>
+        </div>
         <div className="sm:hidden">
           <PendingSyncBadge />
         </div>

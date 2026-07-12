@@ -110,5 +110,5 @@ export interface WalletLedgerEntry {
 
 export interface LoginResponse {
   accessToken: string;
-  user: { id: string; email: string; fullName: string; role: Role; schoolId: string | null };
+  user: { id: string; email: string; fullName: string; role: Role; schoolId: string | null; schoolSlug: string | null };
 }

@@ -28,12 +28,22 @@ export class AuthService {
     return user;
   }
 
-  async login(email: string, password: string) {
+async login(email: string, password: string) {
     const user = await this.validateUser(email, password);
     const payload: JwtPayload = { sub: user.id, role: user.role, schoolId: user.schoolId };
+
+    // Resolve the school's slug server-side, so the frontend never asks
+    // a person to remember/type their own workspace name — it's just
+    // handed back once they've authenticated.
+    let schoolSlug: string | null = null;
+    if (user.schoolId) {
+      const school = await this.prisma.school.findUnique({ where: { id: user.schoolId }, select: { slug: true } });
+      schoolSlug = school?.slug ?? null;
+    }
+
     return {
       accessToken: this.jwt.sign(payload),
-      user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role, schoolId: user.schoolId },
+      user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role, schoolId: user.schoolId, schoolSlug },
     };
   }
 
