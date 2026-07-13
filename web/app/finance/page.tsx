@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { listPendingTransfers, resolveTransfer, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
+import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
 
 export default function FinanceDashboard() {
@@ -44,8 +45,9 @@ async function load() {
 if (isLoading) return <LoadingScreen />;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="mb-6 text-xl font-semibold">Finance &amp; Ops — Pending Transfers</h1>
+    <>
+      <PlatformNav title="Elorge — Finance & Ops" />
+      <main className="mx-auto max-w-2xl px-6 py-10">
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {transfers.length === 0 && <p className="text-sm text-ink/50">Nothing pending.</p>}
       <ul className="flex flex-col gap-2">
@@ -65,6 +67,7 @@ if (isLoading) return <LoadingScreen />;
           </li>
         ))}
       </ul>
-    </main>
+      </main>
+    </>
   );
 }

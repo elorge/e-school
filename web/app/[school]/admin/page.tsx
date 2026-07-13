@@ -76,7 +76,7 @@ if (isLoading) return <LoadingScreen />;
       <h1 className="text-xl font-semibold">{school.name} — Admin</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <section>
+      <section className="rounded-lg border p-4">
         <h2 className="mb-2 font-medium">Wallet</h2>
         <p className="mb-3 text-2xl">
           {balanceKobo === null ? 'Loading…' : `₦${(balanceKobo / 100).toLocaleString('en-NG')}`}
@@ -109,7 +109,7 @@ if (isLoading) return <LoadingScreen />;
         </form>
       </section>
 
-      <section>
+      <section className="rounded-lg border p-4">
         <h2 className="mb-2 font-medium">Staff</h2>
         <ul className="flex flex-col gap-2">
           {staff.map((member) => (

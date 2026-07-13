@@ -44,7 +44,7 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="mx-auto flex max-w-5xl flex-col items-center gap-10 px-6 pb-20 pt-16 text-center sm:pt-24">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Built for Nigerian schools</p>
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Elorge Technologies School Management Software</p>
         <h1 className="max-w-3xl font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
           A record your parents don't have to take your word for.
         </h1>
@@ -222,6 +222,41 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Hardware & infrastructure — clearly framed as a service offering, not fabricated inventory/pricing */}
+      <section id="infrastructure" className="border-t border-black/5 bg-white px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Beyond the software</p>
+          <h2 className="mb-4 max-w-2xl font-display text-3xl font-semibold">
+            Elorge is also an IT infrastructure company — we can help with the hardware side too.
+          </h2>
+          <p className="mb-10 max-w-2xl text-ink/70">
+            The platform works whether or not you have any of this — but if you're setting up ID cards, a computer
+            lab, or gate attendance for the first time, we can point you to the right equipment and help you set it
+            up.
+          </p>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ['ID card printing', 'Printers and blank cards to turn the digital ID cards you already generate into physical ones.'],
+              ['Gate scanners', 'QR/barcode scanners matched to the attendance flow, with a setup guide included.'],
+              ['CBT lab computers', 'Entry-level lab hardware sized for computer-based testing, for schools not yet fully equipped.'],
+              ['Network setup', 'Structured wiring and routers so the "works even offline" promise holds up on your actual campus wifi.'],
+            ].map(([title, body]) => (
+              <div key={title} className="rounded-xl border border-black/5 p-5">
+                <h3 className="mb-2 font-display text-base font-semibold">{title}</h3>
+                <p className="text-sm text-ink/60">{body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-8 text-sm text-ink/50">
+            Interested in any of this?{' '}
+            <a href="mailto:hello@elorgeschools.com" className="text-brand-blue underline">
+              Talk to us
+            </a>{' '}
+            — we'll advise on what actually fits your school before recommending anything.
+          </p>
         </div>
       </section>
 

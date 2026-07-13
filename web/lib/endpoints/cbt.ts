@@ -17,6 +17,10 @@ export function listTests(school: string): Promise<CbtTest[]> {
   return apiFetch(`/${school}/cbt/tests`);
 }
 
+export function getTest(school: string, testId: string): Promise<CbtTest & { questions: unknown[] }> {
+  return apiFetch(`/${school}/cbt/tests/${testId}`);
+}
+
 export function createTest(
   school: string,
   body: {

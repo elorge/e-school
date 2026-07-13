@@ -8,6 +8,8 @@ import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import Link from 'next/link';
+import EquationToolbar from '@/components/EquationToolbar';
+import MathText from '@/components/MathText';
 import {
   listTests,
   createTest,
@@ -17,6 +19,7 @@ import {
   gradeTheory,
   downloadQuestionTemplate,
   bulkUploadQuestions,
+  getTest,
   type CbtTest,
 } from '@/lib/endpoints/cbt';
 import type { Class, Term } from '@/lib/types';
@@ -31,6 +34,8 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [attempts, setAttempts] = useState<any[]>([]);
   const [classStudents, setClassStudents] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  const [questionCount, setQuestionCount] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -59,17 +64,18 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   async function handleCreateTest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    try {
-      const test = await createTest(params.school, form);
-      setTests((t) => [test, ...t]);
-      setSelectedTest(test);
-      const students = await listStudents(params.school, test.classId);
-      setClassStudents(students);
-      setSelectedStudentIds(new Set(students.map((s) => s.id))); // default: everyone in the class selected
-    } catch {
-      setError('Could not create test');
-    }
-  }
+          try {
+              const test = await createTest(params.school, form);
+              setTests((t) => [test, ...t]);
+              setSelectedTest(test);
+              setQuestionCount(0);
+              const students = await listStudents(params.school, test.classId);
+              setClassStudents(students);
+              setSelectedStudentIds(new Set(students.map((s) => s.id)));
+          } catch {
+            setError('Could not create test');
+          }
+        }
 
   function toggleStudent(id: string) {
     setSelectedStudentIds((prev) => {
@@ -87,6 +93,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
     try {
       await addQuestion(params.school, selectedTest.id, question);
       setQuestion({ questionText: '', options: ['', '', '', ''], correctOptionIndex: 0, points: 1 });
+      setQuestionCount((c) => c + 1);
     } catch {
       setError('Could not add question');
     }
@@ -205,62 +212,103 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               Download question template (.xlsx)
             </button>
             <span className="text-ink/40">or</span>
-            <label className="cursor-pointer text-brand-blue underline">
-              Upload filled-in template
+          <label className="cursor-pointer text-brand-blue underline">
+              {isUploading ? 'Uploading…' : 'Upload filled-in template'}
               <input
                 type="file"
                 accept=".xlsx,.xls"
                 className="hidden"
+                disabled={isUploading}
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const result = await bulkUploadQuestions(params.school, selectedTest.id, file);
-                  setError(
-                    result.errors.length > 0
-                      ? `Added ${result.addedCount} question(s). ${result.errors.length} row(s) had issues: ${result.errors
+                  setIsUploading(true);
+                  setError(null);
+                  setNotice(null);
+                  try {
+                    const result = await bulkUploadQuestions(params.school, selectedTest.id, file);
+                    const refreshed = await getTest(params.school, selectedTest.id);
+                    setQuestionCount(refreshed.questions.length);
+                    if (result.errors.length > 0) {
+                      setError(
+                        `Added ${result.addedCount} question(s), now ${refreshed.questions.length} total. ${result.errors.length} row(s) had issues: ${result.errors
                           .map((er) => `row ${er.row} — ${er.reason}`)
-                          .join('; ')}`
-                      : null,
-                  );
+                          .join('; ')}`,
+                      );
+                    } else {
+                      setNotice(`Added ${result.addedCount} question(s) — ${refreshed.questions.length} total on this test now.`);
+                    }
+                  } catch {
+                    setError('Upload failed — check the file is a valid .xlsx and try again.');
+                  } finally {
+                    setIsUploading(false);
+                    e.target.value = ''; // allow re-uploading the same filename after a fix
+                  }
                 }}
               />
             </label>
           </div>
+          <p className="mb-2 text-xs text-ink/50">{questionCount} question(s) on this test so far.</p>
 
           <p className="mb-2 text-xs text-ink/50">Or add one question at a time below:</p>
-          <form onSubmit={handleAddQuestion} className="flex flex-col gap-2">
-            <input
-              className="rounded border px-2 py-1.5"
-              placeholder="Question text"
-              value={question.questionText}
-              onChange={(e) => setQuestion((q) => ({ ...q, questionText: e.target.value }))}
-              required
-            />
-            {question.options.map((opt, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input type="radio" checked={question.correctOptionIndex === i} onChange={() => setQuestion((q) => ({ ...q, correctOptionIndex: i }))} />
-                <input
-                  className="flex-1 rounded border px-2 py-1"
-                  placeholder={`Option ${i + 1}`}
-                  value={opt}
-                  onChange={(e) =>
-                    setQuestion((q) => ({ ...q, options: q.options.map((o, idx) => (idx === i ? e.target.value : o)) }))
-                  }
-                  required
-                />
+        <div className="grid gap-4 sm:grid-cols-2">
+            <form onSubmit={handleAddQuestion} className="flex flex-col gap-2">
+            <EquationToolbar targetId="question-text-input" />
+              <textarea
+                id="question-text-input"
+                className="rounded border px-2 py-1.5"
+                placeholder="Question text"
+                value={question.questionText}
+                onChange={(e) => setQuestion((q) => ({ ...q, questionText: e.target.value }))}
+                required
+              />
+              {question.options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input type="radio" checked={question.correctOptionIndex === i} onChange={() => setQuestion((q) => ({ ...q, correctOptionIndex: i }))} />
+                  <input
+                    id={`option-input-${i}`}
+                    className="flex-1 rounded border px-2 py-1"
+                    placeholder={`Option ${i + 1}`}
+                    value={opt}
+                    onChange={(e) =>
+                      setQuestion((q) => ({ ...q, options: q.options.map((o, idx) => (idx === i ? e.target.value : o)) }))
+                    }
+                    required
+                  />
+                </div>
+              ))}
+            <EquationToolbar targetId="option-input-0" />
+              <p className="text-xs text-ink/40">
+                Buttons insert LaTeX wrapped in $...$ into the question text — click into an option field first to insert there
+                instead. Typing $...$ directly also works, including when filling in the bulk-upload Excel template offline.
+              </p>
+              <input
+                className="w-24 rounded border px-2 py-1"
+                type="number"
+                placeholder="Points"
+                value={question.points}
+                onChange={(e) => setQuestion((q) => ({ ...q, points: Number(e.target.value) }))}
+              />
+              <button type="submit" className="w-fit rounded bg-brand-green px-3 py-1.5 text-sm text-white">
+                Add question
+              </button>
+            </form>
+
+         <div className="rounded-lg border-2 border-dashed p-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-ink/40">Live preview — what the student sees</p>
+              <p className="mb-3 font-medium">
+                {question.questionText ? <MathText text={question.questionText} /> : 'Your question text will appear here…'}
+              </p>
+              <div className="flex flex-col gap-2">
+                {question.options.map((opt, i) => (
+                  <label key={i} className="flex items-center gap-2 text-sm">
+                    <input type="radio" disabled checked={question.correctOptionIndex === i} readOnly />
+                    {opt ? <MathText text={opt} /> : <span className="text-ink/30">Option {i + 1}</span>}
+                  </label>
+                ))}
               </div>
-            ))}
-            <input
-              className="w-24 rounded border px-2 py-1"
-              type="number"
-              placeholder="Points"
-              value={question.points}
-              onChange={(e) => setQuestion((q) => ({ ...q, points: Number(e.target.value) }))}
-            />
-            <button type="submit" className="w-fit rounded bg-brand-green px-3 py-1.5 text-sm text-white">
-              Add question
-            </button>
-          </form>
+            </div>
+          </div>
           {classStudents.length > 0 && (
             <div className="mt-4 rounded border p-3">
               <p className="mb-2 text-sm font-medium">

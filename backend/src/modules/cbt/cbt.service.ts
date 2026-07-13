@@ -245,10 +245,8 @@ async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId
  /**
    * Nigeria is UTC+1 with no DST — a fixed offset, not a named timezone
    * lookup, so this needs no timezone library. Deliberately does NOT
-   * rely on the server's local TZ setting (via toDateString()/setHours())
-   * — that makes correctness depend on Render's env config staying set
-   * forever, invisibly. Instead this converts explicitly, so the
-   * behavior is identical whether TZ is configured on the host or not.
+   * rely on the server's local TZ setting — this converts explicitly,
+   * so behavior is identical whether TZ is configured on the host or not.
    */
   private static readonly WAT_OFFSET_MS = 60 * 60 * 1000; // UTC+1
 
@@ -258,30 +256,25 @@ async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId
   }
 
   /**
-   * The window opens at 00:00 WAT on scheduledDate and closes
-   * accessWindowMinutes later — not "the whole day," so a code
-   * generated for a 9am test can't be reused at 4pm the same day. Also
-   * blocks entry entirely on any OTHER day, before or after.
+   * Valid for the ENTIRE scheduled calendar day (WAT) — 00:00 to 23:59,
+   * not a short time-slice within it. A code generated for "15th July"
+   * works any time on the 15th, and stops working entirely once the
+   * 16th begins. accessWindowMinutes is no longer used for the time-of-
+   * day cutoff (that was the bug — it anchored the window to midnight,
+   * so it expired hours before school even opened); the field stays in
+   * the schema for a future "specific start time" feature if you want
+   * one, but plays no part in this check today.
    */
-  private assertWithinScheduledWindow(test: { scheduledDate: Date; accessWindowMinutes: number }) {
+  private assertWithinScheduledWindow(test: { scheduledDate: Date }) {
     const now = new Date();
-
     const todayWat = this.toWatCalendarDay(now);
     const scheduledWat = this.toWatCalendarDay(test.scheduledDate);
 
     if (todayWat !== scheduledWat) {
       throw new ForbiddenException(`This test is scheduled for ${scheduledWat} (WAT) — the access code only works on that day.`);
     }
-
-    // Midnight WAT for today, expressed back in UTC for the comparison below.
-    const midnightWatInUtcMs = Date.parse(`${todayWat}T00:00:00.000Z`) - CbtService.WAT_OFFSET_MS;
-    const scheduledEndMs = midnightWatInUtcMs + test.accessWindowMinutes * 60 * 1000;
-
-    if (now.getTime() > scheduledEndMs) {
-      throw new ForbiddenException('The access window for this test has closed for today.');
-    }
   }
-  
+
 async getAttemptForStudent(schoolId: string, testId: string, studentId: string) {
     const test = await this.findOneOrThrow(schoolId, testId);
     if (test.status !== CbtTestStatus.PUBLISHED) throw new ForbiddenException('This test is not currently open');

@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { answerQuestion, submitLocalAttempt, retryQueuedSubmit, clearLocalAttempt, getLocalAttempt } from '@/lib/cbt-offline';
 import type { AttemptSession } from '@/lib/endpoints/cbt';
+import MathText from './MathText';
 
 function formatCountdown(msRemaining: number) {
   const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
@@ -81,13 +82,13 @@ export default function CbtSessionRunner({ session }: { session: AttemptSession 
         {session.questions.map((q, idx) => (
           <div key={q.id} className="rounded-lg border p-4">
             <p className="mb-3 font-medium">
-              {idx + 1}. {q.questionText}
+              {idx + 1}. <MathText text={q.questionText} />
             </p>
             <div className="flex flex-col gap-2">
               {q.options.map((opt, optIdx) => (
                 <label key={optIdx} className="flex cursor-pointer items-center gap-2 text-sm">
                   <input type="radio" name={q.id} checked={answers[q.id] === optIdx} onChange={() => handleSelectOption(q.id, optIdx)} />
-                  {opt}
+                  <MathText text={opt} />
                 </label>
               ))}
             </div>

@@ -148,7 +148,7 @@ async function loadClasses() {
       <h1 className="text-xl font-semibold">{school.name} — Staff</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
-      <section>
+      <section className="rounded-lg border p-4">
         <h2 className="mb-2 font-medium">Classes &amp; Students</h2>
         <select
           className="mb-3 rounded border px-2 py-1"
@@ -203,7 +203,7 @@ async function loadClasses() {
         </ul>
       </section>
 
-      <section>
+      <section className="rounded-lg border p-4">
         <h2 className="mb-2 font-medium">Register a student</h2>
         <form onSubmit={handleRegister} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -230,7 +230,7 @@ async function loadClasses() {
         </form>
       </section>
 
-      <section>
+      <section className="rounded-lg border p-4">
         <h2 className="mb-2 font-medium">Enter results</h2>
         <form onSubmit={handleSaveResult} className="flex flex-col gap-2">
           <label className="flex flex-col gap-1 text-sm">

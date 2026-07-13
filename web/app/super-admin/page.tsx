@@ -12,6 +12,7 @@ import {
 } from '@/lib/endpoints/schools';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
+import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
 
 export default function SuperAdminPage() {
@@ -94,12 +95,13 @@ async function loadRequests() {
 if (isLoading) return <LoadingScreen />;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="mb-6 text-xl font-semibold">Elorge — Super Admin</h1>
+    <>
+      <PlatformNav title="Elorge — Super Admin" />
+      <main className="mx-auto max-w-2xl px-6 py-10">
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {notice && <p className="mb-4 text-sm text-green-700">{notice}</p>}
 
-      <section className="mb-10">
+      <section className="mb-10 rounded-lg border p-4">
         <h2 className="mb-3 font-medium">Pending signup requests</h2>
         {(requests ?? []).length === 0 && <p className="text-sm text-ink/50">No pending requests.</p>}
         <ul className="flex flex-col gap-2">
@@ -121,7 +123,7 @@ if (isLoading) return <LoadingScreen />;
         </ul>
       </section>
 
-      <section>
+      <section className="rounded-lg border p-4">
         <h2 className="mb-3 font-medium">Session Wrap — per-school pilot toggle</h2>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">
@@ -149,6 +151,7 @@ if (isLoading) return <LoadingScreen />;
           </div>
         )}
       </section>
-    </main>
+      </main>
+    </>
   );
 }
