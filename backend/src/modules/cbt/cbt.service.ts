@@ -2,6 +2,9 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomInt } from 'crypto';
 import * as XLSX from 'xlsx';
+import PDFDocument from 'pdfkit';
+import { MathRendererService } from '../../common/services/math-renderer.service';
+import { renderTextWithMath } from '../../common/utils/render-math-text';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { ResultsService } from '../results/results.service';
@@ -17,6 +20,7 @@ export class CbtService {
     private readonly walletService: WalletService,
     private readonly resultsService: ResultsService,
     private readonly schoolsService: SchoolsService,
+    private readonly mathRenderer: MathRendererService,
   ) {}
 
 createTest(
@@ -399,6 +403,70 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
       where: { test: { schoolId, id: testId } },
       include: { student: { select: { firstName: true, lastName: true, studentId: true } } },
       orderBy: { student: { lastName: 'asc' } },
+    });
+  }
+
+  /**
+   * A printable version of the test — questions, options, and (blank)
+   * answer space, with any $...$ LaTeX segments rendered as real
+   * equations instead of raw text. Useful as a physical backup, or for
+   * the theory portion of a mixed test which is answered on paper by
+   * design (see PinsService/ResultsService — theory scores are always
+   * hand-entered, never auto-graded).
+   */
+  async renderTestPaperPdf(schoolId: string, testId: string): Promise<Buffer> {
+    const test = await this.findOneOrThrow(schoolId, testId);
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const chunks: Buffer[] = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+      doc.fontSize(16).font('Helvetica-Bold').text(school.name, { align: 'center' });
+      doc.fontSize(12).font('Helvetica').text(`${test.title} — ${test.subject}`, { align: 'center' });
+      doc.fontSize(9).fillColor('#666').text(`Duration: ${test.durationMinutes} minutes`, { align: 'center' });
+      doc.fillColor('#000');
+      doc.moveDown(1.5);
+
+      const sortedQuestions = [...test.questions].sort((a, b) => a.order - b.order);
+
+      for (let i = 0; i < sortedQuestions.length; i++) {
+        const q = sortedQuestions[i];
+        let y = doc.y;
+
+        if (y > doc.page.height - doc.page.margins.bottom - 100) {
+          doc.addPage();
+          y = doc.page.margins.top;
+        }
+
+        y = renderTextWithMath(doc, this.mathRenderer, `${i + 1}. ${q.questionText}`, doc.page.margins.left, y, contentWidth, 11);
+        doc.y = y;
+        doc.moveDown(0.2);
+
+        const options = q.options as string[];
+        const letters = ['A', 'B', 'C', 'D'];
+        for (let j = 0; j < options.length; j++) {
+          const optY = doc.y;
+          const newY = renderTextWithMath(
+            doc,
+            this.mathRenderer,
+            `   ${letters[j]}) ${options[j]}`,
+            doc.page.margins.left,
+            optY,
+            contentWidth,
+            10,
+          );
+          doc.y = newY;
+        }
+        doc.moveDown(0.8);
+      }
+
+      doc.end();
     });
   }
 }

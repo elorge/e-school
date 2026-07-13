@@ -22,6 +22,7 @@ import {
   getTest,
   type CbtTest,
 } from '@/lib/endpoints/cbt';
+import { fetchTestPaperPdf, openPdfBlob } from '@/lib/endpoints/documents';
 import type { Class, Term } from '@/lib/types';
 
 export default function StaffCbtPage({ params }: { params: { school: string } }) {
@@ -339,11 +340,19 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               <span>
                 {t.title} — {t.subject} ({t.status})
               </span>
-              {t.status !== 'DRAFT' && (
-                <button className="text-brand-blue underline" onClick={() => loadAttempts(t)}>
-                  View scores
+              <div className="flex gap-3">
+                <button
+                  className="text-brand-blue underline"
+                  onClick={async () => openPdfBlob(await fetchTestPaperPdf(params.school, t.id))}
+                >
+                  Print paper
                 </button>
-              )}
+                {t.status !== 'DRAFT' && (
+                  <button className="text-brand-blue underline" onClick={() => loadAttempts(t)}>
+                    View scores
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

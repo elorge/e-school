@@ -24,6 +24,10 @@ export function fetchCalendarPdf(school: string, termId: string) {
   return fetchPdfBlob(`/${school}/calendar/pdf?termId=${termId}`);
 }
 
+export function fetchTestPaperPdf(school: string, testId: string) {
+  return fetchPdfBlob(`/${school}/cbt/tests/${testId}/paper/pdf`);
+}
+
 /** Opens a PDF Blob in a new tab for preview/printing. */
 export function openPdfBlob(blob: Blob) {
   const url = URL.createObjectURL(blob);

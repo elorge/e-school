@@ -44,6 +44,18 @@ export class CbtController {
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Get(':id/paper/pdf')
+  async downloadTestPaper(@Req() req: Request, @Param('id') id: string, @Res() res: Response) {
+    const pdfBuffer = await this.cbtService.renderTestPaperPdf(req.schoolId!, id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="test-paper.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Get(':id/questions/template')
   async downloadTemplate(@Req() req: Request, @Param('id') id: string, @Res() res: Response) {
     const test = await this.cbtService.findOneOrThrow(req.schoolId!, id);
