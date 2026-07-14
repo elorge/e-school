@@ -31,6 +31,10 @@ export default function LoginPage() {
         setError('Your account is not linked to a school workspace yet. Contact your school administrator.');
         return;
       }
+      if (data.user.mustChangePassword) {
+        window.location.href = '/change-password';
+        return;
+      }
       const destination = data.user.role === 'SCHOOL_ADMIN' ? 'admin' : 'staff';
       window.location.href = `/${data.user.schoolSlug}/${destination}`;
     } catch (err) {

@@ -10,6 +10,8 @@ export interface CbtTest {
   durationMinutes: number;
   objectiveMaxScore: number;
   theoryMaxScore: number;
+  scheduledDate: string;
+  accessCode: string | null;
   status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 }
 
@@ -89,7 +91,26 @@ export function publishTest(school: string, testId: string, studentIds?: string[
   });
 }
 
-export function listAttempts(school: string, testId: string) {
+export interface CbtAttemptSummary {
+  id: string;
+  testId: string;
+  studentId: string;
+  answers: Record<string, number>;
+  objectiveScore: number | null;
+  theoryScore: number | null;
+  status: 'IN_PROGRESS' | 'SUBMITTED' | 'GRADED';
+  createdAt: string;
+  beginAt: string | null;
+  submittedAt: string | null;
+  gradedAt: string | null;
+  student: {
+    firstName: string;
+    lastName: string;
+    studentId: string | null; // admission ID, e.g. "GRW/2026/0001"
+  };
+}
+
+export function listAttempts(school: string, testId: string): Promise<CbtAttemptSummary[]> {
   return apiFetch(`/${school}/cbt/tests/${testId}/attempts`);
 }
 

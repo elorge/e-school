@@ -5,6 +5,8 @@ import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { InviteStaffDto } from './dto/invite-staff.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public, Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -38,6 +40,22 @@ export class AuthController {
     return { message: 'Password updated. You can now log in with your new password.' };
   }
 
+/** Authenticated, no token — requires the current password, so it's the "I know my password but want to change it" path, not the "I forgot it" path. */
+  @Post('change-password')
+  changePassword(@Body() body: ChangePasswordDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.authService.changeOwnPassword(user.id, body.currentPassword, body.newPassword);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.SCHOOL_ADMIN)
+  @Post('invite-staff')
+  inviteStaff(@Body() body: InviteStaffDto, @CurrentUser() caller: AuthenticatedUser) {
+    if (!caller.schoolId) {
+      throw new ForbiddenException('School Admin account has no associated school');
+    }
+    return this.authService.inviteStaff(caller.schoolId, body.email, body.fullName, RESET_URL_BASE);
+  }
+
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN, Role.SCHOOL_ADMIN)
   @Post('users')
@@ -46,7 +64,11 @@ export class AuthController {
       if (!caller.schoolId) {
         throw new ForbiddenException('School Admin account has no associated school');
       }
-      return this.authService.createUser(body.email, body.password, body.fullName, Role.STAFF, caller.schoolId);
+      // Admin is choosing the password directly — force a change on
+      // first login, unlike the invite-link flow above where the
+      // teacher sets their own password before the account is ever
+      // usable at all.
+      return this.authService.createUser(body.email, body.password, body.fullName, Role.STAFF, caller.schoolId, true);
     }
 
     const isPlatformRole = body.role === Role.SUPER_ADMIN || body.role === Role.FINANCE_OPS;

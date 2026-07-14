@@ -2,7 +2,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { listPendingTransfers, resolveTransfer, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
+import { listPendingTransfers, resolveTransfer, manualCredit, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
+import { getSchoolBySlug } from '@/lib/endpoints/schools';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
@@ -11,6 +12,11 @@ import { ApiError } from '@/lib/api';
 export default function FinanceDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [transfers, setTransfers] = useState<PendingTransfer[]>([]);
+  const [creditSlug, setCreditSlug] = useState('');
+  const [creditSchoolName, setCreditSchoolName] = useState<string | null>(null);
+  const [creditSchoolId, setCreditSchoolId] = useState<string | null>(null);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditReason, setCreditReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,6 +35,36 @@ async function load() {
       setError(err instanceof ApiError ? err.message : 'Failed to load pending transfers');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleLookupSchool() {
+    setError(null);
+    setCreditSchoolName(null);
+    try {
+      const school = await getSchoolBySlug(creditSlug);
+      if (!school) {
+        setError('No school found with that workspace name');
+        return;
+      }
+      setCreditSchoolName(school.name);
+      setCreditSchoolId(school.id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to look up school');
+    }
+  }
+
+  async function handleCredit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!creditSchoolId) return;
+    setError(null);
+    try {
+      const kobo = Math.round(Number(creditAmount) * 100);
+      await manualCredit(creditSchoolId, kobo, creditReason);
+      setCreditAmount('');
+      setCreditReason('');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not credit this school');
     }
   }
 
@@ -67,6 +103,45 @@ if (isLoading) return <LoadingScreen />;
           </li>
         ))}
       </ul>
+
+      <section className="mt-10 rounded-lg border p-4">
+        <h2 className="mb-3 font-medium">Manual wallet credit</h2>
+        <div className="mb-3 flex items-end gap-2">
+          <input
+            className="rounded border px-2 py-1.5 text-sm"
+            placeholder="School workspace name"
+            value={creditSlug}
+            onChange={(e) => setCreditSlug(e.target.value)}
+          />
+          <button onClick={handleLookupSchool} className="rounded border px-3 py-1.5 text-sm">
+            Look up
+          </button>
+        </div>
+        {creditSchoolName && (
+          <form onSubmit={handleCredit} className="flex flex-col gap-2">
+            <p className="text-sm">
+              Crediting: <strong>{creditSchoolName}</strong>
+            </p>
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              type="number"
+              placeholder="Amount (₦)"
+              value={creditAmount}
+              onChange={(e) => setCreditAmount(e.target.value)}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              placeholder="Reason"
+              value={creditReason}
+              onChange={(e) => setCreditReason(e.target.value)}
+            />
+            <button type="submit" className="w-fit rounded bg-brand-green px-3 py-1.5 text-sm text-white">
+              Credit wallet
+            </button>
+          </form>
+        )}
+      </section>
       </main>
     </>
   );

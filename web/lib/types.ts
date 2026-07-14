@@ -31,14 +31,18 @@ export interface User {
   createdAt: string;
 }
 
+export type SchoolStatus = 'ACTIVE' | 'SUSPENDED';
+
 export interface School {
   id: string;
   slug: string;
   name: string;
   code: string;
   logoUrl: string | null;
+  info: Record<string, unknown> | null;
   pricePerStudentKoboOverride: number | null;
   sessionWrapEnabled: boolean;
+  status: SchoolStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -58,6 +62,7 @@ export interface Student {
   schoolId: string;
   classId: string;
   studentId: string | null;
+  clientReferenceId: string | null;
   status: StudentStatus;
   firstName: string;
   lastName: string;
@@ -71,6 +76,8 @@ export interface Term {
   id: string;
   schoolId: string;
   name: string;
+  academicSession: string;
+  termNumber: number;
   startDate: string;
   endDate: string;
 }
@@ -106,9 +113,20 @@ export interface WalletLedgerEntry {
   source: LedgerSource;
   status: LedgerStatus;
   reference: string;
+  approvedById: string | null;
+  idempotencyKey: string | null;
+  createdAt: string;
 }
 
 export interface LoginResponse {
   accessToken: string;
-  user: { id: string; email: string; fullName: string; role: Role; schoolId: string | null; schoolSlug: string | null };
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    role: Role;
+    schoolId: string | null;
+    schoolSlug: string | null;
+    mustChangePassword: boolean;
+  };
 }

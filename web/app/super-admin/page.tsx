@@ -7,22 +7,40 @@ import {
   approveSignupRequest,
   rejectSignupRequest,
   setSessionWrapEnabled,
-  getSchoolBySlug,
+  listAllSchools,
+  suspendSchool,
+  reactivateSchool,
+  createSchool,
+  setPriceOverride,
   type SignupRequest,
 } from '@/lib/endpoints/schools';
+import { manualCredit } from '@/lib/endpoints/wallet-admin';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
+import type { School } from '@/lib/types';
 
 export default function SuperAdminPage() {
-  const [requests, setRequests] = useState<SignupRequest[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [requests, setRequests] = useState<SignupRequest[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [featureSlug, setFeatureSlug] = useState('');
-  const [featureSchoolName, setFeatureSchoolName] = useState<string | null>(null);
-  const [featureEnabled, setFeatureEnabled] = useState(false);
+
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditReason, setCreditReason] = useState('');
+  const [priceOverride, setPriceOverrideInput] = useState('');
+
+  const [newSchool, setNewSchool] = useState({
+    slug: '',
+    name: '',
+    code: '',
+    adminEmail: '',
+    adminName: '',
+    adminPassword: '',
+  });
 
   useEffect(() => {
     const user = getSessionUser();
@@ -30,15 +48,16 @@ export default function SuperAdminPage() {
       window.location.href = '/login';
       return;
     }
-    loadRequests();
+    loadAll();
   }, []);
 
-async function loadRequests() {
+  async function loadAll() {
     try {
-      const data = await listSignupRequests('PENDING');
-      setRequests(data);
+      const [reqs, schoolList] = await Promise.all([listSignupRequests('PENDING'), listAllSchools()]);
+      setRequests(reqs ?? []);
+      setSchools(schoolList ?? []);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load signup requests');
+      setError(err instanceof ApiError ? err.message : 'Failed to load platform data');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +68,7 @@ async function loadRequests() {
     try {
       await approveSignupRequest(id);
       setNotice('School approved and activated.');
-      loadRequests();
+      loadAll();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not approve this request');
     }
@@ -59,98 +78,266 @@ async function loadRequests() {
     setError(null);
     try {
       await rejectSignupRequest(id);
-      loadRequests();
+      loadAll();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not reject this request');
     }
   }
 
-  async function handleLookupSchool() {
+  async function handleCreateSchool(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
-    setFeatureSchoolName(null);
+    setNotice(null);
     try {
-      const school = await getSchoolBySlug(featureSlug);
-      if (!school) {
-        setError('No school found with that workspace name');
-        return;
-      }
-      setFeatureSchoolName(school.name);
-      setFeatureEnabled(school.sessionWrapEnabled);
+      await createSchool(newSchool);
+      setNotice(`${newSchool.name} created and live.`);
+      setNewSchool({ slug: '', name: '', code: '', adminEmail: '', adminName: '', adminPassword: '' });
+      loadAll();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to look up school');
+      setError(err instanceof ApiError ? err.message : 'Could not create school');
     }
   }
 
-  async function handleToggleFeature() {
+  function selectSchool(school: School) {
+    setSelectedSchool(school);
+    setPriceOverrideInput(school.pricePerStudentKoboOverride ? (school.pricePerStudentKoboOverride / 100).toString() : '');
+    setCreditAmount('');
+    setCreditReason('');
+  }
+
+  async function handleToggleSessionWrap() {
+    if (!selectedSchool) return;
     setError(null);
     try {
-      const updated = await setSessionWrapEnabled(featureSlug, !featureEnabled);
-      setFeatureEnabled(updated.sessionWrapEnabled);
-      setNotice(`Session Wrap ${updated.sessionWrapEnabled ? 'enabled' : 'disabled'} for ${updated.name}.`);
+      const updated = await setSessionWrapEnabled(selectedSchool.slug, !selectedSchool.sessionWrapEnabled);
+      setSelectedSchool(updated);
+      setSchools((s) => s.map((x) => (x.id === updated.id ? updated : x)));
+      setNotice(`Session Wrap ${updated.sessionWrapEnabled ? 'enabled' : 'disabled'}.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not update this school');
     }
   }
 
-if (isLoading) return <LoadingScreen />;
+  async function handleToggleSuspend() {
+    if (!selectedSchool) return;
+    setError(null);
+    try {
+      const updated =
+        selectedSchool.status === 'ACTIVE'
+          ? await suspendSchool(selectedSchool.slug)
+          : await reactivateSchool(selectedSchool.slug);
+      setSelectedSchool(updated);
+      setSchools((s) => s.map((x) => (x.id === updated.id ? updated : x)));
+      setNotice(`${updated.name} is now ${updated.status}.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update this school\'s status');
+    }
+  }
+
+  async function handleSetPriceOverride() {
+    if (!selectedSchool) return;
+    setError(null);
+    try {
+      const kobo = priceOverride ? Math.round(Number(priceOverride) * 100) : null;
+      const updated = await setPriceOverride(selectedSchool.slug, kobo);
+      setSelectedSchool(updated);
+      setSchools((s) => s.map((x) => (x.id === updated.id ? updated : x)));
+      setNotice('Price override updated.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update price override');
+    }
+  }
+
+  async function handleManualCredit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedSchool) return;
+    setError(null);
+    try {
+      const kobo = Math.round(Number(creditAmount) * 100);
+      await manualCredit(selectedSchool.id, kobo, creditReason);
+      setNotice(`Credited ₦${Number(creditAmount).toLocaleString('en-NG')} to ${selectedSchool.name}.`);
+      setCreditAmount('');
+      setCreditReason('');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not credit this school');
+    }
+  }
+
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <>
       <PlatformNav title="Elorge — Super Admin" />
-      <main className="mx-auto max-w-2xl px-6 py-10">
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
-      {notice && <p className="mb-4 text-sm text-green-700">{notice}</p>}
+      <main className="mx-auto max-w-4xl px-6 py-10">
+        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+        {notice && <p className="mb-4 text-sm text-green-700">{notice}</p>}
 
-      <section className="mb-10 rounded-lg border p-4">
-        <h2 className="mb-3 font-medium">Pending signup requests</h2>
-        {(requests ?? []).length === 0 && <p className="text-sm text-ink/50">No pending requests.</p>}
-        <ul className="flex flex-col gap-2">
-          {(requests ?? []).map((r) => (
-            <li key={r.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
-              <span>
-                {r.schoolName} — <span className="text-ink/50">{r.slug}</span>
-              </span>
-              <div className="flex gap-3">
-                <button className="text-green-700 underline" onClick={() => handleApprove(r.id)}>
-                  Approve
-                </button>
-                <button className="text-red-600 underline" onClick={() => handleReject(r.id)}>
-                  Reject
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="rounded-lg border p-4">
-        <h2 className="mb-3 font-medium">Session Wrap — per-school pilot toggle</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            School workspace name
+        <section className="mb-10 rounded-lg border p-4">
+          <h2 className="mb-3 font-medium">Create a school directly</h2>
+          <p className="mb-3 text-xs text-ink/50">Bypasses the signup-request queue — use for sales-assisted onboarding.</p>
+          <form onSubmit={handleCreateSchool} className="grid gap-2 sm:grid-cols-2">
             <input
-              className="rounded border px-3 py-2"
-              placeholder="greenwood-college"
-              value={featureSlug}
-              onChange={(e) => setFeatureSlug(e.target.value)}
+              className="rounded border px-2 py-1.5 text-sm"
+              placeholder="School name"
+              value={newSchool.name}
+              onChange={(e) => setNewSchool((f) => ({ ...f, name: e.target.value }))}
+              required
             />
-          </label>
-          <button onClick={handleLookupSchool} className="rounded border px-3 py-2 text-sm">
-            Look up
-          </button>
-        </div>
-        {featureSchoolName && (
-          <div className="mt-3 flex items-center gap-3 text-sm">
-            <span>
-              {featureSchoolName} — Session Wrap is currently{' '}
-              <strong>{featureEnabled ? 'ON' : 'OFF'}</strong>
-            </span>
-            <button onClick={handleToggleFeature} className="rounded bg-brand-blue px-3 py-1.5 text-white">
-              Turn {featureEnabled ? 'off' : 'on'}
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              placeholder="Workspace slug (greenwood-college)"
+              value={newSchool.slug}
+              onChange={(e) => setNewSchool((f) => ({ ...f, slug: e.target.value.toLowerCase() }))}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm uppercase"
+              placeholder="Code (GRW)"
+              value={newSchool.code}
+              onChange={(e) => setNewSchool((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              placeholder="Admin full name"
+              value={newSchool.adminName}
+              onChange={(e) => setNewSchool((f) => ({ ...f, adminName: e.target.value }))}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              type="email"
+              placeholder="Admin email"
+              value={newSchool.adminEmail}
+              onChange={(e) => setNewSchool((f) => ({ ...f, adminEmail: e.target.value }))}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              type="password"
+              placeholder="Admin temporary password"
+              value={newSchool.adminPassword}
+              onChange={(e) => setNewSchool((f) => ({ ...f, adminPassword: e.target.value }))}
+              required
+            />
+            <button type="submit" className="w-fit rounded bg-brand-blue px-4 py-2 text-sm text-white sm:col-span-2">
+              Create school
             </button>
+          </form>
+        </section>
+
+        <section className="mb-10 rounded-lg border p-4">
+          <h2 className="mb-3 font-medium">Pending signup requests</h2>
+          {requests.length === 0 && <p className="text-sm text-ink/50">No pending requests.</p>}
+          <ul className="flex flex-col gap-2">
+            {requests.map((r) => (
+              <li key={r.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                <span>
+                  {r.schoolName} — <span className="text-ink/50">{r.slug}</span>
+                </span>
+                <div className="flex gap-3">
+                  <button className="text-green-700 underline" onClick={() => handleApprove(r.id)}>
+                    Approve
+                  </button>
+                  <button className="text-red-600 underline" onClick={() => handleReject(r.id)}>
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-[1fr_1.3fr]">
+          <div className="rounded-lg border p-4">
+            <h2 className="mb-3 font-medium">All schools</h2>
+            <ul className="flex flex-col gap-1">
+              {schools.map((s) => (
+                <li key={s.id}>
+                  <button
+                    onClick={() => selectSchool(s)}
+                    className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-black/5 ${
+                      selectedSchool?.id === s.id ? 'bg-black/5' : ''
+                    }`}
+                  >
+                    <span>{s.name}</span>
+                    <span className={`text-xs ${s.status === 'ACTIVE' ? 'text-brand-green' : 'text-red-600'}`}>{s.status}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
-        )}
-      </section>
+
+          <div className="rounded-lg border p-4">
+            {!selectedSchool ? (
+              <p className="text-sm text-ink/50">Select a school to manage it.</p>
+            ) : (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="font-medium">{selectedSchool.name}</h2>
+                  <p className="text-xs text-ink/50">{selectedSchool.slug}</p>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span>
+                    Status: <strong className={selectedSchool.status === 'ACTIVE' ? 'text-brand-green' : 'text-red-600'}>{selectedSchool.status}</strong>
+                  </span>
+                  <button
+                    onClick={handleToggleSuspend}
+                    className={`rounded px-3 py-1.5 text-xs text-white ${selectedSchool.status === 'ACTIVE' ? 'bg-red-600' : 'bg-brand-green'}`}
+                  >
+                    {selectedSchool.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span>Session Wrap: <strong>{selectedSchool.sessionWrapEnabled ? 'ON' : 'OFF'}</strong></span>
+                  <button onClick={handleToggleSessionWrap} className="rounded bg-brand-blue px-3 py-1.5 text-xs text-white">
+                    Turn {selectedSchool.sessionWrapEnabled ? 'off' : 'on'}
+                  </button>
+                </div>
+
+                <div>
+                  <p className="mb-1 text-sm">Price per student override (₦, blank = platform default)</p>
+                  <div className="flex gap-2">
+                    <input
+                      className="w-32 rounded border px-2 py-1.5 text-sm"
+                      type="number"
+                      value={priceOverride}
+                      onChange={(e) => setPriceOverrideInput(e.target.value)}
+                    />
+                    <button onClick={handleSetPriceOverride} className="rounded bg-brand-blue px-3 py-1.5 text-xs text-white">
+                      Save
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handleManualCredit} className="border-t pt-4">
+                  <p className="mb-2 text-sm font-medium">Manual wallet credit</p>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      className="rounded border px-2 py-1.5 text-sm"
+                      type="number"
+                      placeholder="Amount (₦)"
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      required
+                    />
+                    <input
+                      className="rounded border px-2 py-1.5 text-sm"
+                      placeholder="Reason (shown in the school's notification)"
+                      value={creditReason}
+                      onChange={(e) => setCreditReason(e.target.value)}
+                    />
+                    <button type="submit" className="w-fit rounded bg-brand-green px-3 py-1.5 text-xs text-white">
+                      Credit wallet
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        </section>
       </main>
     </>
   );

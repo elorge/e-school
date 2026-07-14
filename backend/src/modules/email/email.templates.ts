@@ -109,6 +109,19 @@ export function lowBalanceWarningEmail(params: { schoolName: string; balanceNair
   };
 }
 
+export function staffInviteEmail(params: { fullName: string; schoolName: string; activateUrl: string }) {
+  return {
+    subject: `You've been added to ${params.schoolName} on Elorge Schools`,
+    html: wrapper(`
+      <h2 style="font-size: 20px;">Hi ${params.fullName},</h2>
+      <p>You've been added as staff at <strong>${params.schoolName}</strong> on Elorge Schools. Set your password
+        to activate your account — this link is valid for 7 days.</p>
+      <p><a href="${params.activateUrl}" style="display:inline-block;padding:10px 20px;background:#0b3d91;color:#fff;border-radius:6px;text-decoration:none;">Activate my account</a></p>
+      <p>If you weren't expecting this, please contact your school administrator.</p>
+    `),
+  };
+}
+
 export function passwordResetEmail(params: { fullName: string; resetUrl: string }) {
   return {
     subject: `Reset your Elorge Schools password`,

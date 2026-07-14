@@ -17,6 +17,13 @@ export class SchoolsController {
     private readonly authService: AuthService,
   ) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Get()
+  listAll() {
+    return this.schoolsService.listAll();
+  }
+
   @Public()
   @Get(':slug')
   getBySlug(@Param('slug') slug: string) {
@@ -79,6 +86,20 @@ export class SchoolsController {
   @Patch(':slug/price-override')
   setPriceOverride(@Param('slug') slug: string, @Body() body: SetPriceOverrideDto) {
     return this.schoolsService.setPriceOverride(slug, body.pricePerStudentKobo);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Patch(':slug/suspend')
+  suspend(@Param('slug') slug: string) {
+    return this.schoolsService.suspend(slug);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Patch(':slug/reactivate')
+  reactivate(@Param('slug') slug: string) {
+    return this.schoolsService.reactivate(slug);
   }
 
   @UseGuards(RolesGuard)

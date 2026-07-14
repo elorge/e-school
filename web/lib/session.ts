@@ -10,6 +10,7 @@ export interface SessionUser {
   role: Role;
   schoolId: string | null;
   schoolSlug: string | null;
+  mustChangePassword: boolean;
 }
 
 export function setSessionUser(user: SessionUser) {

@@ -17,17 +17,23 @@ datasource db {
 
 // ─── Platform & tenancy ─────────────────────────────────────────────────
 
+enum SchoolStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 model School {
-  id                          String   @id @default(uuid())
-  slug                        String   @unique // path-based tenant id, e.g. "greenwood-college"
+  id                          String       @id @default(uuid())
+  slug                        String       @unique // path-based tenant id, e.g. "greenwood-college"
   name                        String
-  code                        String   @unique // short code used to build Admission IDs, e.g. "GRW"
+  code                        String       @unique // short code used to build Admission IDs, e.g. "GRW"
   logoUrl                     String?
   info                        Json? // address, contact info — rendered onto reports
   pricePerStudentKoboOverride Int? // null = use platform default
-  sessionWrapEnabled          Boolean  @default(false) // per-school flag — off by default, turned on per pilot school
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+  sessionWrapEnabled          Boolean      @default(false) // per-school flag — off by default, turned on per pilot school
+  status                      SchoolStatus @default(ACTIVE)
+  createdAt                   DateTime     @default(now())
+  updatedAt                   DateTime     @updatedAt
   
   users             User[]
   classes           Class[]
@@ -65,12 +71,12 @@ model User {
   id           String   @id @default(uuid())
   schoolId     String? // null for SUPER_ADMIN / FINANCE_OPS
   school       School?  @relation(fields: [schoolId], references: [id])
-  role         Role
-  email        String   @unique
-  passwordHash String
-  fullName     String
-  createdAt    DateTime @default(now())
-
+  role               Role
+  email              String   @unique
+  passwordHash       String
+  fullName           String
+  mustChangePassword Boolean  @default(false) // true when an admin sets the password directly (not the invite-link flow) — forces a change on first login
+  createdAt          DateTime @default(now())
   lessonNotesCreated    LessonNote[]         @relation("LessonNoteCreatedBy")
   classesCreated        Class[]              @relation("ClassCreatedBy")
   classesTeaching       Class[]              @relation("ClassTeacher")
@@ -343,6 +349,7 @@ enum LedgerSource {
   PROMO // includes the one-time ₦100,000 welcome bonus — see spec doc §7.5
   SYSTEM // internal debits (e.g. PIN generation) that aren't funding-sourced
   REFUND // reversal of a debit whose downstream work failed
+  ADMIN_CREDIT // manual credit issued directly by a SUPER_ADMIN/FINANCE_OPS, outside the payment/transfer flow (goodwill, correction, etc.)
 }
 
 enum LedgerStatus {

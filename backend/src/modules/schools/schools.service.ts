@@ -19,6 +19,19 @@ export class SchoolsService {
     return this.prisma.school.findUnique({ where: { slug } });
   }
 
+  /** SUPER_ADMIN only — full directory, used by the school-management panel. */
+  listAll() {
+    return this.prisma.school.findMany({ orderBy: { createdAt: 'desc' } });
+  }
+
+  async suspend(slug: string) {
+    return this.prisma.school.update({ where: { slug }, data: { status: 'SUSPENDED' } });
+  }
+
+  async reactivate(slug: string) {
+    return this.prisma.school.update({ where: { slug }, data: { status: 'ACTIVE' } });
+  }
+
   async findByIdOrThrow(id: string) {
     const school = await this.prisma.school.findUnique({ where: { id } });
     if (!school) throw new NotFoundException('School not found');

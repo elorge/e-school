@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSessionUser, clearSessionUser, type SessionUser } from '@/lib/session';
 import { clearToken } from '@/lib/api';
 import PendingSyncBadge from './PendingSyncBadge';
-import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen } from 'lucide-react';
 
 function DropdownMenu({
   label,

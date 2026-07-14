@@ -143,6 +143,20 @@ export class EmailService {
     });
   }
 
+  async sendStaffInvite(params: { toEmail: string; fullName: string; schoolName: string; activateUrl: string }) {
+    const { subject, html } = templates.staffInviteEmail({
+      schoolName: params.schoolName,
+      fullName: params.fullName,
+      activateUrl: params.activateUrl,
+    });
+    return this.brevo.send({
+      to: [{ email: params.toEmail, name: params.fullName }],
+      subject,
+      htmlContent: html,
+      tags: ['onboarding', 'staff', 'invite'],
+    });
+  }
+  
   async sendPasswordReset(params: { toEmail: string; fullName: string; resetUrl: string }) {
     const { subject, html } = templates.passwordResetEmail({
       fullName: params.fullName,

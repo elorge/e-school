@@ -6,6 +6,7 @@ import 'katex/dist/katex.min.css';
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import InstallPrompt from '@/components/InstallPrompt';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import MustChangePasswordGate from '@/components/MustChangePasswordGate';
 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', weight: ['500', '600', '700'] });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistration />
         <InstallPrompt />
         <WhatsAppButton />
+        <MustChangePasswordGate />
       </body>
     </html>
   );

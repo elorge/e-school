@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { getBalance, initializePayment } from '@/lib/endpoints/wallet';
 import { listStaff, removeStaff } from '@/lib/endpoints/users';
+import { inviteStaff, createUser } from '@/lib/endpoints/auth';
 import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
@@ -19,6 +20,9 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
   const [error, setError] = useState<string | null>(null);
   const [reassignPromptFor, setReassignPromptFor] = useState<string | null>(null);
   const [reassignTargetId, setReassignTargetId] = useState('');
+  const [staffMode, setStaffMode] = useState<'invite' | 'direct'>('invite');
+  const [newStaff, setNewStaff] = useState({ fullName: '', email: '', password: '' });
+  const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
   async function loadData() {
     try {
@@ -50,6 +54,28 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       window.location.href = redirectUrl;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not start payment');
+    }
+  }
+
+ async function handleCreateStaff(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+    setIsCreatingStaff(true);
+    try {
+      if (staffMode === 'invite') {
+        await inviteStaff({ fullName: newStaff.fullName, email: newStaff.email });
+        setNotice(`Invite sent to ${newStaff.email} — they'll set their own password to activate the account.`);
+      } else {
+        await createUser({ fullName: newStaff.fullName, email: newStaff.email, password: newStaff.password, role: 'STAFF' });
+        setNotice(`Account created for ${newStaff.email}. Share the password with them directly — they'll be asked to change it on first login.`);
+      }
+      setNewStaff({ fullName: '', email: '', password: '' });
+      loadData();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not create staff account');
+    } finally {
+      setIsCreatingStaff(false);
     }
   }
 
@@ -111,6 +137,61 @@ if (isLoading) return <LoadingScreen />;
 
       <section className="rounded-lg border p-4">
         <h2 className="mb-2 font-medium">Staff</h2>
+
+        <div className="mb-3 flex gap-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setStaffMode('invite')}
+            className={`rounded-full px-3 py-1 ${staffMode === 'invite' ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
+          >
+            Invite by email
+          </button>
+          <button
+            type="button"
+            onClick={() => setStaffMode('direct')}
+            className={`rounded-full px-3 py-1 ${staffMode === 'direct' ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
+          >
+            Set password now
+          </button>
+        </div>
+        <form onSubmit={handleCreateStaff} className="mb-4 flex flex-wrap items-end gap-2 border-b pb-4">
+          <label className="flex flex-col gap-1 text-sm">
+            Full name
+            <input
+              className="rounded border px-2 py-1.5"
+              value={newStaff.fullName}
+              onChange={(e) => setNewStaff((f) => ({ ...f, fullName: e.target.value }))}
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Email
+            <input
+              className="rounded border px-2 py-1.5"
+              type="email"
+              value={newStaff.email}
+              onChange={(e) => setNewStaff((f) => ({ ...f, email: e.target.value }))}
+              required
+            />
+          </label>
+          {staffMode === 'direct' && (
+            <label className="flex flex-col gap-1 text-sm">
+              Temporary password
+              <input
+                className="rounded border px-2 py-1.5"
+                type="password"
+                minLength={8}
+                value={newStaff.password}
+                onChange={(e) => setNewStaff((f) => ({ ...f, password: e.target.value }))}
+                required
+              />
+            </label>
+          )}
+          <button type="submit" disabled={isCreatingStaff} className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white disabled:opacity-50">
+            {isCreatingStaff ? 'Saving…' : staffMode === 'invite' ? 'Send invite' : 'Create account'}
+          </button>
+        </form>
+
         <ul className="flex flex-col gap-2">
           {staff.map((member) => (
             <li key={member.id} className="flex items-center justify-between rounded border px-3 py-2">

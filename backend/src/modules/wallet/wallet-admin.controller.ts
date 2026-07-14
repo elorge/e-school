@@ -24,4 +24,14 @@ export class WalletAdminController {
   resolve(@Param('id') id: string, @Body() body: { approve: boolean }, @CurrentUser() user: AuthenticatedUser) {
     return this.walletService.resolveManualTransferClaim(id, user.id, body.approve);
   }
+
+  @Roles(Role.FINANCE_OPS, Role.SUPER_ADMIN)
+  @Post('manual-credit')
+  manualCredit(
+    @Body() body: { schoolId: string; amountKobo: number; reason: string },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.walletService.manualCredit(body.schoolId, body.amountKobo, body.reason, user.id);
+  }
+  
 }

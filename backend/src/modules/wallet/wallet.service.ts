@@ -1,8 +1,9 @@
 // backend/src/modules/wallet/wallet.service.ts
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { LedgerSource, LedgerStatus, LedgerType, Role, Prisma, User } from '@prisma/client';
+import { LedgerSource, LedgerStatus, LedgerType, Role, Prisma } from '@prisma/client';
 import { LOW_BALANCE_WARNING_THRESHOLD_KOBO } from '../../common/constants';
 
 @Injectable()
@@ -81,6 +82,42 @@ export class WalletService {
         amountKobo,
         newBalanceKobo,
         source: 'card/bank payment',
+      }),
+    );
+
+    return entry;
+  }
+
+  /**
+   * A manual credit issued directly by Elorge platform staff — outside
+   * the gateway/bank-transfer flow entirely. Used for goodwill credits,
+   * billing corrections, or any case where the money movement happened
+   * somewhere off-platform and just needs to be reflected here.
+   */
+  async manualCredit(schoolId: string, amountKobo: number, reason: string, approvedByUserId: string) {
+    if (amountKobo <= 0) throw new BadRequestException('Amount must be positive');
+
+    const entry = await this.prisma.walletLedgerEntry.create({
+      data: {
+        schoolId,
+        type: LedgerType.CREDIT,
+        amountKobo,
+        source: LedgerSource.ADMIN_CREDIT,
+        status: LedgerStatus.CONFIRMED,
+        reference: `admin-credit-${randomUUID()}`,
+        approvedById: approvedByUserId,
+      },
+    });
+
+    const newBalanceKobo = await this.getBalanceKobo(schoolId);
+    await this.notifyAdmins(schoolId, (admin, schoolName) =>
+      this.emailService.sendWalletCreditConfirmed({
+        toEmail: admin.email,
+        toName: admin.fullName,
+        schoolName,
+        amountKobo,
+        newBalanceKobo,
+        source: reason || 'Platform credit',
       }),
     );
 

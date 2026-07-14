@@ -13,6 +13,13 @@ export function listPendingTransfers(): Promise<PendingTransfer[]> {
   return apiFetch('/platform/wallet/manual-transfers/pending');
 }
 
+export function manualCredit(schoolId: string, amountKobo: number, reason: string) {
+  return apiFetch('/platform/wallet/manual-credit', {
+    method: 'POST',
+    body: JSON.stringify({ schoolId, amountKobo, reason }),
+  });
+}
+
 export function resolveTransfer(id: string, approve: boolean) {
   return apiFetch(`/platform/wallet/manual-transfers/${id}/resolve`, {
     method: 'POST',

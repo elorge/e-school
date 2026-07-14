@@ -7,6 +7,21 @@ export function getSchoolBySlug(slug: string): Promise<School | null> {
 }
 
 /** SUPER_ADMIN only. */
+export function listAllSchools(): Promise<School[]> {
+  return apiFetch('/schools');
+}
+
+/** SUPER_ADMIN only. */
+export function suspendSchool(slug: string): Promise<School> {
+  return apiFetch(`/schools/${slug}/suspend`, { method: 'PATCH' });
+}
+
+/** SUPER_ADMIN only. */
+export function reactivateSchool(slug: string): Promise<School> {
+  return apiFetch(`/schools/${slug}/reactivate`, { method: 'PATCH' });
+}
+
+/** SUPER_ADMIN only. */
 export function createSchool(body: {
   slug: string;
   name: string;

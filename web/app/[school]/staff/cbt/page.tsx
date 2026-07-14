@@ -22,6 +22,7 @@ import {
   bulkUploadQuestions,
   getTest,
   type CbtTest,
+  type CbtAttemptSummary,
 } from '@/lib/endpoints/cbt';
 import { fetchTestPaperPdf, openPdfBlob } from '@/lib/endpoints/documents';
 import type { Class, Term } from '@/lib/types';
@@ -33,7 +34,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [terms, setTerms] = useState<Term[]>([]);
   const [tests, setTests] = useState<CbtTest[]>([]);
   const [selectedTest, setSelectedTest] = useState<CbtTest | null>(null);
-  const [attempts, setAttempts] = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<CbtAttemptSummary[]>([]);
   const [classStudents, setClassStudents] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [questionCount, setQuestionCount] = useState(0);
