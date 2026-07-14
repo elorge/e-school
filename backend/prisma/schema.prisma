@@ -35,6 +35,7 @@ model School {
   terms             Term[]
   subjects          Subject[]
   pins              Pin[]
+  lessonNotes       LessonNote[]
   pinLookupAttempts PinLookupAttempt[]
   ledgerEntries     WalletLedgerEntry[]
   reportTemplate    ReportTemplate?
@@ -70,6 +71,7 @@ model User {
   fullName     String
   createdAt    DateTime @default(now())
 
+  lessonNotesCreated    LessonNote[]         @relation("LessonNoteCreatedBy")
   classesCreated        Class[]              @relation("ClassCreatedBy")
   classesTeaching       Class[]              @relation("ClassTeacher")
   cbtTestsCreated       CbtTest[]            @relation("CbtTestCreatedBy")
@@ -101,6 +103,7 @@ model Class {
   students      Student[]
   cbtTests      CbtTest[]
   feeStructures FeeStructure[]
+  lessonNotes   LessonNote[]
 
   @@map("classes")
 }
@@ -182,6 +185,7 @@ model Term {
   cbtTests       CbtTest[]
   feeStructures  FeeStructure[]
   feeInvoices    FeeInvoice[]
+  lessonNotes    LessonNote[]
 
   @@unique([schoolId, academicSession, termNumber])
   @@index([schoolId, academicSession])
@@ -588,4 +592,37 @@ model ExpenseEntry {
   createdAt    DateTime @default(now())
 
   @@map("expense_entries")
+}
+
+enum LessonNoteStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model LessonNote {
+  id                    String           @id @default(uuid())
+  schoolId              String
+  school                School           @relation(fields: [schoolId], references: [id])
+  classId               String
+  class                 Class            @relation(fields: [classId], references: [id])
+  termId                String
+  term                  Term             @relation(fields: [termId], references: [id])
+  subject               String
+  topic                 String
+  durationMinutes       Int?
+  objectives            String // "By the end of this lesson, students should be able to..." — one per line
+  instructionalMaterials String?
+  previousKnowledge     String?
+  presentation          String // the main teaching content — split into projector slides by a "---" line, see PresenterView
+  evaluation            String?
+  assignment            String?
+  summary               String?
+  status                LessonNoteStatus @default(DRAFT)
+  createdByStaffId      String
+  createdBy             User             @relation("LessonNoteCreatedBy", fields: [createdByStaffId], references: [id])
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([schoolId, classId, termId, status])
+  @@map("lesson_notes")
 }

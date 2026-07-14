@@ -24,6 +24,7 @@ import { CbtModule } from './modules/cbt/cbt.module';
 import { FeesModule } from './modules/fees/fees.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { LessonNotesModule } from './modules/lesson-notes/lesson-notes.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { envValidationSchema } from './config/env.validation';
@@ -54,6 +55,7 @@ import { envValidationSchema } from './config/env.validation';
     FeesModule,
     InventoryModule,
     AccountingModule,
+    LessonNotesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

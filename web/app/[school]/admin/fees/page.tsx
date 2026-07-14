@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
+import { Wallet } from 'lucide-react';
 import { listTerms } from '@/lib/endpoints/terms';
 import { listClasses } from '@/lib/endpoints/classes';
 import {
@@ -89,7 +90,7 @@ if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Fees</h1>
+      <h1 className="flex items-center gap-2 text-xl font-semibold"><Wallet size={20} /> {school.name} — Fees</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 

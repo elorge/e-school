@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
+import { Calculator } from 'lucide-react';
 import { recordExpense, listExpenses, getSummary, type ExpenseEntry, type IncomeExpenditureSummary } from '@/lib/endpoints/accounting';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -58,7 +59,7 @@ if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Accounting</h1>
+      <h1 className="text-xl font-semibold"><Calculator size={20} />{school.name} — Accounting</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex items-end gap-3">

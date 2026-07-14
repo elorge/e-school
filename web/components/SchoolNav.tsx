@@ -7,8 +7,17 @@ import { useEffect, useRef, useState } from 'react';
 import { getSessionUser, clearSessionUser, type SessionUser } from '@/lib/session';
 import { clearToken } from '@/lib/api';
 import PendingSyncBadge from './PendingSyncBadge';
+import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown } from 'lucide-react';
 
-function DropdownMenu({ label, items }: { label: string; items: { href: string; text: string }[] }) {
+function DropdownMenu({
+  label,
+  icon: Icon,
+  items,
+}: {
+  label: string;
+  icon: React.ElementType;
+  items: { href: string; text: string }[];
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -22,9 +31,10 @@ function DropdownMenu({ label, items }: { label: string; items: { href: string; 
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1">
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5">
+        <Icon size={15} />
         {label}
-        <span className={`text-xs transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+        <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute left-0 top-full z-20 mt-2 flex w-44 flex-col rounded-lg border bg-white py-1 shadow-lg">
@@ -66,6 +76,7 @@ export default function SchoolNav({
   const academicItems = [
     { href: `/${slug}/admin/academic/classes`, text: 'Classes' },
     { href: `/${slug}/staff`, text: 'Students' },
+    { href: `/${slug}/staff/lessons`, text: 'Lesson Notes' },
     { href: `/${slug}/staff/cbt`, text: 'CBT' },
     { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
     { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
@@ -84,12 +95,23 @@ export default function SchoolNav({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        {isSchoolAdmin && <Link href={`/${slug}/admin`}>Admin</Link>}
-        {isStaffOrAdmin && <DropdownMenu label="Academic" items={academicItems} />}
-        {isSchoolAdmin && <Link href={`/${slug}/admin/documents`}>Documents</Link>}
+        {isSchoolAdmin && (
+          <Link href={`/${slug}/admin`} className="flex items-center gap-1.5">
+            <LayoutDashboard size={15} />
+            Admin
+          </Link>
+        )}
+        {isStaffOrAdmin && <DropdownMenu label="Academic" icon={GraduationCap} items={academicItems} />}
+        {isSchoolAdmin && (
+          <Link href={`/${slug}/admin/documents`} className="flex items-center gap-1.5">
+            <FileText size={15} />
+            Documents
+          </Link>
+        )}
         {isSchoolAdmin && (
           <DropdownMenu
             label="Finance"
+            icon={Wallet}
             items={[
               { href: `/${slug}/admin/fees`, text: 'Fees' },
               { href: `/${slug}/admin/inventory`, text: 'Inventory' },
@@ -97,9 +119,17 @@ export default function SchoolNav({
             ]}
           />
         )}
-        <Link href={`/${slug}/results`}>Check Result</Link>
+        <Link href={`/${slug}/results`} className="flex items-center gap-1.5">
+          <Search size={15} />
+          Check Result
+        </Link>
+        <Link href={`/${slug}/lessons`} className="flex items-center gap-1.5">
+          <BookOpen size={15} />
+          Lessons
+        </Link>
         {user && (
-          <button onClick={handleLogout} className="text-gray-500 underline">
+          <button onClick={handleLogout} className="flex items-center gap-1.5 text-gray-500">
+            <LogOut size={15} />
             Log out
           </button>
         )}

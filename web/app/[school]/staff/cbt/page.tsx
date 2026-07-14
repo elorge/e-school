@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
+import { Laptop } from 'lucide-react';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
@@ -132,7 +133,9 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{school.name} — Computer-Based Tests</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <Laptop size={20} /> {school.name} — Computer-Based Tests
+        </h1>
         <Link href={`/${params.school}/staff/cbt/take`} className="rounded bg-brand-green px-4 py-2 text-sm text-white">
           Start a test session
         </Link>
@@ -295,7 +298,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               </button>
             </form>
 
-         <div className="rounded-lg border-2 border-dashed p-4">
+            <div className="rounded-lg border-2 border-dashed p-4">
               <p className="mb-2 text-xs uppercase tracking-wide text-ink/40">Live preview — what the student sees</p>
               <p className="mb-3 font-medium">
                 {question.questionText ? <MathText text={question.questionText} /> : 'Your question text will appear here…'}

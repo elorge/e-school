@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
+import { FileText } from 'lucide-react';
 import LoadingScreen from '@/components/LoadingScreen';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
@@ -51,7 +52,7 @@ if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Documents</h1>
+      <h1 className="text-xl font-semibold"><FileText size={20} />{school.name} — Documents</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <section className="rounded-lg border p-4">

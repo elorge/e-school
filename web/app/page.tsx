@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil } from 'lucide-react';
 
 const CORE_FEATURES = [
   {
@@ -193,6 +194,68 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Lesson Notes & Presenter Mode */}
+      <section id="lesson-notes" className="border-t border-black/5 px-6 py-20">
+        <div className="mx-auto grid max-w-5xl gap-10 sm:grid-cols-2 sm:items-center">
+          <div>
+            <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Lesson notes</p>
+            <h2 className="mb-4 font-display text-3xl font-semibold">
+              Written once, taught on the board, read again at home.
+            </h2>
+            <p className="mb-6 text-ink/70">
+              Teachers write in the same structured format used for supervision — objectives, previous knowledge,
+              presentation, evaluation, assignment. One click turns it into a full-screen slide deck for the
+              projector, with a whiteboard overlay for working through a problem live. Publish it, and it's there
+              for that class's students to read again at home, at their own pace — gated to their own class, not the
+              open internet.
+            </p>
+            <div className="flex flex-col gap-3">
+              {[
+                [NotebookPen, 'A format teachers already know', 'The standard Nigerian lesson-note structure — not a blank text box.'],
+                [Presentation, 'One click to the projector', 'The same note becomes a clean, full-screen slide deck — no separate slides to build.'],
+                [Pencil, 'Whiteboard, built in', 'Pen, eraser, and colors, right over the slide — for working through a step live.'],
+              ].map(([Icon, title, body]: any) => (
+                <div key={title} className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue">
+                    <Icon size={16} />
+                  </div>
+                  <div>
+                    <p className="font-medium">{title}</p>
+                    <p className="text-sm text-ink/60">{body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Signature element: a mocked projector slide with a whiteboard scribble accent */}
+          <div className="relative rounded-2xl bg-ink p-8 text-white">
+            <p className="mb-4 font-mono text-xs uppercase tracking-[0.3em] text-brand-green">Presentation</p>
+            <p className="mb-2 text-sm text-white/50">Mathematics — JSS 2</p>
+            <h3 className="mb-6 font-display text-2xl font-semibold leading-snug">
+              Solving for x: <br />
+              <span className="text-brand-green">2x + 5 = 15</span>
+            </h3>
+            <svg viewBox="0 0 300 60" className="mb-6 w-full opacity-80">
+              <path
+                d="M10,45 Q40,10 70,35 T140,25 Q160,15 180,40 T260,20"
+                fill="none"
+                stroke="#F08C00"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <circle cx="180" cy="40" r="14" fill="none" stroke="#F08C00" strokeWidth="3" />
+            </svg>
+            <div className="flex items-center justify-between text-xs text-white/40">
+              <span>3 / 6</span>
+              <span className="flex items-center gap-1">
+                <Pencil size={12} /> Whiteboard active
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Offline-first */}
       <section id="offline" className="px-6 py-20">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 rounded-2xl bg-ink px-8 py-14 text-center text-white">
@@ -239,12 +302,15 @@ export default function HomePage() {
           </p>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ['ID card printing', 'Printers and blank cards to turn the digital ID cards you already generate into physical ones.'],
-              ['Gate scanners', 'QR/barcode scanners matched to the attendance flow, with a setup guide included.'],
-              ['CBT lab computers', 'Entry-level lab hardware sized for computer-based testing, for schools not yet fully equipped.'],
-              ['Network setup', 'Structured wiring and routers so the "works even offline" promise holds up on your actual campus wifi.'],
-            ].map(([title, body]) => (
+              [CreditCard, 'ID card printing', 'Printers and blank cards to turn the digital ID cards you already generate into physical ones.'],
+              [ScanLine, 'Gate scanners', 'QR/barcode scanners matched to the attendance flow, with a setup guide included.'],
+              [Monitor, 'CBT lab computers', 'Entry-level lab hardware sized for computer-based testing, for schools not yet fully equipped.'],
+              [Wifi, 'Network setup', 'Structured wiring and routers so the "works even offline" promise holds up on your actual campus wifi.'],
+            ].map(([Icon, title, body]: any) => (
               <div key={title} className="rounded-xl border border-black/5 p-5">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue">
+                  <Icon size={20} />
+                </div>
                 <h3 className="mb-2 font-display text-base font-semibold">{title}</h3>
                 <p className="text-sm text-ink/60">{body}</p>
               </div>
