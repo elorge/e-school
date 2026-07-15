@@ -28,6 +28,15 @@ export class UploadsController {
     return { url };
   }
 
+  @Roles(Role.SCHOOL_ADMIN)
+  @Post('school-signature')
+  @UseInterceptors(FileInterceptor('file', { limits: IMAGE_LIMITS }))
+  async uploadSchoolSignature(@Req() req: Request, @UploadedFile() file: Express.Multer.File) {
+    const url = await this.uploadsService.uploadImage(file.buffer, `elorge/schools/${req.schoolId}/branding`);
+    await this.prisma.school.update({ where: { id: req.schoolId! }, data: { signatureUrl: url } });
+    return { url };
+  }
+
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Post('student-photo/:studentId')
   @UseInterceptors(FileInterceptor('file', { limits: IMAGE_LIMITS }))

@@ -8,6 +8,7 @@ import { listStaff, removeStaff } from '@/lib/endpoints/users';
 import { inviteStaff, createUser } from '@/lib/endpoints/auth';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Wallet } from 'lucide-react';
+import PasswordInput from '@/components/PasswordInput';
 import { ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
 
@@ -23,7 +24,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
   const [reassignPromptFor, setReassignPromptFor] = useState<string | null>(null);
   const [reassignTargetId, setReassignTargetId] = useState('');
   const [staffMode, setStaffMode] = useState<'invite' | 'direct'>('invite');
-  const [newStaff, setNewStaff] = useState({ fullName: '', email: '', password: '' });
+  const [newStaff, setNewStaff] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
   async function loadData() {
@@ -69,10 +70,15 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
         await inviteStaff({ fullName: newStaff.fullName, email: newStaff.email });
         setNotice(`Invite sent to ${newStaff.email} — they'll set their own password to activate the account.`);
       } else {
+        if (newStaff.password !== newStaff.confirmPassword) {
+          setError('Passwords do not match.');
+          setIsCreatingStaff(false);
+          return;
+        }
         await createUser({ fullName: newStaff.fullName, email: newStaff.email, password: newStaff.password, role: 'STAFF' });
         setNotice(`Account created for ${newStaff.email}. Share the password with them directly — they'll be asked to change it on first login.`);
       }
-      setNewStaff({ fullName: '', email: '', password: '' });
+      setNewStaff({ fullName: '', email: '', password: '', confirmPassword: '' });
       loadData();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create staff account');
@@ -183,17 +189,21 @@ if (isLoading) return <LoadingScreen />;
             />
           </label>
           {staffMode === 'direct' && (
-            <label className="flex flex-col gap-1 text-sm">
-              Temporary password
-              <input
-                className="rounded border px-2 py-1.5"
-                type="password"
-                minLength={8}
-                value={newStaff.password}
-                onChange={(e) => setNewStaff((f) => ({ ...f, password: e.target.value }))}
-                required
-              />
-            </label>
+            <>
+              <label className="flex flex-col gap-1 text-sm">
+                Temporary password
+                <PasswordInput value={newStaff.password} onChange={(v) => setNewStaff((f) => ({ ...f, password: v }))} minLength={8} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Confirm password
+                <PasswordInput
+                  value={newStaff.confirmPassword}
+                  onChange={(v) => setNewStaff((f) => ({ ...f, confirmPassword: v }))}
+                  minLength={8}
+                  required
+                />
+              </label>
+            </>
           )}
           <button type="submit" disabled={isCreatingStaff} className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white disabled:opacity-50">
             {isCreatingStaff ? 'Saving…' : staffMode === 'invite' ? 'Send invite' : 'Create account'}

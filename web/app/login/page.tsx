@@ -7,6 +7,7 @@ import { login } from '@/lib/endpoints/auth';
 import { ApiError } from '@/lib/api';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -68,13 +69,7 @@ export default function LoginPage() {
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Password
-            <input
-              className="rounded border px-3 py-2"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <PasswordInput value={password} onChange={setPassword} required />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" disabled={isSubmitting} className="btn-primary mt-2 w-full">

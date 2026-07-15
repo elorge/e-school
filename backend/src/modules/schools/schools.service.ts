@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { SignupRequestStatus } from '@prisma/client';
 import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO } from '../../common/constants';
 
@@ -13,6 +14,7 @@ export class SchoolsService {
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   findBySlug(slug: string) {
@@ -107,7 +109,7 @@ export class SchoolsService {
     if (codeTaken) throw new ConflictException('That school code is already taken');
 
     const adminPasswordHash = await bcrypt.hash(data.adminPassword, 10);
-    return this.prisma.schoolSignupRequest.create({
+    const result = await this.prisma.schoolSignupRequest.create({
       data: {
         schoolName: data.schoolName,
         slug: data.slug,
@@ -119,8 +121,18 @@ export class SchoolsService {
       },
       select: { id: true, schoolName: true, slug: true, status: true, createdAt: true },
     });
-  }
 
+    const superAdmins = await this.prisma.user.findMany({ where: { role: 'SUPER_ADMIN' } });
+    await this.notificationsService.notifyUsers(
+      superAdmins.map((u) => u.id),
+      'New school signup request',
+      `${data.schoolName} is waiting for approval.`,
+      '/super-admin',
+    );
+
+    return result;
+  }
+  
   listSignupRequests(status?: SignupRequestStatus) {
     return this.prisma.schoolSignupRequest.findMany({
       where: status ? { status } : {},
@@ -176,4 +188,15 @@ export class SchoolsService {
     });
   }
 
+  /** Partial, case-insensitive match on name or slug — for type-ahead search, not exact lookup. */
+  search(q: string) {
+    if (!q || q.trim().length < 2) return [];
+    return this.prisma.school.findMany({
+      where: {
+        OR: [{ name: { contains: q, mode: 'insensitive' } }, { slug: { contains: q, mode: 'insensitive' } }],
+      },
+      take: 10,
+      orderBy: { name: 'asc' },
+    });
+  }
 }

@@ -1,5 +1,5 @@
 // web/lib/endpoints/documents.ts
-import { getToken } from '../api';
+import { getToken, apiFetch } from '../api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -18,6 +18,10 @@ export function fetchReportCardPdf(school: string, studentId: string, termId: st
 
 export function fetchIdCardPdf(school: string, studentId: string) {
   return fetchPdfBlob(`/${school}/students/${studentId}/id-card/pdf`);
+}
+
+export function issueIdCard(school: string, studentId: string) {
+  return apiFetch(`/${school}/students/${studentId}/id-card/issue`, { method: 'POST' });
 }
 
 export function fetchCalendarPdf(school: string, termId: string) {

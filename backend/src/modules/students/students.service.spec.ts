@@ -14,7 +14,7 @@ describe('StudentsService', () => {
         },
         $transaction: jest.fn(),
       };
-      const service = new StudentsService(prisma as any);
+      const service = new StudentsService(prisma as any, {} as any);
 
       const result = await service.createAndAssignId('school-1', 'GRW', 'class-1', 'staff-1', 'client-ref-abc', {
         firstName: 'Ada',
@@ -33,8 +33,7 @@ describe('StudentsService', () => {
         student: { findFirst: jest.fn().mockResolvedValue({ id: 's1', classId: 'class-1', schoolId: 'school-1' }) },
         class: { findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'class-1', classTeacherId: 'teacher-A' }) },
       };
-      const service = new StudentsService(prisma as any);
-
+      const service = new StudentsService(prisma as any, {} as any);
       await expect(
         service.withdraw('school-1', 's1', { id: 'teacher-B', role: Role.STAFF, schoolId: 'school-1' }),
       ).rejects.toThrow('class\'s teacher');

@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { resetPassword } from '@/lib/endpoints/auth';
 import { ApiError } from '@/lib/api';
+import PasswordInput from '@/components/PasswordInput';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 
@@ -75,25 +76,11 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
               New password
-              <input
-                className="rounded border px-3 py-2"
-                type="password"
-                minLength={8}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
+              <PasswordInput value={newPassword} onChange={setNewPassword} minLength={8} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               Confirm password
-              <input
-                className="rounded border px-3 py-2"
-                type="password"
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+              <PasswordInput value={confirmPassword} onChange={setConfirmPassword} minLength={8} required />
             </label>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button type="submit" disabled={isSubmitting} className="btn-primary mt-2 w-full">

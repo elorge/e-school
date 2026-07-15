@@ -1,12 +1,13 @@
 // backend/src/modules/students/students.service.ts
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { StudentStatus, Role, Prisma } from '@prisma/client';
+import { Prisma, StudentStatus, Role } from '@prisma/client';
+import { IdCardsService } from '../id-cards/id-cards.service';
 import { AuthenticatedUser } from '../../common/types/auth.types';
 
 @Injectable()
 export class StudentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly idCardsService: IdCardsService) {}
 
   findBySchool(schoolId: string, classId?: string, includeWithdrawn = false) {
     return this.prisma.student.findMany({
@@ -68,7 +69,7 @@ async createAndAssignId(
       const sequence = String(count + 1).padStart(4, '0');
       const studentId = `${schoolCode}/${data.admissionYear}/${sequence}`;
 
-      return tx.student.create({
+      const student = await tx.student.create({
         data: {
           schoolId,
           classId,
@@ -82,7 +83,13 @@ async createAndAssignId(
           status: StudentStatus.ACTIVE,
         },
       });
+      return student;
     });
+  }
+
+  /** Called right after a student row exists — separate from the transaction above since ID card issuance shouldn't block/rollback registration if it fails for any reason. */
+  async ensureIdCard(schoolId: string, studentId: string) {
+    return this.idCardsService.issueCard(schoolId, studentId);
   }
 
   /**

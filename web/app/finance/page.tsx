@@ -3,8 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { listPendingTransfers, resolveTransfer, manualCredit, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
-import { getSchoolBySlug } from '@/lib/endpoints/schools';
+import { getOverview, recordPlatformExpense, type PlatformOverview } from '@/lib/endpoints/platform-finance';
 import { getSessionUser } from '@/lib/session';
+import SchoolSearchInput from '@/components/SchoolSearchInput';
 import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
@@ -12,11 +13,12 @@ import { ApiError } from '@/lib/api';
 export default function FinanceDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [transfers, setTransfers] = useState<PendingTransfer[]>([]);
-  const [creditSlug, setCreditSlug] = useState('');
   const [creditSchoolName, setCreditSchoolName] = useState<string | null>(null);
   const [creditSchoolId, setCreditSchoolId] = useState<string | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
   const [creditReason, setCreditReason] = useState('');
+  const [overview, setOverview] = useState<PlatformOverview | null>(null);
+  const [expenseForm, setExpenseForm] = useState({ category: '', description: '', amount: '', incurredAt: new Date().toISOString().slice(0, 10) });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,27 +32,25 @@ export default function FinanceDashboard() {
 
 async function load() {
     try {
-      setTransfers(await listPendingTransfers());
+      const [t, o] = await Promise.all([listPendingTransfers(), getOverview()]);
+      setTransfers(t);
+      setOverview(o);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load pending transfers');
+      setError(err instanceof ApiError ? err.message : 'Failed to load finance data');
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function handleLookupSchool() {
+  async function handleRecordExpense(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
-    setCreditSchoolName(null);
     try {
-      const school = await getSchoolBySlug(creditSlug);
-      if (!school) {
-        setError('No school found with that workspace name');
-        return;
-      }
-      setCreditSchoolName(school.name);
-      setCreditSchoolId(school.id);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to look up school');
+      await recordPlatformExpense({ ...expenseForm, amountKobo: Math.round(Number(expenseForm.amount) * 100) } as any);
+      setExpenseForm({ category: '', description: '', amount: '', incurredAt: new Date().toISOString().slice(0, 10) });
+      load();
+    } catch {
+      setError('Could not record expense');
     }
   }
 
@@ -83,7 +83,70 @@ if (isLoading) return <LoadingScreen />;
   return (
     <>
       <PlatformNav title="Elorge — Finance & Ops" />
-      <main className="mx-auto max-w-2xl px-6 py-10">
+      <main className="mx-auto max-w-3xl px-6 py-10">
+        {overview && (
+          <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="stat-hero">
+              <p className="text-xs text-white/60">Revenue (this month)</p>
+              <p className="font-display text-xl font-semibold">₦{(overview.revenueThisMonthKobo / 100).toLocaleString('en-NG')}</p>
+            </div>
+            <div className="card">
+              <p className="text-xs text-ink/50">Platform expenses</p>
+              <p className="font-display text-xl font-semibold text-red-600">₦{(overview.expensesThisMonthKobo / 100).toLocaleString('en-NG')}</p>
+            </div>
+            <div className="card">
+              <p className="text-xs text-ink/50">Net (this month)</p>
+              <p className={`font-display text-xl font-semibold ${overview.netThisMonthKobo >= 0 ? 'text-brand-green' : 'text-red-600'}`}>
+                ₦{(overview.netThisMonthKobo / 100).toLocaleString('en-NG')}
+              </p>
+            </div>
+            <div className="card">
+              <p className="text-xs text-ink/50">Schools</p>
+              <p className="font-display text-xl font-semibold">
+                {overview.activeSchools} active <span className="text-sm text-red-600">/ {overview.suspendedSchools} suspended</span>
+              </p>
+            </div>
+          </section>
+        )}
+
+        <section className="card mb-8">
+          <h2 className="mb-3 font-medium">Record a platform expense</h2>
+          <p className="mb-3 text-xs text-ink/50">Elorge's own operating costs — salaries, hosting, tools — separate from any school's wallet.</p>
+          <form onSubmit={handleRecordExpense} className="flex flex-wrap items-end gap-2">
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              placeholder="Category (e.g. Salaries)"
+              value={expenseForm.category}
+              onChange={(e) => setExpenseForm((f) => ({ ...f, category: e.target.value }))}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              placeholder="Description"
+              value={expenseForm.description}
+              onChange={(e) => setExpenseForm((f) => ({ ...f, description: e.target.value }))}
+              required
+            />
+            <input
+              className="w-28 rounded border px-2 py-1.5 text-sm"
+              type="number"
+              placeholder="Amount (₦)"
+              value={expenseForm.amount}
+              onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))}
+              required
+            />
+            <input
+              className="rounded border px-2 py-1.5 text-sm"
+              type="date"
+              value={expenseForm.incurredAt}
+              onChange={(e) => setExpenseForm((f) => ({ ...f, incurredAt: e.target.value }))}
+              required
+            />
+            <button type="submit" className="btn-primary">
+              Record
+            </button>
+          </form>
+        </section>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {transfers.length === 0 && <p className="text-sm text-ink/50">Nothing pending.</p>}
       <ul className="flex flex-col gap-2">
@@ -106,16 +169,13 @@ if (isLoading) return <LoadingScreen />;
 
       <section className="mt-10 card">
         <h2 className="mb-3 font-medium">Manual wallet credit</h2>
-        <div className="mb-3 flex items-end gap-2">
-          <input
-            className="rounded border px-2 py-1.5 text-sm"
-            placeholder="School workspace name"
-            value={creditSlug}
-            onChange={(e) => setCreditSlug(e.target.value)}
+        <div className="mb-3">
+          <SchoolSearchInput
+            onSelect={(school) => {
+              setCreditSchoolName(school.name);
+              setCreditSchoolId(school.id);
+            }}
           />
-          <button onClick={handleLookupSchool} className="rounded border px-3 py-1.5 text-sm">
-            Look up
-          </button>
         </div>
         {creditSchoolName && (
           <form onSubmit={handleCredit} className="flex flex-col gap-2">

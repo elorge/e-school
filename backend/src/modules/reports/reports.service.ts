@@ -146,8 +146,10 @@ export class ReportsService {
     // Both remote fetches (logo + QR encoding) run in parallel — neither
     // depends on the other.
     const verificationPrefix = template?.verificationQrPrefix ?? 'https://elorgeschools.com/verify';
-    const [logoBuffer, qrDataUrl] = await Promise.all([
-      template?.schoolLogoUrl ? this.fetchLogoBuffer(template.schoolLogoUrl) : Promise.resolve(null),
+    const [logoBuffer, signatureBuffer, photoBuffer, qrDataUrl] = await Promise.all([
+      school.logoUrl ? this.fetchLogoBuffer(school.logoUrl) : Promise.resolve(null),
+      school.signatureUrl ? this.fetchLogoBuffer(school.signatureUrl) : Promise.resolve(null),
+      student.photoUrl ? this.fetchLogoBuffer(student.photoUrl) : Promise.resolve(null),
       QRCode.toDataURL(`${verificationPrefix}/${result.id}`, { margin: 1, width: 120 }),
     ]);
     const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
@@ -176,11 +178,26 @@ export class ReportsService {
       doc.fontSize(11).font('Helvetica').text(term.name, { align: 'center' });
       doc.moveDown(1);
 
+      // Student passport photo — top-right, absolute position so it
+      // doesn't disturb the normal top-to-bottom text flow.
+      if (photoBuffer) {
+        try {
+          doc.image(photoBuffer, doc.page.width - doc.page.margins.right - 70, doc.page.margins.top, {
+            width: 70,
+            height: 85,
+            fit: [70, 85],
+          });
+          doc.rect(doc.page.width - doc.page.margins.right - 70, doc.page.margins.top, 70, 85).strokeColor('#ddd').stroke();
+        } catch (err) {
+          this.logger.warn(`Report photo for student ${studentId} was not a valid image: ${err}`);
+        }
+      }
+
       doc.fontSize(13).font('Helvetica-Bold').text(`${student.firstName} ${student.lastName}`);
       doc.fontSize(10).font('Helvetica').text(`Admission ID: ${student.studentId ?? '—'}`);
       doc.moveDown(1);
 
-    doc.fontSize(12).font('Helvetica-Bold').text('Subject Scores');
+      doc.fontSize(12).font('Helvetica-Bold').text('Subject Scores');
       doc.moveDown(0.3);
       const scores = result.subjectScores as SubjectScores;
       for (const [subject, score] of Object.entries(scores)) {
@@ -219,7 +236,28 @@ export class ReportsService {
         doc.moveDown(1);
       }
 
-      // Verification QR — small, bottom corner, alongside the school's own branding.
+      // Authorized signature — bottom-left, mirrors the QR on the
+      // bottom-right. The two serve different purposes: the QR is
+      // digital, always-verifiable proof; the signature is what a
+      // human reading the physical page expects to see on an official
+      // school document, regardless of whether they ever scan anything.
+      const signatureY = doc.page.height - 150;
+      if (signatureBuffer) {
+        try {
+          doc.image(signatureBuffer, doc.page.margins.left, signatureY, { width: 100, height: 40, fit: [100, 40] });
+        } catch (err) {
+          this.logger.warn(`Signature image for school ${schoolId} was not a valid image: ${err}`);
+        }
+      }
+      doc
+        .moveTo(doc.page.margins.left, signatureY + 45)
+        .lineTo(doc.page.margins.left + 140, signatureY + 45)
+        .strokeColor('#ccc')
+        .stroke();
+      doc.fontSize(8).fillColor('#666').text('Head of School — Authorized Signature', doc.page.margins.left, signatureY + 48, { width: 140 });
+      doc.fillColor('#000');
+
+      // Verification QR — small, bottom-right.
       doc.image(qrImageBuffer, doc.page.width - 130, doc.page.height - 150, { width: 80 });
       doc.fontSize(7).text('Scan to verify', doc.page.width - 130, doc.page.height - 65, { width: 80, align: 'center' });
 

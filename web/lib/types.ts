@@ -39,6 +39,7 @@ export interface School {
   name: string;
   code: string;
   logoUrl: string | null;
+  signatureUrl: string | null;
   info: Record<string, unknown> | null;
   pricePerStudentKoboOverride: number | null;
   sessionWrapEnabled: boolean;

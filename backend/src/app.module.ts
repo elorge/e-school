@@ -25,6 +25,8 @@ import { FeesModule } from './modules/fees/fees.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { LessonNotesModule } from './modules/lesson-notes/lesson-notes.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PlatformFinanceModule } from './modules/platform-finance/platform-finance.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { envValidationSchema } from './config/env.validation';
@@ -56,6 +58,8 @@ import { envValidationSchema } from './config/env.validation';
     InventoryModule,
     AccountingModule,
     LessonNotesModule,
+    NotificationsModule,
+    PlatformFinanceModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

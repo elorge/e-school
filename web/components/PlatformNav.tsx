@@ -2,6 +2,7 @@
 'use client';
 
 import Image from 'next/image';
+import NotificationBell from './NotificationBell';
 import { clearSessionUser } from '@/lib/session';
 import { clearToken } from '@/lib/api';
 import { LogOut } from 'lucide-react';
@@ -20,10 +21,13 @@ export default function PlatformNav({ title }: { title: string }) {
         <Image src="/logo.png" alt="" width={36} height={36} aria-hidden />
         <span className="font-display font-semibold">{title}</span>
       </div>
+      <div className="flex items-center gap-4">
+        <NotificationBell />
       <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-ink/50">
         <LogOut size={15} />
         Log out
       </button>
+      </div>
     </nav>
   );
 }

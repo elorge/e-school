@@ -32,6 +32,12 @@ export class IdCardsController {
     res.send(pdfBuffer);
   }
 
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Post('id-card/issue')
+  issue(@Req() request: Request, @Param('studentId') studentId: string) {
+    return this.idCardsService.issueCard(request.schoolId!, studentId);
+  }
+
   /** Sync endpoint: a gate-scanner device calls this once reconnected for each queued scan. */
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Post('attendance')

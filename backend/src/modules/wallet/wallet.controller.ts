@@ -17,6 +17,13 @@ export class WalletController {
   ) {}
 
   @Roles(Role.SCHOOL_ADMIN)
+  @Get('pricing')
+  async getPricing(@Req() request: Request) {
+    const pricePerStudentKobo = await this.schoolsService.getEffectivePricePerStudentKobo(request.schoolId!);
+    return { pricePerStudentKobo };
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
   @Get('balance')
   async getBalance(@Req() request: Request) {
     const balanceKobo = await this.walletService.getBalanceKobo(request.schoolId!);

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { changePassword } from '@/lib/endpoints/auth';
 import { getSessionUser, setSessionUser } from '@/lib/session';
 import { ApiError } from '@/lib/api';
+import PasswordInput from '@/components/PasswordInput';
 
 function destinationFor(user: ReturnType<typeof getSessionUser>) {
   if (!user) return '/login';
@@ -51,35 +52,15 @@ export default function ChangePasswordPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Current (temporary) password
-          <input
-            className="rounded border px-3 py-2"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
+          <PasswordInput value={currentPassword} onChange={setCurrentPassword} required />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           New password
-          <input
-            className="rounded border px-3 py-2"
-            type="password"
-            minLength={8}
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-          />
+          <PasswordInput value={newPassword} onChange={setNewPassword} minLength={8} required />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           Confirm new password
-          <input
-            className="rounded border px-3 py-2"
-            type="password"
-            minLength={8}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
+          <PasswordInput value={confirmPassword} onChange={setConfirmPassword} minLength={8} required />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={isSubmitting} className="mt-2 rounded bg-brand-blue px-4 py-2 text-white disabled:opacity-50">

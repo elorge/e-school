@@ -52,7 +52,7 @@ export class StudentsController {
   @Post()
   async create(@Req() request: Request, @Body() body: CreateStudentDto, @CurrentUser() user: AuthenticatedUser) {
     const school = await this.schoolsService.findByIdOrThrow(request.schoolId!);
-    return this.studentsService.createAndAssignId(
+    const student = await this.studentsService.createAndAssignId(
       request.schoolId!,
       school.code,
       body.classId,
@@ -65,5 +65,8 @@ export class StudentsController {
         admissionYear: body.admissionYear,
       },
     );
+    // Best-effort — if this fails, "Issue ID card" in Documents still covers it manually.
+    await this.studentsService.ensureIdCard(request.schoolId!, student.id).catch(() => null);
+    return student;
   }
 }

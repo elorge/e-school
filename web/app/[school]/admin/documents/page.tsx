@@ -7,7 +7,7 @@ import { FileText } from 'lucide-react';
 import LoadingScreen from '@/components/LoadingScreen';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
-import { fetchReportCardPdf, fetchIdCardPdf, fetchCalendarPdf, openPdfBlob } from '@/lib/endpoints/documents';
+import { fetchReportCardPdf, fetchIdCardPdf, fetchCalendarPdf, issueIdCard, openPdfBlob } from '@/lib/endpoints/documents';
 import type { Student, Term } from '@/lib/types';
 
 /**
@@ -85,18 +85,36 @@ if (isLoading) return <LoadingScreen />;
             </select>
           </label>
           <button
-            disabled={!selectedStudentId || !selectedTermId || loadingAction === 'report'}
-            onClick={() => handleDownload('report', () => fetchReportCardPdf(params.school, selectedStudentId, selectedTermId))}
-            className="rounded bg-brand-blue px-3 py-2 text-sm text-white disabled:opacity-50"
+            disabled={!selectedStudentId}
+            onClick={async () => {
+              setError(null);
+              try {
+                await issueIdCard(params.school, selectedStudentId);
+              } catch {
+                setError('Could not issue ID card');
+              }
+            }}
+            className="btn-secondary"
           >
-            {loadingAction === 'report' ? 'Generating…' : 'Report card PDF'}
+            Issue ID card
           </button>
           <button
             disabled={!selectedStudentId || loadingAction === 'idcard'}
-            onClick={() => handleDownload('idcard', () => fetchIdCardPdf(params.school, selectedStudentId))}
+            onClick={() =>
+              handleDownload('idcard', () => fetchIdCardPdf(params.school, selectedStudentId)).catch(() =>
+                setError('No ID card on file yet for this student — click "Issue ID card" first.'),
+              )
+            }
             className="rounded bg-brand-green px-3 py-2 text-sm text-white disabled:opacity-50"
           >
             {loadingAction === 'idcard' ? 'Generating…' : 'ID card PDF'}
+          </button>
+          <button
+            disabled={!selectedStudentId || !selectedTermId || loadingAction === 'reportcard'}
+            onClick={() => handleDownload('reportcard', () => fetchReportCardPdf(params.school, selectedStudentId, selectedTermId))}
+            className="rounded bg-brand-blue px-3 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {loadingAction === 'reportcard' ? 'Generating…' : 'Report card PDF'}
           </button>
         </div>
       </section>

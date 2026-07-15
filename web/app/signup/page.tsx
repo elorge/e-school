@@ -7,6 +7,7 @@ import { requestSignup } from '@/lib/endpoints/schools';
 import { ApiError } from '@/lib/api';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -20,6 +21,7 @@ export default function SignupPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
@@ -29,6 +31,10 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (form.adminPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await requestSignup(form);
@@ -112,14 +118,11 @@ export default function SignupPage() {
             </label>
             <label className="flex flex-col gap-1 text-sm">
               Choose a password
-              <input
-                className="rounded border px-3 py-2"
-                type="password"
-                minLength={8}
-                value={form.adminPassword}
-                onChange={(e) => update('adminPassword', e.target.value)}
-                required
-              />
+              <PasswordInput value={form.adminPassword} onChange={(v) => update('adminPassword', v)} minLength={8} required />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Confirm password
+              <PasswordInput value={confirmPassword} onChange={setConfirmPassword} minLength={8} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               Phone (optional)

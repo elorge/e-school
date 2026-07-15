@@ -44,6 +44,13 @@ export class SchoolsController {
   }
 
   @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.FINANCE_OPS)
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.schoolsService.search(q);
+  }
+
+  @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN)
   @Post('signup-requests/:id/approve')
   approveSignupRequest(@Param('id') id: string) {

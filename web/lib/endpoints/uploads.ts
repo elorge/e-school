@@ -29,6 +29,10 @@ export function uploadSchoolLogo(school: string, file: File) {
   return uploadFile(`/${school}/uploads/school-logo`, file);
 }
 
+export function uploadSchoolSignature(school: string, file: File) {
+  return uploadFile(`/${school}/uploads/school-signature`, file);
+}
+
 export function uploadStudentPhoto(school: string, studentId: string, file: File) {
   return uploadFile(`/${school}/uploads/student-photo/${studentId}`, file);
 }

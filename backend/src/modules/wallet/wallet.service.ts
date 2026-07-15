@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { LedgerSource, LedgerStatus, LedgerType, Role, Prisma } from '@prisma/client';
 import { LOW_BALANCE_WARNING_THRESHOLD_KOBO } from '../../common/constants';
 
@@ -11,6 +12,7 @@ export class WalletService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /** Balance is always derived — never stored directly. See spec doc §7.4. */
@@ -45,12 +47,13 @@ export class WalletService {
   private async notifyAdmins(
     schoolId: string,
     send: (admin: { email: string; fullName: string }, schoolName: string) => Promise<unknown>,
+    inApp?: { title: string; body: string; link?: string },
   ) {
     const { school, admins } = await this.getSchoolAndAdmins(schoolId);
-    // Fire in parallel; EmailService methods never throw (see EmailService
-    // docstring), so no try/catch needed here — a Brevo outage must never
-    // affect the wallet/PIN transaction that triggered the notification.
     await Promise.all(admins.map((admin) => send({ email: admin.email, fullName: admin.fullName }, school.name)));
+    if (inApp) {
+      await this.notificationsService.notifyUsers(admins.map((a) => a.id), inApp.title, inApp.body, inApp.link);
+    }
   }
 
   /**
@@ -257,8 +260,11 @@ export class WalletService {
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
-      await this.notifyAdmins(schoolId, (admin, schoolName) =>
-        this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo }),
+      await this.notifyAdmins(
+        schoolId,
+        (admin, schoolName) =>
+          this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo }),
+        { title: 'Low wallet balance', body: `Balance is now ₦${(newBalanceKobo / 100).toLocaleString('en-NG')}`, link: '/admin' },
       );
     }
 
@@ -300,12 +306,14 @@ export class WalletService {
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
-      await this.notifyAdmins(schoolId, (admin, schoolName) =>
-        this.emailService.sendLowBalanceWarning({
-          toEmail: admin.email,
-          toName: admin.fullName,
-          schoolName,
-          balanceKobo: newBalanceKobo,
+      await this.notifyAdmins(
+        schoolId,
+        (admin, schoolName) =>
+          this.emailService.sendLowBalanceWarning({
+            toEmail: admin.email,
+            toName: admin.fullName,
+            schoolName,
+            balanceKobo: newBalanceKobo,
         }),
       );
     }

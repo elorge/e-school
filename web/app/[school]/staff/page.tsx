@@ -8,6 +8,7 @@ import { listStudents, registerStudent, withdrawStudent } from '@/lib/endpoints/
 import { uploadStudentPhoto } from '@/lib/endpoints/uploads';
 import { listTerms } from '@/lib/endpoints/terms';
 import { getResult, saveResult } from '@/lib/endpoints/results';
+import CameraCapture from '@/components/CameraCapture';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
@@ -23,7 +24,22 @@ export default function StaffPage({ params }: { params: { school: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
+  const [cameraForStudent, setCameraForStudent] = useState<string | null>(null);
 
+  async function handlePhotoUpload(studentId: string, firstName: string, lastName: string, file: File) {
+    setError(null);
+    setNotice(null);
+    setUploadingPhotoFor(studentId);
+    try {
+      await uploadStudentPhoto(params.school, studentId, file);
+      setNotice(`Photo updated for ${firstName} ${lastName}.`);
+      loadStudents(selectedClassId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Photo upload failed');
+    } finally {
+      setUploadingPhotoFor(null);
+    }
+  }
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [admissionYear, setAdmissionYear] = useState(new Date().getFullYear());
@@ -180,7 +196,7 @@ async function loadClasses() {
                   Enter results
                 </button>
                 <label className="cursor-pointer text-brand-blue underline">
-                  {uploadingPhotoFor === s.id ? 'Uploading…' : 'Add photo'}
+                  {uploadingPhotoFor === s.id ? 'Uploading…' : 'Upload photo'}
                   <input
                     type="file"
                     accept="image/*"
@@ -189,22 +205,14 @@ async function loadClasses() {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      setError(null);
-                      setNotice(null);
-                      setUploadingPhotoFor(s.id);
-                      try {
-                        await uploadStudentPhoto(params.school, s.id, file);
-                        setNotice(`Photo updated for ${s.firstName} ${s.lastName}.`);
-                        loadStudents(selectedClassId);
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Photo upload failed');
-                      } finally {
-                        setUploadingPhotoFor(null);
-                        e.target.value = ''; // allow re-selecting the same file after a retry
-                      }
+                      await handlePhotoUpload(s.id, s.firstName, s.lastName, file);
+                      e.target.value = '';
                     }}
                   />
                 </label>
+                <button className="text-brand-blue underline" onClick={() => setCameraForStudent(s.id)}>
+                  Use camera
+                </button>
                 {s.status !== 'WITHDRAWN' && (
                   <button className="text-red-600 underline" onClick={() => handleWithdraw(s.id)}>
                     Remove
@@ -295,6 +303,15 @@ async function loadClasses() {
           </button>
         </form>
       </section>
+      {cameraForStudent && (
+        <CameraCapture
+          onCapture={(file) => {
+            const s = students.find((x) => x.id === cameraForStudent);
+            if (s) handlePhotoUpload(s.id, s.firstName, s.lastName, file);
+          }}
+          onClose={() => setCameraForStudent(null)}
+        />
+      )}
     </main>
   );
 }

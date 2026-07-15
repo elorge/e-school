@@ -28,6 +28,7 @@ export default function SuperAdminPage() {
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED'>('ALL');
 
   const [creditAmount, setCreditAmount] = useState('');
   const [creditReason, setCreditReason] = useState('');
@@ -250,9 +251,24 @@ export default function SuperAdminPage() {
 
         <section className="grid gap-4 sm:grid-cols-[1fr_1.3fr]">
           <div className="card">
-            <h2 className="mb-3 font-medium">All schools</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-medium">All schools</h2>
+              <div className="flex gap-1 text-xs">
+                {(['ALL', 'ACTIVE', 'SUSPENDED'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setStatusFilter(f)}
+                    className={`rounded-full px-2.5 py-1 ${statusFilter === f ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
+                  >
+                    {f === 'ALL' ? 'All' : f === 'ACTIVE' ? 'Active' : 'Suspended'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <ul className="flex flex-col gap-1">
-              {schools.map((s) => (
+              {schools
+                .filter((s) => statusFilter === 'ALL' || s.status === statusFilter)
+                .map((s) => (
                 <li key={s.id}>
                   <button
                     onClick={() => selectSchool(s)}

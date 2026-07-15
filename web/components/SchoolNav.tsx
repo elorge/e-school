@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { getSessionUser, clearSessionUser, type SessionUser } from '@/lib/session';
 import { clearToken } from '@/lib/api';
 import PendingSyncBadge from './PendingSyncBadge';
-import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings } from 'lucide-react';
 
 function DropdownMenu({
   label,
@@ -77,6 +78,7 @@ export default function SchoolNav({
     { href: `/${slug}/admin/academic/classes`, text: 'Classes' },
     { href: `/${slug}/staff`, text: 'Students' },
     { href: `/${slug}/staff/lessons`, text: 'Lesson Notes' },
+    { href: `/${slug}/admin/pins`, text: 'Generate PINs' },
     { href: `/${slug}/staff/cbt`, text: 'CBT' },
     { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
     { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
@@ -99,6 +101,12 @@ export default function SchoolNav({
           <Link href={`/${slug}/admin`} className="flex items-center gap-1.5">
             <LayoutDashboard size={15} />
             Admin
+          </Link>
+        )}
+        {isSchoolAdmin && (
+          <Link href={`/${slug}/admin/settings`} className="flex items-center gap-1.5">
+            <Settings size={15} />
+            Settings
           </Link>
         )}
         {isStaffOrAdmin && <DropdownMenu label="Academic" icon={GraduationCap} items={academicItems} />}
@@ -134,8 +142,9 @@ export default function SchoolNav({
           </button>
         )}
       </div>
-      <div className="hidden sm:block">
+      <div className="hidden items-center gap-3 sm:flex">
         <PendingSyncBadge />
+        <NotificationBell />
       </div>
     </nav>
   );
