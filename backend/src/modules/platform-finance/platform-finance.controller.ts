@@ -1,5 +1,6 @@
 // backend/src/modules/platform-finance/platform-finance.controller.ts
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { PlatformFinanceService } from './platform-finance.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -25,6 +26,18 @@ export class PlatformFinanceController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.platformFinanceService.recordExpense(body, user.id);
+  }
+
+  @Roles(Role.FINANCE_OPS, Role.SUPER_ADMIN)
+  @Get('expenses/export')
+  async exportExpenses(@Query('from') from: string, @Query('to') to: string, @Res() res: Response) {
+    const buffer = await this.platformFinanceService.exportExpensesXlsx(from, to);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="platform-expenses.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
   }
 
   @Roles(Role.FINANCE_OPS, Role.SUPER_ADMIN)

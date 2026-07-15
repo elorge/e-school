@@ -39,9 +39,9 @@ export default function SchoolSearchInput({ onSelect }: { onSelect: (school: Sch
           onFocus={() => results.length > 0 && setOpen(true)}
         />
       </div>
-      {open && results.length > 0 && (
+      {open && (results ?? []).length > 0 && (
         <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border bg-white py-1 shadow-lg">
-          {results.map((s) => (
+          {(results ?? []).map((s) => (
             <button
               key={s.id}
               onClick={() => {

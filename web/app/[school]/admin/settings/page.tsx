@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { uploadSchoolLogo, uploadSchoolSignature } from '@/lib/endpoints/uploads';
 import { Settings, Image as ImageIcon, PenTool } from 'lucide-react';
+import RequireRole from '@/components/RequireRole';
 
 export default function SchoolSettingsPage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -44,6 +45,7 @@ export default function SchoolSettingsPage({ params }: { params: { school: strin
   }
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="flex items-center gap-2 text-xl font-semibold">
         <Settings size={20} /> {school.name} — Settings
@@ -93,5 +95,6 @@ export default function SchoolSettingsPage({ params }: { params: { school: strin
         </div>
       </section>
     </main>
+    </RequireRole>
   );
 }

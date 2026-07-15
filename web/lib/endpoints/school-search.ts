@@ -2,6 +2,7 @@
 import { apiFetch } from '../api';
 import type { School } from '../types';
 
-export function searchSchools(q: string): Promise<School[]> {
-  return apiFetch(`/schools/search?q=${encodeURIComponent(q)}`);
+export async function searchSchools(q: string): Promise<School[]> {
+  const result = await apiFetch<School[]>(`/schools/search?q=${encodeURIComponent(q)}`);
+  return result ?? [];
 }

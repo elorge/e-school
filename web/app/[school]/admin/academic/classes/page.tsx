@@ -7,6 +7,7 @@ import { listClasses, createClass, assignClassTeacher } from '@/lib/endpoints/cl
 import { listStaff } from '@/lib/endpoints/users';
 import type { Class, User } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
+import RequireRole from '@/components/RequireRole';
 
 export default function ClassesPage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -66,6 +67,7 @@ export default function ClassesPage({ params }: { params: { school: string } }) 
   if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">{school.name} — Classes</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -128,5 +130,6 @@ export default function ClassesPage({ params }: { params: { school: string } }) 
         </ul>
       </section>
     </main>
-  );
+  </RequireRole>
+);
 }

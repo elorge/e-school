@@ -1,5 +1,6 @@
 // backend/src/modules/platform-finance/platform-finance.service.ts
 import { Injectable } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -45,5 +46,22 @@ export class PlatformFinanceService {
       where: from || to ? { incurredAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : {},
       orderBy: { incurredAt: 'desc' },
     });
+  }
+
+  async exportExpensesXlsx(from?: string, to?: string): Promise<Buffer> {
+    const expenses = await this.listExpenses(from, to);
+    const rows = expenses.map((e) => ({
+      Date: e.incurredAt.toISOString().slice(0, 10),
+      Category: e.category,
+      Description: e.description,
+      'Amount (₦)': e.amountKobo / 100,
+    }));
+    const totalRow = { Date: '', Category: '', Description: 'TOTAL', 'Amount (₦)': rows.reduce((s, r) => s + r['Amount (₦)'], 0) };
+
+    const worksheet = XLSX.utils.json_to_sheet([...rows, totalRow]);
+    worksheet['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 40 }, { wch: 14 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Platform Expenses');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
 }

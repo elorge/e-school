@@ -9,6 +9,7 @@ import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import { fetchReportCardPdf, fetchIdCardPdf, fetchCalendarPdf, issueIdCard, openPdfBlob } from '@/lib/endpoints/documents';
 import type { Student, Term } from '@/lib/types';
+import RequireRole from '@/components/RequireRole';
 
 /**
  * One place to pull any printable document — report cards, ID cards,
@@ -51,6 +52,7 @@ useEffect(() => {
 if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold"><FileText size={20} />{school.name} — Documents</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -143,5 +145,6 @@ if (isLoading) return <LoadingScreen />;
         </div>
       </section>
     </main>
+    </RequireRole>
   );
 }

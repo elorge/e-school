@@ -9,6 +9,7 @@ import { uploadStudentPhoto } from '@/lib/endpoints/uploads';
 import { listTerms } from '@/lib/endpoints/terms';
 import { getResult, saveResult } from '@/lib/endpoints/results';
 import CameraCapture from '@/components/CameraCapture';
+import { FileEdit, ImagePlus, Camera, UserMinus, Plus, Trash2 } from 'lucide-react';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
 import { ApiError } from '@/lib/api';
@@ -46,8 +47,30 @@ export default function StaffPage({ params }: { params: { school: string } }) {
 
   const [resultStudentId, setResultStudentId] = useState('');
   const [resultTermId, setResultTermId] = useState('');
-  const [subjectScoresText, setSubjectScoresText] = useState('{\n  "Mathematics": 0,\n  "English": 0\n}');
+  const [scoreRows, setScoreRows] = useState<{ subject: string; score: number }[]>([
+    { subject: 'Mathematics', score: 0 },
+    { subject: 'English', score: 0 },
+  ]);
   const [teacherComment, setTeacherComment] = useState('');
+
+  const COMMON_SUBJECTS = [
+    'Mathematics', 'English Language', 'Basic Science', 'Basic Technology', 'Physics', 'Chemistry', 'Biology',
+    'Agricultural Science', 'Economics', 'Government', 'Commerce', 'Accounting', 'Literature in English',
+    'History', 'Geography', 'Christian Religious Studies', 'Islamic Religious Studies', 'Civic Education',
+    'Computer Studies', 'French',
+  ];
+
+  function updateRow(index: number, field: 'subject' | 'score', value: string) {
+    setScoreRows((rows) => rows.map((r, i) => (i === index ? { ...r, [field]: field === 'score' ? Number(value) : value } : r)));
+  }
+
+  function addRow() {
+    setScoreRows((rows) => [...rows, { subject: '', score: 0 }]);
+  }
+
+  function removeRow(index: number) {
+    setScoreRows((rows) => rows.filter((_, i) => i !== index));
+  }
 
 async function loadClasses() {
     try {
@@ -119,7 +142,8 @@ async function loadClasses() {
     try {
       const existing = await getResult(params.school, studentId, termId);
       if (existing) {
-        setSubjectScoresText(JSON.stringify(existing.subjectScores, null, 2));
+        const rows = Object.entries(existing.subjectScores).map(([subject, score]) => ({ subject, score: score as number }));
+        setScoreRows(rows.length > 0 ? rows : [{ subject: '', score: 0 }]);
         setTeacherComment(existing.teacherComment ?? '');
       }
     } catch {
@@ -138,13 +162,17 @@ async function loadClasses() {
       return;
     }
 
-    let subjectScores: Record<string, number>;
-    try {
-      subjectScores = JSON.parse(subjectScoresText);
-    } catch {
-      setError('Subject scores must be valid JSON, e.g. { "Mathematics": 78 }');
+    const validRows = scoreRows.filter((r) => r.subject.trim() !== '');
+    if (validRows.length === 0) {
+      setError('Add at least one subject.');
       return;
     }
+    if (validRows.some((r) => r.score < 0 || r.score > 100)) {
+      setError('Scores must be between 0 and 100.');
+      return;
+    }
+    const subjectScores: Record<string, number> = {};
+    for (const row of validRows) subjectScores[row.subject.trim()] = row.score;
 
     const outcome = await saveResult(params.school, resultStudentId, resultTermId, {
       subjectScores,
@@ -179,24 +207,48 @@ async function loadClasses() {
             </option>
           ))}
         </select>
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-2">
           {students.map((s) => (
-            <li key={s.id} className="flex items-center justify-between rounded border px-3 py-1.5 text-sm">
-              <span>
-                {s.firstName} {s.lastName} — {s.studentId ?? 'pending ID'} ({s.status})
-              </span>
-              <div className="flex gap-2">
+            <li key={s.id} className="flex flex-col gap-2 rounded-xl border border-black/5 p-3 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                {s.photoUrl ? (
+                  <img src={s.photoUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/5 text-xs text-ink/30">
+                    {s.firstName[0]}
+                    {s.lastName[0]}
+                  </div>
+                )}
+                <div>
+                  <p className="font-medium">
+                    {s.firstName} {s.lastName}
+                  </p>
+                  <p className="flex items-center gap-2 text-xs text-ink/50">
+                    <span className="font-mono">{s.studentId ?? 'pending ID'}</span>
+                    <span className={`badge ${s.status === 'ACTIVE' ? 'badge-green' : s.status === 'WITHDRAWN' ? 'badge-red' : 'badge-amber'}`}>
+                      {s.status}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 rounded-full bg-black/5 p-1">
                 <button
-                  className="text-blue-700 underline"
+                  title="Enter results"
+                  className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue"
                   onClick={() => {
                     setResultStudentId(s.id);
                     if (resultTermId) loadExistingResult(s.id, resultTermId);
                   }}
                 >
-                  Enter results
+                  <FileEdit size={15} />
                 </button>
-                <label className="cursor-pointer text-brand-blue underline">
-                  {uploadingPhotoFor === s.id ? 'Uploading…' : 'Upload photo'}
+                <label title="Upload photo" className="cursor-pointer rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue">
+                  {uploadingPhotoFor === s.id ? (
+                    <span className="text-xs">…</span>
+                  ) : (
+                    <ImagePlus size={15} />
+                  )}
                   <input
                     type="file"
                     accept="image/*"
@@ -210,12 +262,16 @@ async function loadClasses() {
                     }}
                   />
                 </label>
-                <button className="text-brand-blue underline" onClick={() => setCameraForStudent(s.id)}>
-                  Use camera
+                <button
+                  title="Use camera"
+                  className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue"
+                  onClick={() => setCameraForStudent(s.id)}
+                >
+                  <Camera size={15} />
                 </button>
                 {s.status !== 'WITHDRAWN' && (
-                  <button className="text-red-600 underline" onClick={() => handleWithdraw(s.id)}>
-                    Remove
+                  <button title="Remove from class" className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-red-600" onClick={() => handleWithdraw(s.id)}>
+                    <UserMinus size={15} />
                   </button>
                 )}
               </div>
@@ -278,14 +334,43 @@ async function loadClasses() {
             {students.find((s) => s.id === resultStudentId)?.firstName ??
               '— pick "Enter results" on a student above'}
           </p>
-          <label className="flex flex-col gap-1 text-sm">
-            Subject scores (JSON)
-            <textarea
-              className="min-h-[120px] rounded border px-2 py-1 font-mono text-xs"
-              value={subjectScoresText}
-              onChange={(e) => setSubjectScoresText(e.target.value)}
-            />
-          </label>
+          <div>
+            <p className="mb-2 text-sm font-medium">Subject scores</p>
+            <datalist id="subject-suggestions">
+              {COMMON_SUBJECTS.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+            <div className="flex flex-col gap-2">
+              {scoreRows.map((row, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    className="flex-1 rounded border px-2 py-1.5 text-sm"
+                    list="subject-suggestions"
+                    placeholder="Subject"
+                    value={row.subject}
+                    onChange={(e) => updateRow(i, 'subject', e.target.value)}
+                  />
+                  <input
+                    className="w-20 rounded border px-2 py-1.5 text-center text-sm"
+                    type="number"
+                    min={0}
+                    max={100}
+                    placeholder="Score"
+                    value={row.score}
+                    onChange={(e) => updateRow(i, 'score', e.target.value)}
+                  />
+                  <span className="w-8 shrink-0 text-xs text-ink/40">/ 100</span>
+                  <button type="button" onClick={() => removeRow(i)} className="text-ink/30 hover:text-red-600">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={addRow} className="btn-secondary mt-2 flex items-center gap-1.5 text-xs">
+              <Plus size={13} /> Add subject
+            </button>
+          </div>
           <label className="flex flex-col gap-1 text-sm">
             Teacher's comment
             <textarea

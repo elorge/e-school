@@ -6,6 +6,7 @@ import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Boxes } from 'lucide-react';
 import { listItems, listLowStock, createItem, recordTransaction, type InventoryItem } from '@/lib/endpoints/inventory';
+import RequireRole from '@/components/RequireRole';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -57,6 +58,7 @@ export default function InventoryPage({ params }: { params: { school: string } }
 if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold"><Boxes size={20} />{school.name} — Inventory</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -144,5 +146,6 @@ if (isLoading) return <LoadingScreen />;
         </ul>
       </section>
     </main>
-  );
+  </RequireRole>
+);
 }

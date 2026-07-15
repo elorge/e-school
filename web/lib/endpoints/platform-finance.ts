@@ -30,3 +30,17 @@ export function recordPlatformExpense(body: { category: string; description: str
 export function listPlatformExpenses(): Promise<PlatformExpense[]> {
   return apiFetch('/platform/finance/expenses');
 }
+
+export async function downloadExpensesExcel(from?: string, to?: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const { getToken } = await import('../api');
+  const token = getToken();
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const res = await fetch(`${API_URL}/platform/finance/expenses/export?${params.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
+}

@@ -6,6 +6,7 @@ import { useSchool } from '@/lib/school-context';
 import { listTerms, createTerm } from '@/lib/endpoints/terms';
 import type { Term } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
+import RequireRole from '@/components/RequireRole';
 
 export default function TermsPage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -51,6 +52,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
   if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">{school.name} — Terms</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -120,5 +122,6 @@ export default function TermsPage({ params }: { params: { school: string } }) {
         </ul>
       </section>
     </main>
+    </RequireRole>
   );
 }

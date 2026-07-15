@@ -74,16 +74,22 @@ export default function SchoolNav({
   const isSchoolAdmin = user?.role === 'SCHOOL_ADMIN';
   const isStaffOrAdmin = user?.role === 'SCHOOL_ADMIN' || user?.role === 'STAFF';
 
-  const academicItems = [
-    { href: `/${slug}/admin/academic/classes`, text: 'Classes' },
+  // Staff sees only what they can actually do something with — Classes,
+  // Terms, Calendar creation, and PIN generation are SCHOOL_ADMIN-only
+  // on the backend, so they never belonged in a shared list.
+  const staffAcademicItems = [
     { href: `/${slug}/staff`, text: 'Students' },
     { href: `/${slug}/staff/lessons`, text: 'Lesson Notes' },
-    { href: `/${slug}/admin/pins`, text: 'Generate PINs' },
     { href: `/${slug}/staff/cbt`, text: 'CBT' },
-    { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
-    { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
     ...(sessionWrapEnabled ? [{ href: `/${slug}/staff/session-wrap`, text: 'Session Wrap' }] : []),
   ];
+  const adminAcademicItems = [
+    { href: `/${slug}/admin/academic/classes`, text: 'Classes' },
+    ...staffAcademicItems,
+    { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
+    { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
+  ];
+  const academicItems = isSchoolAdmin ? adminAcademicItems : staffAcademicItems;
 
   return (
     <nav className="nav-wash flex flex-col gap-2 border-b border-black/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -121,6 +127,7 @@ export default function SchoolNav({
             label="Finance"
             icon={Wallet}
             items={[
+              { href: `/${slug}/admin/pins`, text: 'Generate PINs' },
               { href: `/${slug}/admin/fees`, text: 'Fees' },
               { href: `/${slug}/admin/inventory`, text: 'Inventory' },
               { href: `/${slug}/admin/accounting`, text: 'Accounting' },

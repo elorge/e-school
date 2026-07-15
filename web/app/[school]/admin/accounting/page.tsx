@@ -6,6 +6,7 @@ import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Calculator } from 'lucide-react';
 import { recordExpense, listExpenses, getSummary, type ExpenseEntry, type IncomeExpenditureSummary } from '@/lib/endpoints/accounting';
+import RequireRole from '@/components/RequireRole';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -58,6 +59,7 @@ async function load() {
 if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold"><Calculator size={20} />{school.name} — Accounting</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -152,5 +154,6 @@ if (isLoading) return <LoadingScreen />;
         </ul>
       </section>
     </main>
-  );
+  </RequireRole>
+);
 }

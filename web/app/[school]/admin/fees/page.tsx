@@ -18,6 +18,7 @@ import {
   type FeeInvoice,
 } from '@/lib/endpoints/fees';
 import type { Term, Class } from '@/lib/types';
+import RequireRole from '@/components/RequireRole';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -89,6 +90,7 @@ export default function FeesPage({ params }: { params: { school: string } }) {
 if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="flex items-center gap-2 text-xl font-semibold"><Wallet size={20} /> {school.name} — Fees</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -215,5 +217,6 @@ if (isLoading) return <LoadingScreen />;
         </>
       )}
     </main>
-  );
+  </RequireRole>
+);
 }

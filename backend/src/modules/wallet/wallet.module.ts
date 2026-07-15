@@ -5,9 +5,10 @@ import { WalletController } from './wallet.controller';
 import { WalletAdminController } from './wallet-admin.controller';
 import { SchoolsModule } from '../schools/schools.module';
 import { EmailModule } from '../email/email.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [forwardRef(() => SchoolsModule), EmailModule],
+  imports: [forwardRef(() => SchoolsModule), EmailModule, NotificationsModule],
   providers: [WalletService],
   controllers: [WalletController, WalletAdminController],
   exports: [WalletService],

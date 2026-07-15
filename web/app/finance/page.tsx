@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import { listPendingTransfers, resolveTransfer, manualCredit, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
-import { getOverview, recordPlatformExpense, type PlatformOverview } from '@/lib/endpoints/platform-finance';
+import { getOverview, recordPlatformExpense, downloadExpensesExcel, type PlatformOverview } from '@/lib/endpoints/platform-finance';
+import { Download } from 'lucide-react';
 import { getSessionUser } from '@/lib/session';
 import SchoolSearchInput from '@/components/SchoolSearchInput';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -110,7 +111,22 @@ if (isLoading) return <LoadingScreen />;
         )}
 
         <section className="card mb-8">
-          <h2 className="mb-3 font-medium">Record a platform expense</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-medium">Record a platform expense</h2>
+            <button
+              onClick={async () => {
+                const blob = await downloadExpensesExcel();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'platform-expenses.xlsx';
+                a.click();
+              }}
+              className="btn-secondary flex items-center gap-1.5 text-xs"
+            >
+              <Download size={14} /> Export to Excel
+            </button>
+          </div>
           <p className="mb-3 text-xs text-ink/50">Elorge's own operating costs — salaries, hosting, tools — separate from any school's wallet.</p>
           <form onSubmit={handleRecordExpense} className="flex flex-wrap items-end gap-2">
             <input

@@ -13,6 +13,7 @@ import {
 } from '@/lib/endpoints/calendar';
 import type { Term, CalendarEvent, CalendarEventType } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
+import RequireRole from '@/components/RequireRole';
 
 const EVENT_TYPES: CalendarEventType[] = [
   'TERM_START',
@@ -114,6 +115,7 @@ async function handleSubmitEvent(e: React.FormEvent) {
   if (isLoading) return <LoadingScreen />;
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">{school.name} — Academic Calendar</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -266,5 +268,6 @@ async function handleSubmitEvent(e: React.FormEvent) {
         </>
       )}
     </main>
+    </RequireRole>
   );
 }

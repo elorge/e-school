@@ -10,6 +10,7 @@ import { getPricing, generatePins } from '@/lib/endpoints/pin-generation';
 import type { Class, Term, Student } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import { KeyRound, Printer } from 'lucide-react';
+import RequireRole from '@/components/RequireRole';
 
 export default function PinGenerationPage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -80,6 +81,7 @@ export default function PinGenerationPage({ params }: { params: { school: string
 
   if (generated.length > 0) {
     return (
+      <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-4">
         <div className="flex items-center justify-between print:hidden">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
@@ -112,10 +114,12 @@ export default function PinGenerationPage({ params }: { params: { school: string
           Generate another batch
         </button>
       </main>
+      </RequireRole>
     );
   }
 
   return (
+    <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-6">
       <h1 className="flex items-center gap-2 text-xl font-semibold">
         <KeyRound size={20} /> {school.name} — Generate Result PINs
@@ -178,5 +182,6 @@ export default function PinGenerationPage({ params }: { params: { school: string
         </div>
       )}
     </main>
+    </RequireRole>
   );
 }
