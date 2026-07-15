@@ -74,7 +74,7 @@ if (isLoading) return <LoadingScreen />;
         </section>
       )}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Add an item</h2>
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
           <input
@@ -108,7 +108,7 @@ if (isLoading) return <LoadingScreen />;
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">All items</h2>
         <ul className="flex flex-col gap-2 text-sm">
           {items.map((i) => (

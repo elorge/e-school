@@ -27,10 +27,13 @@ async canActivate(context: ExecutionContext): Promise<boolean> {
   const user = request.user;
   const isPlatformWide = !!user && (user.role === Role.SUPER_ADMIN || user.role === Role.FINANCE_OPS);
 
-  // Suspended schools are blocked for everyone — including public,
-  // unauthenticated routes like result lookup — EXCEPT platform-wide
-  // staff, who need access to review/reactivate the school.
-  if (school.status === 'SUSPENDED' && !isPlatformWide) {
+  // Suspension blocks STAFF/ADMIN access only — a billing lever against
+  // the school, not against a parent who already has a right to see
+  // their child's existing results. Public routes (result lookup,
+  // published lesson notes, session wrap) stay reachable even while
+  // suspended; platform-wide staff are exempt entirely so they can
+  // review/reactivate the school.
+  if (school.status === 'SUSPENDED' && user && !isPlatformWide) {
     throw new ForbiddenException('This school\'s account is currently suspended. Contact Elorge support.');
   }
 

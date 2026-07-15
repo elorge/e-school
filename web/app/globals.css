@@ -36,6 +36,62 @@ body {
   }
 }
 
+/* ── Dashboard card system ────────────────────────────────────────────── */
+.card {
+  @apply rounded-2xl border border-black/5 bg-white p-5 shadow-card transition-shadow duration-200;
+}
+.card:hover {
+  @apply shadow-card-hover;
+}
+
+/* Colored left-accent variants — use to differentiate sections at a glance */
+.card-blue { @apply border-l-[3px] border-l-brand-blue; }
+.card-green { @apply border-l-[3px] border-l-brand-green; }
+.card-amber { @apply border-l-[3px] border-l-amber; }
+
+/* ── Hero stat card — the "big number" treatment (wallet balance, totals) */
+.stat-hero {
+  @apply relative overflow-hidden rounded-2xl p-6 text-white shadow-glow;
+  background: linear-gradient(135deg, var(--brand-blue) 0%, #0a2f70 100%);
+}
+.stat-hero::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  background: rgba(31, 157, 85, 0.25);
+  filter: blur(10px);
+}
+
+/* ── Status badges ─────────────────────────────────────────────────────── */
+.badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+.badge-green { @apply bg-brand-green/10 text-brand-green-dark; }
+.badge-amber { @apply bg-amber/15 text-amber; }
+.badge-red { @apply bg-red-500/10 text-red-600; }
+.badge-blue { @apply bg-brand-blue/10 text-brand-blue; }
+.badge-gray { @apply bg-black/5 text-ink/50; }
+
+/* ── Nav — subtle brand-color wash instead of flat white ─────────────── */
+.nav-wash {
+  background: linear-gradient(180deg, rgba(11,61,145,0.05) 0%, rgba(251,252,254,1) 100%);
+}
+
+/* ── Primary/secondary button treatments ──────────────────────────────── */
+.btn-primary {
+  @apply rounded-full bg-brand-blue px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-blue-dark hover:shadow-md active:scale-[0.98];
+}
+.btn-secondary {
+  @apply rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-ink transition hover:bg-black/5;
+}
+.btn-danger {
+  @apply rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700;
+}
+
 /* Perforated / torn-edge motif — the signature device, used sparingly */
 .torn-edge {
   position: relative;

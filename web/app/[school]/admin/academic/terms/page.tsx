@@ -55,7 +55,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
       <h1 className="text-xl font-semibold">{school.name} — Terms</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Create a term</h2>
         <p className="mb-3 text-xs text-ink/50">
           Academic session groups Term 1, 2, and 3 together — e.g. "2025/2026" — and is what powers Session Wrap.
@@ -109,7 +109,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">All terms</h2>
         <ul className="flex flex-col gap-1 text-sm">
           {terms.map((t) => (

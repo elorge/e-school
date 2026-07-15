@@ -75,15 +75,15 @@ if (isLoading) return <LoadingScreen />;
 
       {summary && (
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border p-4">
+          <div className="card">
             <p className="text-xs text-ink/50">Income (fee payments)</p>
             <p className="text-xl font-semibold text-brand-green">{naira(summary.totalIncomeKobo)}</p>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="card">
             <p className="text-xs text-ink/50">Expenses</p>
             <p className="text-xl font-semibold text-red-600">{naira(summary.totalExpenseKobo)}</p>
           </div>
-          <div className="rounded-lg border p-4">
+          <div className="card">
             <p className="text-xs text-ink/50">Net</p>
             <p className={`text-xl font-semibold ${summary.netKobo >= 0 ? 'text-brand-green' : 'text-red-600'}`}>
               {naira(summary.netKobo)}
@@ -93,7 +93,7 @@ if (isLoading) return <LoadingScreen />;
       )}
 
       {summary && Object.keys(summary.expenseByCategory).length > 0 && (
-        <section className="rounded-lg border p-4">
+        <section className="card">
           <h2 className="mb-2 font-medium">Expenses by category</h2>
           <ul className="text-sm">
             {Object.entries(summary.expenseByCategory).map(([cat, kobo]) => (
@@ -105,7 +105,7 @@ if (isLoading) return <LoadingScreen />;
         </section>
       )}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Record an expense</h2>
         <form onSubmit={handleAddExpense} className="flex flex-wrap items-end gap-2">
           <input
@@ -141,7 +141,7 @@ if (isLoading) return <LoadingScreen />;
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Recent expenses</h2>
         <ul className="flex flex-col gap-1 text-sm">
           {expenses.map((e) => (

@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { forgotPassword } from '@/lib/endpoints/auth';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -22,33 +24,37 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="mx-auto mt-16 max-w-sm px-4">
-      <h1 className="mb-2 text-xl font-semibold">Reset your password</h1>
-      <p className="mb-6 text-sm text-slate-500">Enter your email and we'll send you a reset link.</p>
-      {message ? (
-        <p className="text-sm text-green-700">{message}</p>
-      ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            Email
-            <input
-              className="rounded border px-3 py-2"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <button type="submit" disabled={isSubmitting} className="rounded bg-brand-blue px-4 py-2 text-white disabled:opacity-50">
-            {isSubmitting ? 'Sending…' : 'Send reset link'}
-          </button>
-        </form>
-      )}
-      <p className="mt-6 text-sm">
-        <Link href="/login" className="underline">
-          Back to sign in
-        </Link>
-      </p>
-    </main>
+    <>
+      <SiteHeader />
+      <main className="mx-auto max-w-sm px-4 py-16">
+        <h1 className="mb-2 font-display text-2xl font-semibold">Reset your password</h1>
+        <p className="mb-6 text-sm text-ink/60">Enter your email and we'll send you a reset link.</p>
+        {message ? (
+          <p className="text-sm text-green-700">{message}</p>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1 text-sm">
+              Email
+              <input
+                className="rounded border px-3 py-2"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+            <button type="submit" disabled={isSubmitting} className="btn-primary mt-2 w-full">
+              {isSubmitting ? 'Sending…' : 'Send reset link'}
+            </button>
+          </form>
+        )}
+        <p className="mt-6 text-sm">
+          <Link href="/login" className="underline">
+            Back to sign in
+          </Link>
+        </p>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

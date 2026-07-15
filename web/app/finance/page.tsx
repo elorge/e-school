@@ -104,7 +104,7 @@ if (isLoading) return <LoadingScreen />;
         ))}
       </ul>
 
-      <section className="mt-10 rounded-lg border p-4">
+      <section className="mt-10 card">
         <h2 className="mb-3 font-medium">Manual wallet credit</h2>
         <div className="mb-3 flex items-end gap-2">
           <input

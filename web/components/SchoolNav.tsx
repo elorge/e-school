@@ -84,7 +84,7 @@ export default function SchoolNav({
   ];
 
   return (
-    <nav className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <nav className="nav-wash flex flex-col gap-2 border-b border-black/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <Image src="/logo.png" alt="" width={36} height={36} aria-hidden />

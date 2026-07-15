@@ -55,7 +55,7 @@ if (isLoading) return <LoadingScreen />;
       <h1 className="text-xl font-semibold"><FileText size={20} />{school.name} — Documents</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Student documents</h2>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">
@@ -101,7 +101,7 @@ if (isLoading) return <LoadingScreen />;
         </div>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Term documents</h2>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">

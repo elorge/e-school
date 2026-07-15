@@ -128,7 +128,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">{editingId ? 'Edit lesson note' : 'New lesson note'}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="grid gap-2 sm:grid-cols-2">
@@ -261,14 +261,14 @@ export default function LessonNotesPage({ params }: { params: { school: string }
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">All lesson notes</h2>
         <ul className="flex flex-col gap-2">
           {notes.map((note) => (
             <li key={note.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-b-0">
               <span>
-                <strong>{note.topic}</strong> — {note.subject} (
-                <span className={note.status === 'PUBLISHED' ? 'text-brand-green' : 'text-amber'}>{note.status}</span>)
+                <strong>{note.topic}</strong> — {note.subject}{' '}
+                <span className={`badge ${note.status === 'PUBLISHED' ? 'badge-green' : 'badge-amber'}`}>{note.status}</span>
               </span>
               <div className="flex items-center gap-3">
                 <button onClick={() => startEditing(note)} className="text-brand-blue underline">

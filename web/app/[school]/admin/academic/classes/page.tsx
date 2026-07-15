@@ -71,7 +71,7 @@ export default function ClassesPage({ params }: { params: { school: string } }) 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Create a class</h2>
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -101,7 +101,7 @@ export default function ClassesPage({ params }: { params: { school: string } }) 
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">All classes</h2>
         <ul className="flex flex-col gap-3">
           {classes.map((c) => (

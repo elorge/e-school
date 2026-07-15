@@ -22,6 +22,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -148,7 +149,7 @@ async function loadClasses() {
       <h1 className="text-xl font-semibold">{school.name} — Staff</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-2 font-medium">Classes &amp; Students</h2>
         <select
           className="mb-3 rounded border px-2 py-1"
@@ -179,16 +180,28 @@ async function loadClasses() {
                   Enter results
                 </button>
                 <label className="cursor-pointer text-brand-blue underline">
-                  Add photo
+                  {uploadingPhotoFor === s.id ? 'Uploading…' : 'Add photo'}
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
+                    disabled={uploadingPhotoFor === s.id}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      await uploadStudentPhoto(params.school, s.id, file);
-                      loadStudents(selectedClassId);
+                      setError(null);
+                      setNotice(null);
+                      setUploadingPhotoFor(s.id);
+                      try {
+                        await uploadStudentPhoto(params.school, s.id, file);
+                        setNotice(`Photo updated for ${s.firstName} ${s.lastName}.`);
+                        loadStudents(selectedClassId);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Photo upload failed');
+                      } finally {
+                        setUploadingPhotoFor(null);
+                        e.target.value = ''; // allow re-selecting the same file after a retry
+                      }
                     }}
                   />
                 </label>
@@ -203,7 +216,7 @@ async function loadClasses() {
         </ul>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-2 font-medium">Register a student</h2>
         <form onSubmit={handleRegister} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -230,7 +243,7 @@ async function loadClasses() {
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-2 font-medium">Enter results</h2>
         <form onSubmit={handleSaveResult} className="flex flex-col gap-2">
           <label className="flex flex-col gap-1 text-sm">

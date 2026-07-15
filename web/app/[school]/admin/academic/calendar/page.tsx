@@ -133,7 +133,7 @@ async function handleSubmitEvent(e: React.FormEvent) {
 
       {termId && (
         <>
-          <section className="rounded-lg border p-4">
+          <section className="card">
             <h2 className="mb-3 font-medium">Generate a draft term schedule</h2>
             <p className="mb-3 text-xs text-ink/50">
               Nothing is saved yet — review the draft below and save only the events you want.
@@ -197,7 +197,7 @@ async function handleSubmitEvent(e: React.FormEvent) {
             )}
           </section>
 
-          <section className="rounded-lg border p-4">
+          <section className="card">
             <h2 className="mb-3 font-medium">{editingId ? 'Edit event' : 'Add an event manually'}</h2>
             <form onSubmit={handleSubmitEvent} className="flex flex-wrap items-end gap-2">
               <select
@@ -242,7 +242,7 @@ async function handleSubmitEvent(e: React.FormEvent) {
             </form>
           </section>
 
-          <section className="rounded-lg border p-4">
+          <section className="card">
             <h2 className="mb-3 font-medium">This term's events</h2>
             <ul className="flex flex-col gap-1 text-sm">
               {events.map((e) => (

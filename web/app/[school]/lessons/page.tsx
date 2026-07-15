@@ -96,7 +96,7 @@ export default function PublicLessonsPage({ params }: { params: { school: string
           <li key={note.id}>
             <Link
               href={`/${params.school}/lessons/${note.id}?admissionId=${encodeURIComponent(admissionId)}`}
-              className="block rounded-lg border p-4 hover:bg-black/5"
+              className="block card hover:bg-black/5"
             >
               <p className="font-medium">{note.topic}</p>
               <p className="text-sm text-ink/50">

@@ -144,7 +144,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-brand-green">{notice}</p>}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">Create a test</h2>
         <form onSubmit={handleCreateTest} className="flex flex-wrap items-end gap-2">
           <select className="rounded border px-2 py-1.5" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))} required>
@@ -199,7 +199,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       </section>
 
       {selectedTest && selectedTest.status === 'DRAFT' && (
-        <section className="rounded-lg border p-4">
+        <section className="card">
           <h2 className="mb-3 font-medium">Add questions to "{selectedTest.title}"</h2>
 
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded bg-black/5 p-3 text-sm">
@@ -336,7 +336,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
         </section>
       )}
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-3 font-medium">All tests</h2>
         <ul className="flex flex-col gap-1">
           {tests.map((t) => (
@@ -363,7 +363,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       </section>
 
       {attempts.length > 0 && selectedTest && (
-        <section className="rounded-lg border p-4">
+        <section className="card">
           <h2 className="mb-3 font-medium">Scores — {selectedTest.title}</h2>
           <ul className="flex flex-col gap-2">
             {attempts.map((a) => (

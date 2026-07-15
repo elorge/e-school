@@ -12,7 +12,16 @@ async function uploadFile(path: string, file: File): Promise<{ url: string }> {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData, // no Content-Type header — browser sets the multipart boundary itself
   });
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    let message = body;
+    try {
+      message = JSON.parse(body).message ?? body;
+    } catch {
+      // body wasn't JSON — use as-is
+    }
+    throw new Error(typeof message === 'string' ? message : `Upload failed (${res.status})`);
+  }
   return res.json();
 }
 

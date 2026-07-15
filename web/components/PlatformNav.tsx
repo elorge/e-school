@@ -15,7 +15,7 @@ export default function PlatformNav({ title }: { title: string }) {
   }
 
   return (
-    <nav className="flex items-center justify-between border-b px-4 py-3">
+    <nav className="nav-wash flex items-center justify-between border-b border-black/5 px-4 py-3">
       <div className="flex items-center gap-2.5">
         <Image src="/logo.png" alt="" width={36} height={36} aria-hidden />
         <span className="font-display font-semibold">{title}</span>

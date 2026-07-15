@@ -172,7 +172,7 @@ export default function SuperAdminPage() {
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
         {notice && <p className="mb-4 text-sm text-green-700">{notice}</p>}
 
-        <section className="mb-10 rounded-lg border p-4">
+        <section className="mb-10 card">
           <h2 className="mb-3 font-medium">Create a school directly</h2>
           <p className="mb-3 text-xs text-ink/50">Bypasses the signup-request queue — use for sales-assisted onboarding.</p>
           <form onSubmit={handleCreateSchool} className="grid gap-2 sm:grid-cols-2">
@@ -226,7 +226,7 @@ export default function SuperAdminPage() {
           </form>
         </section>
 
-        <section className="mb-10 rounded-lg border p-4">
+        <section className="mb-10 card">
           <h2 className="mb-3 font-medium">Pending signup requests</h2>
           {requests.length === 0 && <p className="text-sm text-ink/50">No pending requests.</p>}
           <ul className="flex flex-col gap-2">
@@ -249,7 +249,7 @@ export default function SuperAdminPage() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-[1fr_1.3fr]">
-          <div className="rounded-lg border p-4">
+          <div className="card">
             <h2 className="mb-3 font-medium">All schools</h2>
             <ul className="flex flex-col gap-1">
               {schools.map((s) => (
@@ -261,14 +261,14 @@ export default function SuperAdminPage() {
                     }`}
                   >
                     <span>{s.name}</span>
-                    <span className={`text-xs ${s.status === 'ACTIVE' ? 'text-brand-green' : 'text-red-600'}`}>{s.status}</span>
+                    <span className={`badge ${s.status === 'ACTIVE' ? 'badge-green' : 'badge-red'}`}>{s.status}</span>
                   </button>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-lg border p-4">
+          <div className="card">
             {!selectedSchool ? (
               <p className="text-sm text-ink/50">Select a school to manage it.</p>
             ) : (

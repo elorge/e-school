@@ -59,6 +59,7 @@ export default function SignupPage() {
             </Link>
           </div>
         ) : (
+          <>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
               School name
@@ -133,6 +134,13 @@ export default function SignupPage() {
               {isSubmitting ? 'Submitting…' : 'Request access'}
             </button>
           </form>
+          <p className="mt-4 text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="text-brand-blue underline">
+              Sign in
+            </Link>
+          </p>
+          </>
         )}
       </main>
       <SiteFooter />

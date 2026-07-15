@@ -108,7 +108,7 @@ if (isLoading) return <LoadingScreen />;
 
       {termId && (
         <>
-          <section className="rounded-lg border p-4">
+          <section className="card">
             <h2 className="mb-3 font-medium">Fee structure for this term</h2>
             <ul className="mb-3 flex flex-col gap-1 text-sm">
               {structures.map((s) => (
@@ -153,14 +153,18 @@ if (isLoading) return <LoadingScreen />;
             </button>
           </section>
 
-          <section className="rounded-lg border p-4">
+          <section className="card">
             <h2 className="mb-3 font-medium">Invoices</h2>
             <ul className="flex flex-col gap-2 text-sm">
               {invoices.map((inv) => (
                 <li key={inv.id} className="flex items-center justify-between border-b pb-2">
-                  <span>
-                    {inv.student?.firstName} {inv.student?.lastName} — {naira(inv.paidKobo)} / {naira(inv.totalKobo)} (
-                    {inv.status})
+                  <span className="flex items-center gap-2">
+                    {inv.student?.firstName} {inv.student?.lastName} — {naira(inv.paidKobo)} / {naira(inv.totalKobo)}
+                    <span
+                      className={`badge ${inv.status === 'PAID' ? 'badge-green' : inv.status === 'PARTIALLY_PAID' ? 'badge-amber' : 'badge-red'}`}
+                    >
+                      {inv.status.replace('_', ' ')}
+                    </span>
                   </span>
                   {inv.status !== 'PAID' && (
                     <div className="flex items-center gap-2">
@@ -197,7 +201,7 @@ if (isLoading) return <LoadingScreen />;
             </ul>
           </section>
 
-          <section className="rounded-lg border p-4">
+          <section className="card">
             <h2 className="mb-3 font-medium">Debtors</h2>
             {debtors.length === 0 && <p className="text-sm text-ink/50">No outstanding balances.</p>}
             <ul className="flex flex-col gap-1 text-sm">

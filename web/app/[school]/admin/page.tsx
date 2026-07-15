@@ -7,6 +7,7 @@ import { getBalance, initializePayment } from '@/lib/endpoints/wallet';
 import { listStaff, removeStaff } from '@/lib/endpoints/users';
 import { inviteStaff, createUser } from '@/lib/endpoints/auth';
 import LoadingScreen from '@/components/LoadingScreen';
+import { Wallet } from 'lucide-react';
 import { ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
 
@@ -18,6 +19,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
   const [fundAmount, setFundAmount] = useState('');
   const [payerEmail, setPayerEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [reassignPromptFor, setReassignPromptFor] = useState<string | null>(null);
   const [reassignTargetId, setReassignTargetId] = useState('');
   const [staffMode, setStaffMode] = useState<'invite' | 'direct'>('invite');
@@ -101,17 +103,23 @@ if (isLoading) return <LoadingScreen />;
     <main className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">{school.name} — Admin</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <section className="rounded-lg border p-4">
-        <h2 className="mb-2 font-medium">Wallet</h2>
-        <p className="mb-3 text-2xl">
-          {balanceKobo === null ? 'Loading…' : `₦${(balanceKobo / 100).toLocaleString('en-NG')}`}
-        </p>
-        <form onSubmit={handleFundWallet} className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col gap-1 text-sm">
+      {notice && <p className="text-sm text-brand-green">{notice}</p>}
+      <section className="stat-hero">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wider text-white/60">
+              <Wallet size={13} /> Wallet balance
+            </p>
+            <p className="font-display text-4xl font-semibold">
+              {balanceKobo === null ? '—' : `₦${(balanceKobo / 100).toLocaleString('en-NG')}`}
+            </p>
+          </div>
+        </div>
+        <form onSubmit={handleFundWallet} className="relative mt-6 flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1 text-sm text-white/80">
             Amount (₦)
             <input
-              className="rounded border px-2 py-1"
+              className="rounded border-0 bg-white/90 px-2 py-1.5 text-ink"
               type="number"
               min="1"
               value={fundAmount}
@@ -119,23 +127,23 @@ if (isLoading) return <LoadingScreen />;
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm text-white/80">
             Payer email
             <input
-              className="rounded border px-2 py-1"
+              className="rounded border-0 bg-white/90 px-2 py-1.5 text-ink"
               type="email"
               value={payerEmail}
               onChange={(e) => setPayerEmail(e.target.value)}
               required
             />
           </label>
-          <button type="submit" className="rounded bg-blue-700 px-3 py-1.5 text-white">
+          <button type="submit" className="btn-primary relative bg-white text-brand-blue hover:bg-white/90">
             Fund via Paystack
           </button>
         </form>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="card">
         <h2 className="mb-2 font-medium">Staff</h2>
 
         <div className="mb-3 flex gap-1 text-xs">

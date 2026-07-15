@@ -80,7 +80,7 @@ export default function CbtSessionRunner({ session }: { session: AttemptSession 
       </div>
       <div className="flex flex-col gap-6">
         {session.questions.map((q, idx) => (
-          <div key={q.id} className="rounded-lg border p-4">
+          <div key={q.id} className="card">
             <p className="mb-3 font-medium">
               {idx + 1}. <MathText text={q.questionText} />
             </p>
