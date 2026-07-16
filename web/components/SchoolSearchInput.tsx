@@ -5,9 +5,17 @@ import { useEffect, useRef, useState } from 'react';
 import { searchSchools } from '@/lib/endpoints/school-search';
 import type { School } from '@/lib/types';
 import { Search } from 'lucide-react';
+import { ApiError } from '@/lib/api';
 
 /** Type-ahead: "green" matches "Greenwood College" — no need to know the exact slug/name. */
-export default function SchoolSearchInput({ onSelect }: { onSelect: (school: School) => void }) {
+export default function SchoolSearchInput({
+  onSelect,
+  onError,
+}: {
+  onSelect: (school: School) => void;
+  /** Optional — lets the parent surface search failures (e.g. in its own error banner). */
+  onError?: (message: string) => void;
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<School[]>([]);
   const [open, setOpen] = useState(false);
@@ -20,10 +28,20 @@ export default function SchoolSearchInput({ onSelect }: { onSelect: (school: Sch
       return;
     }
     debounceRef.current = setTimeout(() => {
-      searchSchools(query).then((r) => {
-        setResults(r);
-        setOpen(true);
-      });
+      searchSchools(query)
+        .then((r) => {
+          setResults(r);
+          setOpen(true);
+        })
+        .catch((err) => {
+          // Previously unhandled — a failed request (403/401/500/network)
+          // silently left the dropdown empty with no feedback at all.
+          console.error('School search failed:', err);
+          setResults([]);
+          setOpen(false);
+          const message = err instanceof ApiError ? err.message : 'Could not search schools right now';
+          onError?.(message);
+        });
     }, 250);
   }, [query]);
 

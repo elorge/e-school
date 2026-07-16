@@ -47,11 +47,22 @@ async function load() {
     e.preventDefault();
     setError(null);
     try {
-      await recordPlatformExpense({ ...expenseForm, amountKobo: Math.round(Number(expenseForm.amount) * 100) } as any);
+      const amountKobo = Math.round(Number(expenseForm.amount) * 100);
+      if (!amountKobo || amountKobo <= 0) {
+        setError('Enter a valid amount greater than zero.');
+        return;
+      }
+      await recordPlatformExpense({
+        category: expenseForm.category,
+        description: expenseForm.description,
+        amountKobo,
+        incurredAt: expenseForm.incurredAt,
+      });
       setExpenseForm({ category: '', description: '', amount: '', incurredAt: new Date().toISOString().slice(0, 10) });
       load();
-    } catch {
-      setError('Could not record expense');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not record expense — check the browser console for details');
+      console.error('Record expense failed:', err);
     }
   }
 
@@ -190,7 +201,9 @@ if (isLoading) return <LoadingScreen />;
             onSelect={(school) => {
               setCreditSchoolName(school.name);
               setCreditSchoolId(school.id);
+              setError(null);
             }}
+            onError={setError}
           />
         </div>
         {creditSchoolName && (

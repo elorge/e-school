@@ -17,6 +17,13 @@ export class SchoolsController {
     private readonly authService: AuthService,
   ) {}
 
+  // ── STATIC routes FIRST, always — anything with a fixed path segment
+  // (search, signup-requests, etc.) MUST be declared before ':slug'
+  // below, or Express will match ':slug' first and swallow the request
+  // (e.g. "/schools/search" gets treated as slug="search"). This is
+  // exactly the bug that made school search silently fail. Keep every
+  // new static route in this block, above :slug, permanently.
+
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN)
   @Get()
@@ -24,10 +31,11 @@ export class SchoolsController {
     return this.schoolsService.listAll();
   }
 
-  @Public()
-  @Get(':slug')
-  getBySlug(@Param('slug') slug: string) {
-    return this.schoolsService.findBySlug(slug);
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.FINANCE_OPS)
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.schoolsService.search(q);
   }
 
   @Public()
@@ -41,13 +49,6 @@ export class SchoolsController {
   @Get('signup-requests')
   listSignupRequests(@Query('status') status?: SignupRequestStatus) {
     return this.schoolsService.listSignupRequests(status);
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.FINANCE_OPS)
-  @Get('search')
-  search(@Query('q') q: string) {
-    return this.schoolsService.search(q);
   }
 
   @UseGuards(RolesGuard)
@@ -77,17 +78,12 @@ export class SchoolsController {
       adminName: body.adminName,
     });
 
-    // Create the admin's login-capable account now that the school (and
-    // its FK target) exists. Reuses AuthService.createUser, which already
-    // sends its own "your account is ready" email — so the admin gets two
-    // emails on first onboarding (welcome + account-created), which is
-    // intentional: one confirms the school, the other confirms their
-    // personal login.
     await this.authService.createUser(body.adminEmail, body.adminPassword, body.adminName, Role.SCHOOL_ADMIN, school.id);
 
     return school;
   }
 
+  // ── :slug-scoped routes — must come AFTER every static route above.
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN)
   @Patch(':slug/price-override')
@@ -109,10 +105,13 @@ export class SchoolsController {
     return this.schoolsService.reactivate(slug);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles(Role.SUPER_ADMIN)
-  @Patch(':slug/features/session-wrap')
-  setSessionWrapEnabled(@Param('slug') slug: string, @Body() body: { enabled: boolean }) {
-    return this.schoolsService.setSessionWrapEnabled(slug, body.enabled);
+  // ── THIS MUST BE THE LAST ROUTE IN THE CLASS. ':slug' matches any
+  // single path segment, so anything declared below it would never be
+  // reachable — and anything ABOVE it that shares a literal name (like
+  // "search") would get swallowed BY it if it were declared first.
+  @Public()
+  @Get(':slug')
+  getBySlug(@Param('slug') slug: string) {
+    return this.schoolsService.findBySlug(slug);
   }
 }
