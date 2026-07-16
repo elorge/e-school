@@ -37,3 +37,17 @@ export function openPdfBlob(blob: Blob) {
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');
 }
+
+export async function fetchPublicReportCardPdf(
+  school: string,
+  studentId: string,
+  termId: string,
+  pin: string,
+  admissionId: string,
+): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const params = new URLSearchParams({ admissionId, pin });
+  const res = await fetch(`${API_URL}/${school}/students/${studentId}/results/${termId}/pdf/public?${params.toString()}`);
+  if (!res.ok) throw new Error('Could not fetch report card');
+  return res.blob();
+}

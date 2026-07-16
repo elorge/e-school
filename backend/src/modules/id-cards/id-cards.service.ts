@@ -106,38 +106,55 @@ export class IdCardsService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
+      // Base card
       doc.rect(0, 0, CARD_WIDTH, CARD_HEIGHT).fill('#ffffff');
+
+      // Colored header strip — same brand blue as the report card, so the
+      // two documents read as one consistent identity system.
+      doc.rect(0, 0, CARD_WIDTH, 34).fill('#0B3D91');
 
       if (logoBuffer) {
         try {
-          doc.image(logoBuffer, 10, 8, { width: 24, height: 24, fit: [24, 24] });
+          doc.image(logoBuffer, 8, 5, { width: 24, height: 24, fit: [24, 24] });
         } catch (err) {
           this.logger.warn(`Card logo for school ${schoolId} was not a valid image: ${err}`);
         }
       }
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#000').text(school.name, 38, 12, { width: CARD_WIDTH - 48 });
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff').text(school.name, 36, 12, { width: CARD_WIDTH - 46 });
+      doc.fillColor('#000');
 
+      // Photo — a thin brand-colored frame instead of a bare gray box.
       if (photoBuffer) {
         try {
-          doc.image(photoBuffer, 10, 38, { width: 60, height: 70, fit: [60, 70] });
+          doc.rect(9, 43, 62, 72).fill('#0B3D91');
+          doc.image(photoBuffer, 10, 44, { width: 60, height: 70, fit: [60, 70] });
         } catch (err) {
           this.logger.warn(`Card photo for student ${studentId} was not a valid image: ${err}`);
         }
       } else {
-        doc.rect(10, 38, 60, 70).strokeColor('#ccc').stroke();
-        doc.fontSize(6).fillColor('#999').text('No photo', 10, 68, { width: 60, align: 'center' });
+        doc.rect(10, 44, 60, 70).fillColor('#F5F7FA').fill();
+        doc.rect(10, 44, 60, 70).strokeColor('#0B3D91').lineWidth(1).stroke();
+        doc.fontSize(6).fillColor('#999').text('No photo', 10, 75, { width: 60, align: 'center' });
       }
 
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#000').text(`${student.firstName} ${student.lastName}`, 78, 42, {
-        width: CARD_WIDTH - 88,
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000').text(`${student.firstName} ${student.lastName}`, 80, 48, {
+        width: CARD_WIDTH - 90,
       });
-      doc.fontSize(7).font('Helvetica').fillColor('#444').text(`ID: ${student.studentId ?? '—'}`, 78, 56, {
-        width: CARD_WIDTH - 88,
+      doc.fontSize(7).font('Helvetica').fillColor('#1F9D55').text(`ID: ${student.studentId ?? '—'}`, 80, 62, {
+        width: CARD_WIDTH - 90,
       });
+      // A thin rule under the name/ID block, echoing the report card's
+      // subject-table row separators — same visual language across
+      // both documents.
+      doc.moveTo(80, 76).lineTo(CARD_WIDTH - 10, 76).strokeColor('#e5e5e5').stroke();
+      doc.fillColor('#000');
 
       doc.image(qrImageBuffer, CARD_WIDTH - 55, CARD_HEIGHT - 55, { width: 45 });
       doc.fontSize(5).fillColor('#999').text('Scan for attendance', CARD_WIDTH - 65, CARD_HEIGHT - 12, { width: 65, align: 'center' });
 
+      // Thin colored footer strip — bookends the header strip, gives the card a finished, deliberate edge.
+      doc.rect(0, CARD_HEIGHT - 4, CARD_WIDTH, 4).fill('#1F9D55');
+      
       doc.end();
     });
   }

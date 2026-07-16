@@ -156,10 +156,16 @@ export class ReportsService {
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const contentWidthTop = doc.page.width - doc.page.margins.left - doc.page.margins.right;
       const chunks: Buffer[] = [];
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
+
+      // Colored header band — the one visual signature that makes this
+      // look like an issued document rather than a plain text dump.
+      doc.rect(0, 0, doc.page.width, 90).fill('#0B3D91');
+      doc.fillColor('#ffffff');
 
       // Header — school's own branding, never an Elorge asset (spec doc §10.1).
       if (logoBuffer) {
@@ -173,10 +179,10 @@ export class ReportsService {
         }
       }
 
-      doc.fontSize(18).font('Helvetica-Bold').text(school.name, { align: 'center' });
-      doc.moveDown(0.2);
-      doc.fontSize(11).font('Helvetica').text(term.name, { align: 'center' });
-      doc.moveDown(1);
+      doc.fontSize(18).font('Helvetica-Bold').text(school.name, doc.page.margins.left, 25, { width: contentWidthTop, align: 'center' });
+      doc.fontSize(11).font('Helvetica').text(term.name, doc.page.margins.left, 52, { width: contentWidthTop, align: 'center' });
+      doc.fillColor('#000');
+      doc.y = 105; // clear the colored band before continuing normal flow
 
       // Student passport photo — top-right, absolute position so it
       // doesn't disturb the normal top-to-bottom text flow.
@@ -193,17 +199,32 @@ export class ReportsService {
         }
       }
 
-      doc.fontSize(13).font('Helvetica-Bold').text(`${student.firstName} ${student.lastName}`);
-      doc.fontSize(10).font('Helvetica').text(`Admission ID: ${student.studentId ?? '—'}`);
+      // Cap width to leave room for the passport photo drawn top-right — avoids text running under/behind it.
+      const nameBlockWidth = contentWidthTop - 90;
+      doc.fontSize(13).font('Helvetica-Bold').text(`${student.firstName} ${student.lastName}`, doc.page.margins.left, doc.y, { width: nameBlockWidth });
+      doc.fontSize(10).font('Helvetica').text(`Admission ID: ${student.studentId ?? '—'}`, doc.page.margins.left, doc.y, { width: nameBlockWidth });
       doc.moveDown(1);
 
-      doc.fontSize(12).font('Helvetica-Bold').text('Subject Scores');
-      doc.moveDown(0.3);
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('#0B3D91').text('Subject Scores', doc.page.margins.left, doc.y, { width: contentWidthTop });
+      doc.fillColor('#000');
+      doc.moveDown(0.4);
       const scores = result.subjectScores as SubjectScores;
-      for (const [subject, score] of Object.entries(scores)) {
-        doc.fontSize(10).font('Helvetica').text(`${subject}: ${score}`);
+      const tableTop = doc.y;
+      let rowY = tableTop;
+      const subjectEntries = Object.entries(scores);
+      for (let i = 0; i < subjectEntries.length; i++) {
+        const [subject, score] = subjectEntries[i];
+        if (i % 2 === 1) {
+          doc.rect(doc.page.margins.left, rowY - 2, contentWidthTop, 16).fill('#F5F7FA');
+          doc.fillColor('#000');
+        }
+        doc.fontSize(10).font('Helvetica').text(subject, doc.page.margins.left + 4, rowY, { width: contentWidthTop - 60 });
+        doc.font('Helvetica-Bold').text(String(score), doc.page.margins.left + contentWidthTop - 40, rowY, { width: 36, align: 'right' });
+        doc.font('Helvetica');
+        rowY += 16;
       }
-      doc.moveDown(1);
+      doc.y = rowY + 6;
+      doc.moveDown(0.6);
 
       const classification = classifyPerformance(scores);
 
@@ -212,14 +233,24 @@ export class ReportsService {
       this.drawPerformanceChart(doc, scores, classification);
       doc.moveDown(0.8);
 
-      doc.fontSize(9).font('Helvetica-Oblique').fillColor('#555');
-      doc.text('Green = strength (70+)   Amber = needs improvement (50-69)   Red = at risk (below 50)');
+      const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+      doc
+        .fontSize(9)
+        .font('Helvetica-Oblique')
+        .fillColor('#555')
+        .text('Green = strength (70+)   Amber = needs improvement (50-69)   Red = at risk (below 50)', doc.page.margins.left, doc.y, {
+          width: contentWidth,
+        });
       doc.fillColor('#000');
       doc.moveDown(1);
 
-      doc.fontSize(12).font('Helvetica-Bold').text('Teacher Recommendation');
+      doc.fontSize(12).font('Helvetica-Bold').text('Teacher Recommendation', doc.page.margins.left, doc.y, { width: contentWidth });
       doc.moveDown(0.3);
-      doc.fontSize(10).font('Helvetica').text(this.buildRecommendationText(classification));
+      doc
+        .fontSize(10)
+        .font('Helvetica')
+        .text(this.buildRecommendationText(classification), doc.page.margins.left, doc.y, { width: contentWidth });
       doc.moveDown(1);
 
       doc.fontSize(12).font('Helvetica-Bold').text('Performance Trend');
