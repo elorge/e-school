@@ -27,6 +27,7 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { LessonNotesModule } from './modules/lesson-notes/lesson-notes.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PlatformFinanceModule } from './modules/platform-finance/platform-finance.module';
+import { SubjectsModule } from './modules/subjects/subjects.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -61,6 +62,7 @@ import { envValidationSchema } from './config/env.validation';
     LessonNotesModule,
     NotificationsModule,
     PlatformFinanceModule,
+    SubjectsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

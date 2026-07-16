@@ -3,7 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import { listPendingTransfers, resolveTransfer, manualCredit, type PendingTransfer } from '@/lib/endpoints/wallet-admin';
-import { getOverview, recordPlatformExpense, downloadExpensesExcel, type PlatformOverview } from '@/lib/endpoints/platform-finance';
+import {
+  getOverview,
+  recordPlatformExpense,
+  downloadExpensesExcel,
+  listPlatformExpenses,
+  type PlatformOverview,
+  type PlatformExpense,
+} from '@/lib/endpoints/platform-finance';
 import { Download } from 'lucide-react';
 import { getSessionUser } from '@/lib/session';
 import SchoolSearchInput from '@/components/SchoolSearchInput';
@@ -20,6 +27,7 @@ export default function FinanceDashboard() {
   const [creditReason, setCreditReason] = useState('');
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
   const [expenseForm, setExpenseForm] = useState({ category: '', description: '', amount: '', incurredAt: new Date().toISOString().slice(0, 10) });
+  const [expenses, setExpenses] = useState<PlatformExpense[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,9 +41,10 @@ export default function FinanceDashboard() {
 
 async function load() {
     try {
-      const [t, o] = await Promise.all([listPendingTransfers(), getOverview()]);
+      const [t, o, e] = await Promise.all([listPendingTransfers(), getOverview(), listPlatformExpenses()]);
       setTransfers(t);
       setOverview(o);
+      setExpenses(e ?? []);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load finance data');
     } finally {
@@ -173,6 +182,45 @@ if (isLoading) return <LoadingScreen />;
               Record
             </button>
           </form>
+
+          <div className="mt-6 border-t pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium">Recorded expenses ({expenses.length})</p>
+              {expenses.length > 0 && (
+                <p className="text-sm text-ink/50">
+                  Total: ₦{(expenses.reduce((sum, e) => sum + e.amountKobo, 0) / 100).toLocaleString('en-NG')}
+                </p>
+              )}
+            </div>
+            {expenses.length === 0 ? (
+              <p className="text-sm text-ink/40">Nothing recorded yet — add one above.</p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto rounded-lg border">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-black/5 text-xs text-ink/50">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Date</th>
+                      <th className="px-3 py-2 text-left">Category</th>
+                      <th className="px-3 py-2 text-left">Description</th>
+                      <th className="px-3 py-2 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expenses.map((exp) => (
+                      <tr key={exp.id} className="border-t">
+                        <td className="px-3 py-2 text-ink/60">{exp.incurredAt.slice(0, 10)}</td>
+                        <td className="px-3 py-2">
+                          <span className="badge badge-blue">{exp.category}</span>
+                        </td>
+                        <td className="px-3 py-2 text-ink/70">{exp.description}</td>
+                        <td className="px-3 py-2 text-right font-medium">₦{(exp.amountKobo / 100).toLocaleString('en-NG')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {transfers.length === 0 && <p className="text-sm text-ink/50">Nothing pending.</p>}

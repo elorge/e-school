@@ -6,6 +6,11 @@ import { useSchool } from '@/lib/school-context';
 import { getBalance, initializePayment } from '@/lib/endpoints/wallet';
 import { listStaff, removeStaff } from '@/lib/endpoints/users';
 import { inviteStaff, createUser } from '@/lib/endpoints/auth';
+import { listClasses } from '@/lib/endpoints/classes';
+import { listStudents } from '@/lib/endpoints/students';
+import { listTerms } from '@/lib/endpoints/terms';
+import ResultEntryModal from '@/components/ResultEntryModal';
+import type { Class, Student, Term } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Wallet } from 'lucide-react';
 import PasswordInput from '@/components/PasswordInput';
@@ -23,15 +28,27 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
   const [notice, setNotice] = useState<string | null>(null);
   const [reassignPromptFor, setReassignPromptFor] = useState<string | null>(null);
   const [reassignTargetId, setReassignTargetId] = useState('');
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [terms, setTerms] = useState<Term[]>([]);
+  const [classFilter, setClassFilter] = useState('');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [resultModalStudent, setResultModalStudent] = useState<Student | null>(null);
   const [staffMode, setStaffMode] = useState<'invite' | 'direct'>('invite');
   const [newStaff, setNewStaff] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
   async function loadData() {
     try {
-      const [balance, staffList] = await Promise.all([getBalance(params.school), listStaff(params.school)]);
+      const [balance, staffList, classList, termList] = await Promise.all([
+        getBalance(params.school),
+        listStaff(params.school),
+        listClasses(params.school),
+        listTerms(params.school),
+      ]);
       setBalanceKobo(balance.balanceKobo);
       setStaff(staffList);
+      setClasses(classList);
+      setTerms(termList);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load dashboard');
     } finally {
@@ -39,10 +56,28 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
     }
   }
 
+  async function loadStudents(classId: string) {
+    if (!classId) {
+      setStudents([]);
+      return;
+    }
+    try {
+      const list = await listStudents(params.school, classId);
+      setStudents(list.filter((s) => s.status === 'ACTIVE'));
+    } catch {
+      setError('Failed to load students for this class');
+    }
+  }
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    loadStudents(classFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classFilter]);
 
   async function handleFundWallet(e: React.FormEvent) {
     e.preventDefault();
@@ -249,6 +284,41 @@ if (isLoading) return <LoadingScreen />;
           ))}
         </ul>
       </section>
+    <section className="card">
+        <h2 className="mb-3 font-medium">Students &amp; Results</h2>
+        <select className="mb-3 rounded border px-2 py-1.5 text-sm" value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          <option value="">Select a class</option>
+          {classes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        {classFilter && students.length === 0 && <p className="text-sm text-ink/40">No active students in this class.</p>}
+        <ul className="flex flex-col gap-1">
+          {students.map((s) => (
+            <li key={s.id} className="flex items-center justify-between rounded-lg border border-black/5 px-3 py-2 text-sm">
+              <span>
+                {s.firstName} {s.lastName} — <span className="font-mono text-xs text-ink/50">{s.studentId ?? 'pending ID'}</span>
+              </span>
+              <button onClick={() => setResultModalStudent(s)} className="text-brand-blue underline">
+                Enter results
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {resultModalStudent && (
+        <ResultEntryModal
+          school={params.school}
+          studentId={resultModalStudent.id}
+          studentName={`${resultModalStudent.firstName} ${resultModalStudent.lastName}`}
+          classId={resultModalStudent.classId}
+          terms={terms}
+          onClose={() => setResultModalStudent(null)}
+        />
+      )}
     </main>
   );
 }

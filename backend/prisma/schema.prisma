@@ -113,7 +113,8 @@ model Class {
   cbtTests      CbtTest[]
   feeStructures FeeStructure[]
   lessonNotes   LessonNote[]
-
+  subjects      ClassSubject[]
+  
   @@map("classes")
 }
 
@@ -207,7 +208,25 @@ model Subject {
   school   School @relation(fields: [schoolId], references: [id])
   name     String
 
+  classes ClassSubject[]
+
+  @@unique([schoolId, name]) // catalog entries are unique per school — no duplicate "Mathematics"
   @@map("subjects")
+}
+
+/// Join table: which subjects a given class actually teaches. The
+/// Subject catalog is school-wide (one "Mathematics" entry), but not
+/// every class teaches every subject — SS3 Science students don't take
+/// Fine Art, JSS1 doesn't take Further Mathematics, etc.
+model ClassSubject {
+  id        String  @id @default(uuid())
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id])
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([classId, subjectId])
+  @@map("class_subjects")
 }
 
 model ResultEntry {

@@ -9,6 +9,7 @@ import { uploadStudentPhoto } from '@/lib/endpoints/uploads';
 import { listTerms } from '@/lib/endpoints/terms';
 import { getResult, saveResult } from '@/lib/endpoints/results';
 import CameraCapture from '@/components/CameraCapture';
+import ResultEntryModal from '@/components/ResultEntryModal';
 import { FileEdit, ImagePlus, Camera, UserMinus, Plus, Trash2 } from 'lucide-react';
 import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -26,7 +27,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
   const [cameraForStudent, setCameraForStudent] = useState<string | null>(null);
-
+  const [resultModalStudent, setResultModalStudent] = useState<Student | null>(null);
   async function handlePhotoUpload(studentId: string, firstName: string, lastName: string, file: File) {
     setError(null);
     setNotice(null);
@@ -236,10 +237,7 @@ async function loadClasses() {
                 <button
                   title="Enter results"
                   className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue"
-                  onClick={() => {
-                    setResultStudentId(s.id);
-                    if (resultTermId) loadExistingResult(s.id, resultTermId);
-                  }}
+                  onClick={() => setResultModalStudent(s)}
                 >
                   <FileEdit size={15} />
                 </button>
@@ -395,6 +393,16 @@ async function loadClasses() {
             if (s) handlePhotoUpload(s.id, s.firstName, s.lastName, file);
           }}
           onClose={() => setCameraForStudent(null)}
+        />
+      )}
+      {resultModalStudent && (
+        <ResultEntryModal
+          school={params.school}
+          studentId={resultModalStudent.id}
+          studentName={`${resultModalStudent.firstName} ${resultModalStudent.lastName}`}
+          classId={resultModalStudent.classId}
+          terms={terms}
+          onClose={() => setResultModalStudent(null)}
         />
       )}
     </main>
