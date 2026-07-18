@@ -2,6 +2,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { ClassesService } from './classes.service';
+import { PromoteStudentsDto } from './dto/promote-students.dto';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -34,5 +35,11 @@ export class ClassesController {
   @Patch(':id/assign-teacher')
   assignTeacher(@Req() request: Request, @Param('id') id: string, @Body() body: { classTeacherId: string }) {
     return this.classesService.assignTeacher(request.schoolId!, id, body.classTeacherId);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Post('promote')
+  promote(@Req() request: Request, @Body() body: PromoteStudentsDto) {
+    return this.classesService.promoteStudents(request.schoolId!, body.toClassId, body.studentIds);
   }
 }

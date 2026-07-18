@@ -1,5 +1,5 @@
 // backend/src/modules/classes/classes.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -23,5 +23,16 @@ export class ClassesService {
       where: { id: classId, schoolId },
       data: { classTeacherId },
     });
+  }
+
+  async promoteStudents(schoolId: string, toClassId: string, studentIds: string[]) {
+    const targetClass = await this.prisma.class.findFirst({ where: { id: toClassId, schoolId } });
+    if (!targetClass) throw new NotFoundException('Target class not found');
+
+    const result = await this.prisma.student.updateMany({
+      where: { id: { in: studentIds }, schoolId, status: 'ACTIVE' },
+      data: { classId: toClassId },
+    });
+    return { promoted: result.count };
   }
 }

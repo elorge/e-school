@@ -21,6 +21,7 @@ import {
 import type { Term, Class } from '@/lib/types';
 import RequireRole from '@/components/RequireRole';
 import { Download } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -37,6 +38,19 @@ export default function FeesPage({ params }: { params: { school: string } }) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const [structureForm, setStructureForm] = useState({ classId: '', name: '', amountKobo: 0 });
+
+  // add near the invoice recording section
+const [narration, setNarration] = useState('');
+const [matchAmount, setMatchAmount] = useState('');
+const [matches, setMatches] = useState<{ invoiceId: string; studentName: string; admissionId: string | null; outstandingKobo: number; confidence: number }[]>([]);
+
+async function handleMatch() {
+  const result = await apiFetch(`/${params.school}/fees/match-payment`, {
+    method: 'POST',
+    body: JSON.stringify({ narration, amountKobo: matchAmount ? Math.round(Number(matchAmount) * 100) : undefined }),
+  });
+  setMatches(result as any);
+}
 
   useEffect(() => {
     Promise.all([listTerms(params.school), listClasses(params.school)]).then(([t, c]) => {
@@ -219,7 +233,27 @@ if (isLoading) return <LoadingScreen />;
               ))}
             </ul>
           </section>
-
+          
+          <section className="card">
+            <h2 className="mb-3 font-medium">Match a bank transfer</h2>
+            <p className="mb-3 text-xs text-ink/50">Paste the narration from your bank alert — we'll suggest which invoice it likely pays.</p>
+            <div className="flex flex-wrap gap-2">
+              <input className="flex-1 rounded border px-2 py-1.5 text-sm" placeholder="e.g. Transfer from Chioma Balogun" value={narration} onChange={(e) => setNarration(e.target.value)} />
+              <input className="w-32 rounded border px-2 py-1.5 text-sm" type="number" placeholder="Amount (₦)" value={matchAmount} onChange={(e) => setMatchAmount(e.target.value)} />
+              <button onClick={handleMatch} className="btn-primary text-sm">Find matches</button>
+            </div>
+            {matches.length > 0 && (
+              <ul className="mt-3 flex flex-col gap-1">
+                {matches.map((m) => (
+                  <li key={m.invoiceId} className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-sm">
+                    <span>{m.studentName} — owes ₦{(m.outstandingKobo / 100).toLocaleString('en-NG')}</span>
+                    <span className="badge badge-blue">{m.confidence}% match</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          
           <section className="card">
             <h2 className="mb-3 font-medium">Debtors</h2>
             {debtors.length === 0 && <p className="text-sm text-ink/50">No outstanding balances.</p>}

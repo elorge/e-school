@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { listClasses } from '@/lib/endpoints/classes';
-import { listStudents, registerStudent, withdrawStudent } from '@/lib/endpoints/students';
+import { listStudents, registerStudent, withdrawStudent, downloadStudentImportTemplate, bulkImportStudents } from '@/lib/endpoints/students';
 import { uploadStudentPhoto } from '@/lib/endpoints/uploads';
 import { listTerms } from '@/lib/endpoints/terms';
 import { getResult, saveResult } from '@/lib/endpoints/results';
@@ -19,6 +19,7 @@ import type { Class, Student, Term } from '@/lib/types';
 export default function StaffPage({ params }: { params: { school: string } }) {
   const school = useSchool();
   const [isLoading, setIsLoading] = useState(true);
+  const [isImporting, setIsImporting] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -276,6 +277,54 @@ async function loadClasses() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="card">
+        <h2 className="mb-3 font-medium">Bulk import students</h2>
+        <p className="mb-3 text-xs text-ink/50">For onboarding many existing students at once — class names must match exactly.</p>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button
+            onClick={async () => {
+              const blob = await downloadStudentImportTemplate(params.school);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'student-import-template.xlsx';
+              a.click();
+            }}
+            className="btn-secondary"
+          >
+            Download template
+          </button>
+          <label className="btn-primary cursor-pointer">
+            {isImporting ? 'Importing…' : 'Upload filled template'}
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              disabled={isImporting}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setIsImporting(true);
+                try {
+                  const result = await bulkImportStudents(params.school, file);
+                  setNotice(
+                    result.errors.length > 0
+                      ? `Added ${result.addedCount}. ${result.errors.length} row(s) had issues: ${result.errors.map((er) => `row ${er.row} — ${er.reason}`).join('; ')}`
+                      : `Added ${result.addedCount} student(s).`,
+                  );
+                  loadStudents(selectedClassId);
+                } catch {
+                  setError('Import failed — check the file format');
+                } finally {
+                  setIsImporting(false);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </label>
+        </div>
       </section>
 
       <section className="card">

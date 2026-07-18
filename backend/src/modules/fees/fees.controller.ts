@@ -72,4 +72,10 @@ export class FeesController {
   getDebtors(@Req() req: Request, @Query('termId') termId: string) {
     return this.feesService.getDebtorsSummary(req.schoolId!, termId);
   }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Post('match-payment')
+  matchPayment(@Req() req: Request, @Body() body: { narration: string; amountKobo?: number }) {
+    return this.feesService.suggestInvoiceMatches(req.schoolId!, body.narration, body.amountKobo);
+  }
 }

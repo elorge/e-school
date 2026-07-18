@@ -1,6 +1,7 @@
 // backend/src/modules/students/students.controller.ts
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Request, Response } from 'express';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { SchoolsService } from '../schools/schools.service';
@@ -29,6 +30,25 @@ export class StudentsController {
   @Get('pending-sync')
   findPendingSync(@Req() request: Request) {
     return this.studentsService.findPendingSync(request.schoolId!);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Get('import/template')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = this.studentsService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="student-import-template.xlsx"`,
+    });
+    res.send(buffer);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Post('import')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  async bulkImport(@Req() request: Request, @UploadedFile() file: Express.Multer.File, @CurrentUser() user: AuthenticatedUser) {
+    const school = await this.schoolsService.findByIdOrThrow(request.schoolId!);
+    return this.studentsService.bulkImport(request.schoolId!, school.code, user.id, file.buffer);
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)

@@ -1,10 +1,11 @@
 // backend/src/modules/results/results.service.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../common/services/audit.service';
 
 @Injectable()
 export class ResultsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
 
   findForStudentTerm(schoolId: string, studentId: string, termId: string) {
     return this.prisma.resultEntry.findFirst({ where: { schoolId, studentId, termId } });
@@ -17,7 +18,7 @@ export class ResultsService {
   // ResultEntry. Now genuinely idempotent: a re-submission (e.g. a
   // teacher correcting a typo'd score) updates the existing row instead
   // of erroring.
-  upsertResult(
+  async upsertResult(
     schoolId: string,
     studentId: string,
     termId: string,
@@ -25,11 +26,20 @@ export class ResultsService {
     teacherComment: string | null,
     classTeacherId: string,
   ) {
-    return this.prisma.resultEntry.upsert({
+    const result = await this.prisma.resultEntry.upsert({
       where: { schoolId_studentId_termId: { schoolId, studentId, termId } },
       create: { schoolId, studentId, termId, subjectScores, teacherComment, classTeacherId },
       update: { subjectScores, teacherComment, classTeacherId },
     });
+    await this.audit.log({
+      schoolId,
+      actorId: classTeacherId,
+      action: 'result.upserted',
+      entityType: 'ResultEntry',
+      entityId: result.id,
+      metadata: { studentId, termId, subjectScores },
+    });
+    return result;
   }
 
   findTrend(schoolId: string, studentId: string) {

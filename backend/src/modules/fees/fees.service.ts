@@ -2,11 +2,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../common/services/audit.service';
 import { FeeInvoiceStatus } from '@prisma/client';
 
 @Injectable()
 export class FeesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   createFeeStructure(schoolId: string, data: { termId: string; classId?: string; name: string; amountKobo: number }) {
     return this.prisma.feeStructure.create({ data: { schoolId, ...data } });
@@ -80,7 +84,16 @@ export class FeesService {
     const newPaidKobo = invoice.paidKobo + amountKobo;
     const status: FeeInvoiceStatus = newPaidKobo >= invoice.totalKobo ? 'PAID' : newPaidKobo > 0 ? 'PARTIALLY_PAID' : 'UNPAID';
 
-    return this.prisma.feeInvoice.update({ where: { id: invoiceId }, data: { paidKobo: newPaidKobo, status } });
+    const updated = await this.prisma.feeInvoice.update({ where: { id: invoiceId }, data: { paidKobo: newPaidKobo, status } });
+    await this.audit.log({
+      schoolId,
+      actorId: recordedById,
+      action: 'fee_payment.recorded',
+      entityType: 'FeeInvoice',
+      entityId: invoiceId,
+      metadata: { amountKobo, method },
+    });
+    return updated;
   }
 
   async exportInvoicesXlsx(schoolId: string, termId?: string): Promise<Buffer> {
@@ -127,5 +140,45 @@ export class FeesService {
       paidKobo: inv.paidKobo,
       outstandingKobo: inv.totalKobo - inv.paidKobo,
     }));
+  }
+
+  /**
+   * Suggests which unpaid invoice a raw bank-alert narration likely
+   * matches — deterministic scoring (name similarity + amount
+   * equality), not machine learning. Explainable and free to run;
+   * genuinely smarter matching (fuzzy handling of nicknames, typos)
+   * would need a real ML model and ongoing cost, which isn't
+   * proportionate for this problem size.
+   */
+  async suggestInvoiceMatches(schoolId: string, narration: string, amountKobo?: number) {
+    const unpaid = await this.prisma.feeInvoice.findMany({
+      where: { schoolId, status: { in: ['UNPAID', 'PARTIALLY_PAID'] } },
+      include: { student: true },
+    });
+
+    const narrationLower = narration.toLowerCase();
+    const scored = unpaid.map((inv) => {
+      let score = 0;
+      const fullName = `${inv.student.firstName} ${inv.student.lastName}`.toLowerCase();
+      const nameParts = fullName.split(' ');
+      for (const part of nameParts) {
+        if (part.length > 2 && narrationLower.includes(part)) score += 40;
+      }
+      const outstanding = inv.totalKobo - inv.paidKobo;
+      if (amountKobo && Math.abs(outstanding - amountKobo) < 100) score += 50; // exact-ish amount match
+      return { invoice: inv, score };
+    });
+
+    return scored
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map((s) => ({
+        invoiceId: s.invoice.id,
+        studentName: `${s.invoice.student.firstName} ${s.invoice.student.lastName}`,
+        admissionId: s.invoice.student.studentId,
+        outstandingKobo: s.invoice.totalKobo - s.invoice.paidKobo,
+        confidence: s.score,
+      }));
   }
 }

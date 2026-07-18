@@ -86,6 +86,7 @@ export default function SchoolNav({
   const adminAcademicItems = [
     { href: `/${slug}/admin/academic/classes`, text: 'Classes' },
     ...staffAcademicItems,
+    { href: `/${slug}/admin/academic/promotion`, text: 'Promote Students' },
     { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
     { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
   ];

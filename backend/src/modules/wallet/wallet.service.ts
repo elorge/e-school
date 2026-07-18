@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../../common/services/audit.service';
 import { LedgerSource, LedgerStatus, LedgerType, Role, Prisma } from '@prisma/client';
 import { LOW_BALANCE_WARNING_THRESHOLD_KOBO } from '../../common/constants';
 
@@ -13,6 +14,7 @@ export class WalletService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
+    private readonly audit: AuditService,
   ) {}
 
   /** Balance is always derived — never stored directly. See spec doc §7.4. */
@@ -124,6 +126,15 @@ export class WalletService {
       }),
     );
 
+    await this.audit.log({
+      schoolId,
+      actorId: approvedByUserId,
+      action: 'wallet.manual_credit',
+      entityType: 'WalletLedgerEntry',
+      entityId: entry.id,
+      metadata: { amountKobo, reason },
+    });
+    
     return entry;
   }
 

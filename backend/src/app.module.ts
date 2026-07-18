@@ -4,6 +4,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuditModule } from './common/services/audit.module';
+import { AuditLogModule } from './modules/audit/audit.module';
 import { SchoolsModule } from './modules/schools/schools.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { StudentsModule } from './modules/students/students.module';
@@ -38,6 +40,8 @@ import { envValidationSchema } from './config/env.validation';
     ConfigModule.forRoot({ isGlobal: true, validationSchema: envValidationSchema }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
+    AuditModule,
+    AuditLogModule,
     HealthModule,
     EmailModule,
     AuthModule,

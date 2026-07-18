@@ -683,3 +683,17 @@ model PlatformExpense {
   @@map("platform_expenses")
 }
 
+model AuditLog {
+  id         String   @id @default(uuid())
+  schoolId   String?  // null for platform-level actions (suspend, manual credit) not scoped to normal tenant access
+  actorId    String?  // null if the action was system-triggered, not a specific user
+  action     String   // e.g. "result.updated", "fee_payment.recorded", "school.suspended"
+  entityType String   // e.g. "ResultEntry", "FeeInvoice", "School"
+  entityId   String
+  metadata   Json?    // before/after values or other context, kept loose on purpose
+  createdAt  DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

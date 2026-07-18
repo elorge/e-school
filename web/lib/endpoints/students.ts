@@ -90,3 +90,27 @@ export function withdrawStudent(school: string, id: string): Promise<Student> {
     method: 'PATCH',
   });
 }
+
+export async function downloadStudentImportTemplate(school: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const { getToken } = await import('../api');
+  const token = getToken();
+  const res = await fetch(`${API_URL}/${school}/students/import/template`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error('Failed to fetch template');
+  return res.blob();
+}
+
+export async function bulkImportStudents(school: string, file: File): Promise<{ addedCount: number; errors: { row: number; reason: string }[] }> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const { getToken } = await import('../api');
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_URL}/${school}/students/import`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Import failed');
+  return res.json();
+}

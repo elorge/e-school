@@ -4,7 +4,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, StudentStatus, Role } from '@prisma/client';
 import { IdCardsService } from '../id-cards/id-cards.service';
 import { AuthenticatedUser } from '../../common/types/auth.types';
-
+import * as XLSX from 'xlsx';
+import { randomUUID } from 'crypto';
 @Injectable()
 export class StudentsService {
   constructor(private readonly prisma: PrismaService, private readonly idCardsService: IdCardsService) {}
@@ -109,5 +110,60 @@ async createAndAssignId(
       where: { id: studentId },
       data: { status: StudentStatus.WITHDRAWN },
     });
+  }
+
+  generateImportTemplate(): Buffer {
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ['First Name', 'Last Name', 'Admission Year', 'Class Name (must match exactly)'],
+      ['Ada', 'Obi', 2025, 'JSS 1'],
+    ]);
+    worksheet['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 24 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  async bulkImport(schoolId: string, schoolCode: string, createdByStaffId: string, fileBuffer: Buffer) {
+    const classes = await this.prisma.class.findMany({ where: { schoolId } });
+    const classByName = new Map(classes.map((c) => [c.name.trim().toLowerCase(), c.id]));
+
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = (XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as any[][]).slice(1);
+
+    const added: string[] = [];
+    const errors: { row: number; reason: string }[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const [firstName, lastName, admissionYear, className] = rows[i];
+      const rowNumber = i + 2;
+      if (!firstName || !lastName) {
+        errors.push({ row: rowNumber, reason: 'Missing first or last name' });
+        continue;
+      }
+      const classId = classByName.get(String(className ?? '').trim().toLowerCase());
+      if (!classId) {
+        errors.push({ row: rowNumber, reason: `Class "${className}" not found — check spelling matches exactly` });
+        continue;
+      }
+      const year = Number(admissionYear);
+      if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+        errors.push({ row: rowNumber, reason: 'Invalid admission year' });
+        continue;
+      }
+
+      try {
+        const student = await this.createAndAssignId(schoolId, schoolCode, classId, createdByStaffId, randomUUID(), {
+          firstName: String(firstName).trim(),
+          lastName: String(lastName).trim(),
+          admissionYear: year,
+        });
+        added.push(student.studentId ?? student.id);
+      } catch (err) {
+        errors.push({ row: rowNumber, reason: 'Could not create this student — try again' });
+      }
+    }
+
+    return { addedCount: added.length, errors };
   }
 }

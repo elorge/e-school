@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../../common/services/audit.service';
 import { SignupRequestStatus } from '@prisma/client';
 import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO } from '../../common/constants';
 
@@ -15,6 +16,7 @@ export class SchoolsService {
     private readonly walletService: WalletService,
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
+    private readonly audit: AuditService,
   ) {}
 
   findBySlug(slug: string) {
@@ -27,11 +29,15 @@ export class SchoolsService {
   }
 
   async suspend(slug: string) {
-    return this.prisma.school.update({ where: { slug }, data: { status: 'SUSPENDED' } });
+    const school = await this.prisma.school.update({ where: { slug }, data: { status: 'SUSPENDED' } });
+    await this.audit.log({ schoolId: school.id, action: 'school.suspended', entityType: 'School', entityId: school.id });
+    return school;
   }
 
   async reactivate(slug: string) {
-    return this.prisma.school.update({ where: { slug }, data: { status: 'ACTIVE' } });
+    const school = await this.prisma.school.update({ where: { slug }, data: { status: 'ACTIVE' } });
+    await this.audit.log({ schoolId: school.id, action: 'school.reactivated', entityType: 'School', entityId: school.id });
+    return school;
   }
 
   async findByIdOrThrow(id: string) {
