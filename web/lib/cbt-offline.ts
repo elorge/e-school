@@ -5,14 +5,19 @@
 // connectivity for the whole test, and reconciles with the server
 // opportunistically.
 
-import type { AttemptSession } from './endpoints/cbt';
+import type { AttemptSession, SavedCodeAnswer } from './endpoints/cbt';
 import { saveAnswer, submitAttempt } from './endpoints/cbt';
 
 const KEY_PREFIX = 'eschools_cbt_attempt_';
 
+// OBJECTIVE answers are a plain option index; CODE answers are the full
+// SavedCodeAnswer (html/css/js + per-assertion results), matching
+// AttemptSession.savedAnswers in endpoints/cbt.ts.
+type StoredAnswer = number | SavedCodeAnswer;
+
 interface LocalAttemptState extends AttemptSession {
   school: string;
-  answers: Record<string, number>; // local source of truth while the test is running
+  answers: Record<string, StoredAnswer>; // local source of truth while the test is running
   unsyncedQuestionIds: string[]; // answers not yet confirmed saved on the server
   submitted: boolean;
 }
@@ -47,17 +52,22 @@ function writeLocalAttempt(state: LocalAttemptState) {
  * attempts a best-effort background sync. If the sync fails, the
  * question stays in unsyncedQuestionIds and gets retried later —
  * nothing is ever lost, and the student's UI never waits on the network.
+ *
+ * `answer` covers both question types: a number for OBJECTIVE, a full
+ * SavedCodeAnswer (with per-assertion results) for CODE — same shape
+ * that's round-tripped through savedAnswers on session load, so a
+ * reload restores CODE questions with full fidelity, not just a summary.
  */
-export async function answerQuestion(attemptId: string, questionId: string, selectedOptionIndex: number) {
+export async function answerQuestion(attemptId: string, questionId: string, answer: StoredAnswer) {
   const state = getLocalAttempt(attemptId);
   if (!state) return;
 
-  state.answers[questionId] = selectedOptionIndex;
+  state.answers[questionId] = answer;
   if (!state.unsyncedQuestionIds.includes(questionId)) state.unsyncedQuestionIds.push(questionId);
   writeLocalAttempt(state);
 
   try {
-    await saveAnswer(state.school, attemptId, questionId, selectedOptionIndex);
+    await saveAnswer(state.school, attemptId, questionId, answer);
     const fresh = getLocalAttempt(attemptId);
     if (fresh) {
       fresh.unsyncedQuestionIds = fresh.unsyncedQuestionIds.filter((id) => id !== questionId);

@@ -20,6 +20,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
 import type { School } from '@/lib/types';
+import Link from 'next/link';
 
 export default function SuperAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -169,6 +170,9 @@ export default function SuperAdminPage() {
   return (
     <>
       <PlatformNav title="Elorge — Super Admin" />
+      <div className="mx-auto max-w-4xl px-6 pt-4">
+        <Link href="/super-admin/audit-log" className="text-sm text-brand-blue underline">View platform-wide audit log →</Link>
+      </div>
       <main className="mx-auto max-w-4xl px-6 py-10">
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
         {notice && <p className="mb-4 text-sm text-green-700">{notice}</p>}

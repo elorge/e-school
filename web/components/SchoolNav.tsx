@@ -89,6 +89,7 @@ export default function SchoolNav({
     { href: `/${slug}/admin/academic/promotion`, text: 'Promote Students' },
     { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
     { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
+    { href: `/${slug}/admin/academic/grading`, text: 'Grading Weights' },
   ];
   const academicItems = isSchoolAdmin ? adminAcademicItems : staffAcademicItems;
 

@@ -1,9 +1,10 @@
 // backend/src/modules/cbt/cbt.service.ts
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomInt } from 'crypto';
 import * as XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 import { MathRendererService } from '../../common/services/math-renderer.service';
+import { AssessmentScoringService } from '../assessment/assessment-scoring.service';
 import { renderTextWithMath } from '../../common/utils/render-math-text';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -15,12 +16,15 @@ const TEMPLATE_HEADERS = ['Question', 'Option A', 'Option B', 'Option C', 'Optio
 
 @Injectable()
 export class CbtService {
+  private readonly logger = new Logger(CbtService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly resultsService: ResultsService,
     private readonly schoolsService: SchoolsService,
     private readonly mathRenderer: MathRendererService,
+    private readonly assessmentScoring: AssessmentScoringService,
   ) {}
 
 createTest(
@@ -35,6 +39,8 @@ createTest(
       theoryMaxScore: number;
       scheduledDate: string;
       accessWindowMinutes?: number;
+      countsTowardReport?: boolean;
+      componentName?: string;
     },
   ) {
     // Default window = the test's own duration + 30 minutes grace for
@@ -53,6 +59,8 @@ createTest(
         theoryMaxScore: data.theoryMaxScore,
         scheduledDate: new Date(data.scheduledDate),
         accessWindowMinutes,
+        countsTowardReport: data.countsTowardReport ?? true,
+        componentName: data.componentName ?? 'Test',
         objectiveMaxScore: 0,
       },
     });
@@ -68,17 +76,15 @@ createTest(
     return test;
   }
 
-  async addQuestion(
-    schoolId: string,
-    testId: string,
-    data: { questionText: string; options: string[]; correctOptionIndex: number; points: number },
-  ) {
+  async addQuestion(schoolId: string, testId: string, data: any) {
     const test = await this.findOneOrThrow(schoolId, testId);
     if (test.status !== CbtTestStatus.DRAFT) {
       throw new BadRequestException('Cannot add questions after a test is published');
     }
-    if (data.correctOptionIndex < 0 || data.correctOptionIndex >= data.options.length) {
-      throw new BadRequestException('correctOptionIndex must point at one of the given options');
+    if (data.type === 'OBJECTIVE') {
+      if (data.correctOptionIndex < 0 || data.correctOptionIndex >= (data.options?.length ?? 0)) {
+        throw new BadRequestException('correctOptionIndex must point at one of the given options');
+      }
     }
     const order = test.questions.length;
     return this.prisma.cbtQuestion.create({ data: { testId, order, ...data } });
@@ -161,6 +167,7 @@ createTest(
         data: {
           testId,
           order: order++,
+          type: 'OBJECTIVE',
           questionText,
           options,
           correctOptionIndex: letterIndex,
@@ -297,7 +304,17 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
     // Never send correctOptionIndex to the client during the test itself.
     const questions = test.questions
       .sort((a, b) => a.order - b.order)
-      .map((q) => ({ id: q.id, questionText: q.questionText, options: q.options, points: q.points }));
+      .map((q) => ({
+        id: q.id,
+        type: q.type,
+        questionText: q.questionText,
+        options: q.options,
+        points: q.points,
+        starterHtml: q.starterHtml,
+        starterCss: q.starterCss,
+        starterJs: q.starterJs,
+        testAssertions: q.testAssertions, // assertions themselves ARE sent — they run client-side, not a secret to protect
+      }));
 
     return { attemptId: attempt.id, deadlineAt: deadlineAt.toISOString(), questions, savedAnswers: attempt.answers };
   }
@@ -326,8 +343,21 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
     }
     const answers = attempt.answers as Record<string, number>;
     const objectiveScore = attempt.test.questions.reduce((sum, q) => {
-      const selected = answers[q.id];
-      return selected === q.correctOptionIndex ? sum + q.points : sum;
+      const submitted = answers[q.id];
+      if (q.type === 'OBJECTIVE') {
+        return submitted === q.correctOptionIndex ? sum + q.points : sum;
+      }
+      // CODE — the client already computed a per-question pass ratio
+      // when the student ran their tests (see CodeQuestionRunner);
+      // that's stored as { passedCount, totalCount } in answers[q.id].
+      // Treated as provisional: visible in full to the teacher via
+      // AttemptDetailModal for manual confirmation, same pattern as
+      // theory scoring below.
+      const codeResult = submitted as { passedCount?: number; totalCount?: number } | undefined;
+      if (codeResult?.totalCount) {
+        return sum + Math.round((codeResult.passedCount! / codeResult.totalCount) * q.points);
+      }
+      return sum;
     }, 0);
 
     const status = attempt.test.theoryMaxScore > 0 ? CbtAttemptStatus.SUBMITTED : CbtAttemptStatus.GRADED;
@@ -379,14 +409,19 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
       this.prisma.cbtTest.findUniqueOrThrow({ where: { id: testId } }),
       this.prisma.cbtAttempt.findUniqueOrThrow({ where: { testId_studentId: { testId, studentId } } }),
     ]);
+    if (!test.countsTowardReport) return null; // practice/mock — never touches the official result
 
     const combinedRaw = (attempt.objectiveScore ?? 0) + (attempt.theoryScore ?? 0);
     const maxPossible = test.objectiveMaxScore + test.theoryMaxScore;
     const normalizedTo100 = maxPossible > 0 ? Math.round((combinedRaw / maxPossible) * 100) : 0;
 
+    await this.assessmentScoring.recordComponentScore(schoolId, studentId, test.termId, test.subject, test.componentName, normalizedTo100, 'CBT');
+    const recomputed = await this.assessmentScoring.recomputeAndSync(schoolId, studentId, test.termId, test.subject);
+    if (recomputed !== null) return recomputed; // weighted config handled the ResultEntry write
+
+    // Legacy path — no weight config for this class/subject, exact pre-existing behavior.
     const existing = await this.resultsService.findForStudentTerm(schoolId, studentId, test.termId);
     const subjectScores = { ...((existing?.subjectScores as Record<string, number>) ?? {}), [test.subject]: normalizedTo100 };
-
     return this.resultsService.upsertResult(
       schoolId,
       studentId,
@@ -407,16 +442,50 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
   }
 
   /**
+   * Fetches a logo (or any other referenced image) from its stored URL
+   * for embedding into a generated PDF. Best-effort: a missing or
+   * unreachable image should never block the test paper itself from
+   * generating — the caller wraps the pdfkit `.image()` call in its own
+   * try/catch for the "downloaded but not a valid image" case, and this
+   * method covers the "couldn't even download it" case by returning null
+   * instead of throwing.
+   */
+  private async fetchImageBuffer(url: string): Promise<Buffer | null> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        this.logger.warn(`Could not fetch image at ${url}: HTTP ${response.status}`);
+        return null;
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (err) {
+      this.logger.warn(`Could not fetch image at ${url}: ${err}`);
+      return null;
+    }
+  }
+
+  /**
    * A printable version of the test — questions, options, and (blank)
    * answer space, with any $...$ LaTeX segments rendered as real
    * equations instead of raw text. Useful as a physical backup, or for
    * the theory portion of a mixed test which is answered on paper by
    * design (see PinsService/ResultsService — theory scores are always
    * hand-entered, never auto-graded).
+   *
+   * CODE questions have no printable equivalent (there's no paper
+   * substitute for a live sandboxed editor), so they're listed with
+   * just their instructions and a note, rather than attempting to
+   * render starter code/assertions as if they were fill-in-the-blank
+   * text.
    */
   async renderTestPaperPdf(schoolId: string, testId: string): Promise<Buffer> {
     const test = await this.findOneOrThrow(schoolId, testId);
-    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
+    const [school, klass] = await Promise.all([
+      this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } }),
+      this.prisma.class.findUniqueOrThrow({ where: { id: test.classId } }),
+    ]);
+    const logoBuffer = school.logoUrl ? await this.fetchImageBuffer(school.logoUrl) : null;
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -427,9 +496,16 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
 
       const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, doc.page.margins.left, doc.page.margins.top, { width: 40, height: 40, fit: [40, 40] });
+        } catch (err) {
+          this.logger.warn(`Test paper logo for school ${schoolId} was not a valid image: ${err}`);
+        }
+      }
       doc.fontSize(16).font('Helvetica-Bold').text(school.name, { align: 'center' });
       doc.fontSize(12).font('Helvetica').text(`${test.title} — ${test.subject}`, { align: 'center' });
-      doc.fontSize(9).fillColor('#666').text(`Duration: ${test.durationMinutes} minutes`, { align: 'center' });
+      doc.fontSize(9).fillColor('#666').text(`Class: ${klass.name}   •   Duration: ${test.durationMinutes} minutes`, { align: 'center' });
       doc.fillColor('#000');
       doc.moveDown(1.5);
 
@@ -442,6 +518,21 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
         if (y > doc.page.height - doc.page.margins.bottom - 100) {
           doc.addPage();
           y = doc.page.margins.top;
+        }
+
+        if (q.type !== 'OBJECTIVE') {
+          y = renderTextWithMath(
+            doc,
+            this.mathRenderer,
+            `${i + 1}. ${q.questionText} — [Code challenge: complete on a computer, not on paper]`,
+            doc.page.margins.left,
+            y,
+            contentWidth,
+            11,
+          );
+          doc.y = y;
+          doc.moveDown(0.8);
+          continue;
         }
 
         y = renderTextWithMath(doc, this.mathRenderer, `${i + 1}. ${q.questionText}`, doc.page.margins.left, y, contentWidth, 11);
@@ -468,5 +559,116 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
 
       doc.end();
     });
+  }
+
+  async getAttemptDetail(schoolId: string, testId: string, attemptId: string) {
+    const attempt = await this.prisma.cbtAttempt.findFirst({
+      where: { id: attemptId, test: { id: testId, schoolId } },
+      include: {
+        student: { select: { firstName: true, lastName: true, studentId: true } },
+        test: { include: { questions: true } },
+      },
+    });
+    if (!attempt) throw new NotFoundException('Attempt not found');
+
+    const answers = attempt.answers as Record<string, any>;
+    const questions = [...attempt.test.questions]
+      .sort((a, b) => a.order - b.order)
+      .map((q) => {
+        const submitted = answers[q.id];
+
+        if (q.type === 'OBJECTIVE') {
+          return {
+            id: q.id,
+            type: q.type,
+            questionText: q.questionText,
+            options: q.options as string[],
+            correctOptionIndex: q.correctOptionIndex,
+            selectedOptionIndex: typeof submitted === 'number' ? submitted : null,
+            isCorrect: submitted === q.correctOptionIndex,
+            points: q.points,
+          };
+        }
+
+        // CODE — submitted is exactly what CodeQuestionRunner's onResult
+        // produces: { passedCount, totalCount, html, css, js, results }.
+        // Kept field-for-field identical to that shape rather than
+        // introducing a combined "code" string, so this stays a single
+        // source of truth instead of two representations drifting apart.
+        const codeResult = submitted as
+          | {
+              html?: string;
+              css?: string;
+              js?: string;
+              passedCount?: number;
+              totalCount?: number;
+              results?: { description: string; passed: boolean }[];
+            }
+          | undefined;
+
+        return {
+          id: q.id,
+          type: q.type,
+          questionText: q.questionText,
+          starterHtml: q.starterHtml,
+          starterCss: q.starterCss,
+          starterJs: q.starterJs,
+          testAssertions: q.testAssertions,
+          submittedHtml: codeResult?.html ?? null,
+          submittedCss: codeResult?.css ?? null,
+          submittedJs: codeResult?.js ?? null,
+          passedCount: codeResult?.passedCount ?? 0,
+          totalCount: codeResult?.totalCount ?? 0,
+          assertionResults: codeResult?.results ?? null,
+          points: q.points,
+        };
+      });
+
+    return {
+      student: attempt.student,
+      objectiveScore: attempt.objectiveScore,
+      theoryScore: attempt.theoryScore,
+      status: attempt.status,
+      questions,
+    };
+  }
+
+  async exportAttemptsXlsx(schoolId: string, testId: string): Promise<Buffer> {
+    const test = await this.findOneOrThrow(schoolId, testId);
+    const attempts = await this.prisma.cbtAttempt.findMany({
+      where: { testId },
+      include: { student: { select: { firstName: true, lastName: true, studentId: true } } },
+      orderBy: { student: { lastName: 'asc' } },
+    });
+    const sortedQuestions = [...test.questions].sort((a, b) => a.order - b.order);
+    const letters = ['A', 'B', 'C', 'D'];
+
+    const rows = attempts.map((a) => {
+      const answers = a.answers as Record<string, any>;
+      const row: Record<string, string | number> = {
+        Student: `${a.student.firstName} ${a.student.lastName}`,
+        'Admission ID': a.student.studentId ?? '—',
+        Status: a.status,
+        'Objective Score': a.objectiveScore ?? '',
+        'Theory Score': a.theoryScore ?? '',
+      };
+      sortedQuestions.forEach((q, i) => {
+        const submitted = answers[q.id];
+        if (q.type === 'OBJECTIVE') {
+          row[`Q${i + 1} Answer`] = typeof submitted === 'number' ? letters[submitted] : '—';
+          row[`Q${i + 1} Correct?`] = submitted === q.correctOptionIndex ? 'Yes' : 'No';
+        } else {
+          const codeResult = submitted as { passedCount?: number; totalCount?: number } | undefined;
+          row[`Q${i + 1} Answer`] = codeResult?.totalCount ? `${codeResult.passedCount ?? 0}/${codeResult.totalCount} tests passed` : '—';
+          row[`Q${i + 1} Correct?`] = codeResult?.totalCount && codeResult.passedCount === codeResult.totalCount ? 'Yes' : 'No';
+        }
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attempts');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
 }

@@ -57,6 +57,8 @@ model School {
   inventoryItems    InventoryItem[]
   inventoryTx       InventoryTransaction[]
   expenseEntries    ExpenseEntry[]
+  assessmentWeights AssessmentWeight[]
+  assessmentScores AssessmentScore[]
 
   @@map("schools")
 }
@@ -114,6 +116,7 @@ model Class {
   feeStructures FeeStructure[]
   lessonNotes   LessonNote[]
   subjects      ClassSubject[]
+  assessmentWeights AssessmentWeight[]
   
   @@map("classes")
 }
@@ -174,6 +177,7 @@ model Student {
   pins              Pin[]
   cbtAttempts       CbtAttempt[]
   feeInvoices       FeeInvoice[]
+  assessmentScores AssessmentScore[]
 
   @@index([schoolId, admissionYear, status]) // serves the sequence-count query in createAndAssignId
   @@map("students")
@@ -196,6 +200,7 @@ model Term {
   feeStructures  FeeStructure[]
   feeInvoices    FeeInvoice[]
   lessonNotes    LessonNote[]
+  assessmentScores AssessmentScore[]
 
   @@unique([schoolId, academicSession, termNumber])
   @@index([schoolId, academicSession])
@@ -460,6 +465,8 @@ model CbtTest {
   scheduledDate      DateTime // the calendar day this test is meant to run — access code only works on this day
   accessWindowMinutes Int @default(60) // how long AFTER scheduledDate's start the code stays valid — covers late starters, not an open-ended window
   status             CbtTestStatus @default(DRAFT)
+  countsTowardReport Boolean @default(true) // false = practice/mock test, score never syncs into ResultEntry
+  componentName      String  @default("Test") // ties into AssessmentWeight below — see Part 6
   createdByStaffId   String
   createdBy          User          @relation("CbtTestCreatedBy", fields: [createdByStaffId], references: [id])
   createdAt          DateTime      @default(now())
@@ -470,14 +477,24 @@ model CbtTest {
   @@map("cbt_tests")
 }
 
+enum CbtQuestionType {
+  OBJECTIVE
+  CODE
+}
+
 model CbtQuestion {
-  id                 String   @id @default(uuid())
+  id                 String          @id @default(uuid())
   testId             String
-  test               CbtTest  @relation(fields: [testId], references: [id])
+  test               CbtTest         @relation(fields: [testId], references: [id])
+  type               CbtQuestionType @default(OBJECTIVE)
   questionText       String
-  options            Json // string[]
-  correctOptionIndex Int
-  points             Int      @default(1)
+  options            Json? // string[] — OBJECTIVE only
+  correctOptionIndex Int? // OBJECTIVE only
+  starterHtml        String? // CODE only
+  starterCss         String? // CODE only
+  starterJs          String? // CODE only
+  testAssertions     Json? // CODE only — array of { description: string; assertion: string }, assertion is JS run inside the sandboxed iframe
+  points             Int             @default(1)
   order              Int
 
   @@map("cbt_questions")
@@ -696,4 +713,37 @@ model AuditLog {
   @@index([schoolId, createdAt])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model AssessmentWeight {
+  id            String   @id @default(uuid())
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id])
+  classId       String
+  class         Class    @relation(fields: [classId], references: [id])
+  subject       String?  // null = applies to every subject in this class unless overridden by a subject-specific set
+  componentName String   // e.g. "Test", "Exam", "CA1" — free text, not a fixed enum, since schools vary
+  weightPercent Int
+  createdAt     DateTime @default(now())
+
+  @@map("assessment_weights")
+}
+
+model AssessmentScore {
+  id            String   @id @default(uuid())
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id])
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id])
+  termId        String
+  term          Term     @relation(fields: [termId], references: [id])
+  subject       String
+  componentName String
+  score         Int      // 0-100
+  source        String   // "CBT" | "MANUAL"
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([schoolId, studentId, termId, subject, componentName])
+  @@map("assessment_scores")
 }

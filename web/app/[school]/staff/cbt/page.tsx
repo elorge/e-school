@@ -4,13 +4,16 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
-import { Laptop, Clock, Target, FileText, Printer, BarChart3, KeyRound } from 'lucide-react';
+import { Laptop, Clock, Target, FileText, Printer, BarChart3, KeyRound, Download } from 'lucide-react';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import Link from 'next/link';
 import EquationToolbar from '@/components/EquationToolbar';
+import ShapeToolbar from '@/components/ShapeToolbar';
 import MathText from '@/components/MathText';
+import AttemptDetailModal from '@/components/AttemptDetailModal';
+import CodeQuestionEditor from '@/components/CodeQuestionEditor';
 import {
   listTests,
   createTest,
@@ -20,6 +23,7 @@ import {
   gradeTheory,
   downloadQuestionTemplate,
   bulkUploadQuestions,
+  downloadAttemptsExcel,
   getTest,
   type CbtTest,
   type CbtAttemptSummary,
@@ -41,6 +45,16 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [viewingAttempt, setViewingAttempt] = useState<{ testId: string; attemptId: string } | null>(null);
+  const [activeFieldId, setActiveFieldId] = useState('question-text-input');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED' | 'CLOSED'>('ALL');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const [questionType, setQuestionType] = useState<'OBJECTIVE' | 'CODE'>('OBJECTIVE');
+
+  const filteredTests = statusFilter === 'ALL' ? tests : tests.filter((t) => t.status === statusFilter);
+  const totalPages = Math.max(1, Math.ceil(filteredTests.length / PAGE_SIZE));
+  const pagedTests = filteredTests.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const [form, setForm] = useState({
     termId: '',
@@ -50,6 +64,8 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
     durationMinutes: 30,
     theoryMaxScore: 0,
     scheduledDate: new Date().toISOString().slice(0, 10),
+    countsTowardReport: true,
+    componentName: 'Test',
   });
   const [question, setQuestion] = useState({ questionText: '', options: ['', '', '', ''], correctOptionIndex: 0, points: 1 });
 
@@ -99,6 +115,25 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       setQuestionCount((c) => c + 1);
     } catch {
       setError('Could not add question');
+    }
+  }
+
+  async function handleAddCodeQuestion(q: {
+    starterHtml: string;
+    starterCss: string;
+    starterJs: string;
+    testAssertions: { description: string; assertion: string }[];
+    points: number;
+    questionText: string;
+  }) {
+    if (!selectedTest) return;
+    setError(null);
+    try {
+      await addQuestion(params.school, selectedTest.id, { type: 'CODE', ...q });
+      setQuestionCount((c) => c + 1);
+      setNotice(`Added "${q.questionText.slice(0, 40)}${q.questionText.length > 40 ? '…' : ''}" — ${questionCount + 1} question(s) total.`);
+    } catch {
+      setError('Could not add code question');
     }
   }
 
@@ -192,6 +227,22 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               onChange={(e) => setForm((f) => ({ ...f, theoryMaxScore: Number(e.target.value) }))}
             />
           </label>
+          <label className="flex flex-col text-xs">
+            Component (must match a Grading Weight name, e.g. "Test" or "Exam")
+            <input
+              className="rounded border px-2 py-1.5"
+              value={form.componentName}
+              onChange={(e) => setForm((f) => ({ ...f, componentName: e.target.value }))}
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-xs">
+            <input
+              type="checkbox"
+              checked={form.countsTowardReport}
+              onChange={(e) => setForm((f) => ({ ...f, countsTowardReport: e.target.checked }))}
+            />
+            Counts toward report card
+          </label>
           <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
             Create
           </button>
@@ -258,11 +309,30 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
           <p className="mb-2 text-xs text-ink/50">{questionCount} question(s) on this test so far.</p>
 
           <p className="mb-2 text-xs text-ink/50">Or add one question at a time below:</p>
+
+          <div className="mb-3 flex gap-1 text-xs">
+            {(['OBJECTIVE', 'CODE'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setQuestionType(t)}
+                className={`rounded-full px-3 py-1.5 ${questionType === t ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
+              >
+                {t === 'OBJECTIVE' ? 'Multiple choice' : 'Code challenge'}
+              </button>
+            ))}
+          </div>
+
+          {questionType === 'CODE' ? (
+            <CodeQuestionEditor onAdd={handleAddCodeQuestion} />
+          ) : (
         <div className="grid gap-4 sm:grid-cols-2">
             <form onSubmit={handleAddQuestion} className="flex flex-col gap-2">
-            <EquationToolbar targetId="question-text-input" />
+            <EquationToolbar targetId={activeFieldId} />
+            <ShapeToolbar targetId="question-text-input" />
               <textarea
                 id="question-text-input"
+                onFocus={() => setActiveFieldId('question-text-input')}
                 className="rounded border px-2 py-1.5"
                 placeholder="Question text"
                 value={question.questionText}
@@ -270,24 +340,29 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
                 required
               />
               {question.options.map((opt, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input type="radio" checked={question.correctOptionIndex === i} onChange={() => setQuestion((q) => ({ ...q, correctOptionIndex: i }))} />
+                <div key={i} className={`flex items-center gap-2 rounded px-1 py-0.5 ${question.correctOptionIndex === i ? 'bg-brand-green/10' : ''}`}>
+                  <label className="flex items-center gap-1 text-xs" title="Mark as correct answer">
+                    <input type="radio" checked={question.correctOptionIndex === i} onChange={() => setQuestion((q) => ({ ...q, correctOptionIndex: i }))} />
+                  </label>
                   <input
                     id={`option-input-${i}`}
                     className="flex-1 rounded border px-2 py-1"
                     placeholder={`Option ${i + 1}`}
                     value={opt}
+                    onFocus={() => setActiveFieldId(`option-input-${i}`)}
                     onChange={(e) =>
                       setQuestion((q) => ({ ...q, options: q.options.map((o, idx) => (idx === i ? e.target.value : o)) }))
                     }
                     required
                   />
+                  {question.correctOptionIndex === i && <span className="text-xs font-medium text-brand-green">Correct</span>}
                 </div>
               ))}
-            <EquationToolbar targetId="option-input-0" />
               <p className="text-xs text-ink/40">
-                Buttons insert LaTeX wrapped in $...$ into the question text — click into an option field first to insert there
-                instead. Typing $...$ directly also works, including when filling in the bulk-upload Excel template offline.
+                Symbol buttons insert into whichever field you last clicked into — question text or any option. Shape
+                buttons always insert into the question text. Typing $...$ directly also works, including when filling
+                in the bulk-upload Excel template offline. Select the radio button next to an option to mark it as the
+                correct answer.
               </p>
               <input
                 className="w-24 rounded border px-2 py-1"
@@ -316,6 +391,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               </div>
             </div>
           </div>
+          )}
           {classStudents.length > 0 && (
             <div className="mt-4 rounded border p-3">
               <p className="mb-2 text-sm font-medium">
@@ -339,9 +415,25 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       )}
 
       <section className="card">
-        <h2 className="mb-4 font-medium">All tests</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-medium">All tests ({filteredTests.length})</h2>
+          <div className="flex gap-1 text-xs">
+            {(['ALL', 'DRAFT', 'PUBLISHED', 'CLOSED'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  setStatusFilter(f);
+                  setPage(1);
+                }}
+                className={`rounded-full px-2.5 py-1 ${statusFilter === f ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
+              >
+                {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {tests.map((t) => (
+          {pagedTests.map((t) => (
             <div
               key={t.id}
               className={`card ${
@@ -397,15 +489,41 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
             </div>
           ))}
         </div>
+        {totalPages > 1 && (
+          <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-secondary px-3 py-1 text-xs disabled:opacity-30">
+              Previous
+            </button>
+            <span className="text-ink/50">Page {page} of {totalPages}</span>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-secondary px-3 py-1 text-xs disabled:opacity-30">
+              Next
+            </button>
+          </div>
+        )}
       </section>
 
       {attempts.length > 0 && selectedTest && (
         <section className="card">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-medium">Scores — {selectedTest.title}</h2>
-            <span className="text-xs text-ink/50">
-              {attempts.filter((a) => a.status !== 'IN_PROGRESS').length} / {attempts.length} submitted
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-ink/50">
+                {attempts.filter((a) => a.status !== 'IN_PROGRESS').length} / {attempts.length} submitted
+              </span>
+              <button
+                onClick={async () => {
+                  const blob = await downloadAttemptsExcel(params.school, selectedTest.id);
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'cbt-attempts.xlsx';
+                  a.click();
+                }}
+                className="btn-secondary flex items-center gap-1.5 text-xs"
+              >
+                <Download size={13} /> Export to Excel
+              </button>
+            </div>
           </div>
           <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
@@ -415,6 +533,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
                   <th className="px-3 py-2 text-center">Status</th>
                   <th className="px-3 py-2 text-right">Objective</th>
                   {selectedTest.theoryMaxScore > 0 && <th className="px-3 py-2 text-right">Theory</th>}
+                  <th className="px-3 py-2 text-right">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -450,12 +569,29 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
                         )}
                       </td>
                     )}
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        className="text-brand-blue hover:underline"
+                        onClick={() => setViewingAttempt({ testId: selectedTest.id, attemptId: a.id })}
+                      >
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </section>
+      )}
+
+      {viewingAttempt && (
+        <AttemptDetailModal
+          school={params.school}
+          testId={viewingAttempt.testId}
+          attemptId={viewingAttempt.attemptId}
+          onClose={() => setViewingAttempt(null)}
+        />
       )}
     </main>
   );

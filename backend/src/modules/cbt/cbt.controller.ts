@@ -94,6 +94,23 @@ export class CbtController {
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Get(':id/attempts/export')
+  async exportAttempts(@Req() req: Request, @Param('id') id: string, @Res() res: Response) {
+    const buffer = await this.cbtService.exportAttemptsXlsx(req.schoolId!, id);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="cbt-attempts.xlsx"`,
+    });
+    res.send(buffer);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Get(':id/attempts/:attemptId/detail')
+  getAttemptDetail(@Req() req: Request, @Param('id') id: string, @Param('attemptId') attemptId: string) {
+    return this.cbtService.getAttemptDetail(req.schoolId!, id, attemptId);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Post('attempts/:attemptId/answer')
   saveAnswer(@Param('attemptId') attemptId: string, @Body() body: { questionId: string; selectedOptionIndex: number }) {
     return this.cbtService.saveAnswer(attemptId, body.questionId, body.selectedOptionIndex);

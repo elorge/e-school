@@ -1,5 +1,5 @@
 // backend/src/modules/cbt/dto/create-test.dto.ts
-import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Min, MinLength } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Min, MinLength, IsBoolean } from 'class-validator';
 
 export class CreateTestDto {
   @IsUUID()
@@ -31,4 +31,12 @@ export class CreateTestDto {
   @IsInt()
   @Min(1)
   accessWindowMinutes?: number; // defaults server-side to durationMinutes + a grace buffer if omitted
+
+  @IsOptional()
+  @IsBoolean()
+  countsTowardReport?: boolean;
+
+  @IsOptional()
+  @IsString()
+  componentName?: string; // must match a Grading Weight name for the recomputed/weighted result path to pick it up
 }

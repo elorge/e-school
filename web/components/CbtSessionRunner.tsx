@@ -3,8 +3,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { answerQuestion, submitLocalAttempt, retryQueuedSubmit, clearLocalAttempt, getLocalAttempt } from '@/lib/cbt-offline';
-import type { AttemptSession } from '@/lib/endpoints/cbt';
+import type { AttemptSession, SavedCodeAnswer } from '@/lib/endpoints/cbt';
 import MathText from './MathText';
+import CodeQuestionRunner from './CodeQuestionRunner';
 
 function formatCountdown(msRemaining: number) {
   const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
@@ -13,9 +14,17 @@ function formatCountdown(msRemaining: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+// Stored per-question answer: a plain option index for OBJECTIVE questions,
+// or a SavedCodeAnswer for CODE questions (see CodeQuestionRunner's onResult).
+type AnswerMap = Record<string, number | SavedCodeAnswer>;
+
+function isObjectiveAnswer(value: unknown): value is number {
+  return typeof value === 'number';
+}
+
 /** Shared quiz-taking UI — used by both the staff-assisted flow and the student self-service flow. Assumes initLocalAttempt() was already called by the caller. */
 export default function CbtSessionRunner({ session }: { session: AttemptSession }) {
-  const [answers, setAnswers] = useState<Record<string, number>>(session.savedAnswers);
+  const [answers, setAnswers] = useState<AnswerMap>(session.savedAnswers);
   const [msRemaining, setMsRemaining] = useState(0);
   const [done, setDone] = useState(false);
   const [queued, setQueued] = useState(false);
@@ -45,6 +54,14 @@ export default function CbtSessionRunner({ session }: { session: AttemptSession 
   function handleSelectOption(questionId: string, index: number) {
     setAnswers((a) => ({ ...a, [questionId]: index }));
     answerQuestion(session.attemptId, questionId, index);
+  }
+
+  // CODE questions report a SavedCodeAnswer rather than a single value —
+  // see CodeQuestionRunner's onResult prop. Stored as-is so submitAttempt
+  // on the backend can read passedCount/totalCount straight off it.
+  function handleCodeResult(questionId: string, result: SavedCodeAnswer) {
+    setAnswers((a) => ({ ...a, [questionId]: result }));
+    answerQuestion(session.attemptId, questionId, result);
   }
 
   async function handleSubmit() {
@@ -79,21 +96,35 @@ export default function CbtSessionRunner({ session }: { session: AttemptSession 
         <span className={`font-mono text-lg font-semibold ${isLowTime ? 'text-red-700' : ''}`}>{formatCountdown(msRemaining)}</span>
       </div>
       <div className="flex flex-col gap-6">
-        {session.questions.map((q, idx) => (
-          <div key={q.id} className="card">
-            <p className="mb-3 font-medium">
-              {idx + 1}. <MathText text={q.questionText} />
-            </p>
-            <div className="flex flex-col gap-2">
-              {q.options.map((opt, optIdx) => (
-                <label key={optIdx} className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input type="radio" name={q.id} checked={answers[q.id] === optIdx} onChange={() => handleSelectOption(q.id, optIdx)} />
-                  <MathText text={opt} />
-                </label>
-              ))}
+        {session.questions.map((q, idx) =>
+          q.type === 'CODE' ? (
+            <CodeQuestionRunner
+              key={q.id}
+              question={q}
+              savedResult={answers[q.id]}
+              onResult={(result) => handleCodeResult(q.id, result)}
+            />
+          ) : (
+            <div key={q.id} className="card">
+              <p className="mb-3 font-medium">
+                {idx + 1}. <MathText text={q.questionText} />
+              </p>
+              <div className="flex flex-col gap-2">
+                {q.options.map((opt, optIdx) => (
+                  <label key={optIdx} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name={q.id}
+                      checked={isObjectiveAnswer(answers[q.id]) && answers[q.id] === optIdx}
+                      onChange={() => handleSelectOption(q.id, optIdx)}
+                    />
+                    <MathText text={opt} />
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
       <button onClick={handleSubmit} className="mt-6 w-full rounded bg-brand-green px-4 py-3 font-medium text-white">
         Submit test
