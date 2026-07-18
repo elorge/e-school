@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
-import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil } from 'lucide-react';
+import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil, Wallet, Boxes, Calculator, Upload } from 'lucide-react';
 
 const CORE_FEATURES = [
   {
@@ -25,16 +25,16 @@ const CORE_FEATURES = [
 
 const RUN_THE_SCHOOL_FEATURES = [
   {
-    title: 'Fees, tracked to the last naira',
-    body: 'Set the term\'s fee structure once, generate invoices for every class, and record cash or transfer payments as they come in — with a debtors list that\'s always current.',
+    title: 'Bulk student import',
+    body: 'Already have 400 students on paper or in another system? Download a template, fill it in Excel offline, and upload it — with row-by-row error feedback if something needs fixing.',
   },
   {
-    title: 'Inventory that flags itself',
-    body: 'Track school supplies and equipment in and out. Anything below its reorder line shows up automatically — no more finding out you\'re out of exercise books mid-term.',
+    title: 'One-click end-of-session promotion',
+    body: 'Move a whole class from JSS1 to JSS2 in a few clicks at year-end, instead of editing every student one at a time.',
   },
   {
-    title: 'Income & expenditure, in real numbers',
-    body: 'See what came in from fees and what went out in expenses, by category, for any date range — a real answer to "how are we doing this term," not a spreadsheet you have to build yourself.',
+    title: 'Staff invites, done properly',
+    body: 'Invite a teacher by email — they set their own password to activate, or an admin can set one directly with a forced change on first login.',
   },
 ];
 
@@ -271,11 +271,39 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Finance suite — was missing from marketing despite being a full feature set */}
+      <section id="finance" className="border-t border-black/5 bg-white px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Beyond academics</p>
+          <h2 className="mb-4 max-w-2xl font-display text-3xl font-semibold">A finance office, built in.</h2>
+          <p className="mb-10 max-w-2xl text-ink/70">
+            Set a term's fees once, generate invoices for every class, and record payments as they land — cash or
+            transfer. Track supplies and equipment so you know before you run out. See income against expenses for
+            any date range, exportable to Excel for your accountant.
+          </p>
+          <div className="grid gap-8 sm:grid-cols-3">
+            {[
+              [Wallet, 'Fees & invoicing', 'Generate invoices per class per term, record payments, and see who still owes at a glance.'],
+              [Boxes, 'Inventory', 'Stock in and out, with automatic low-stock flags before you run out of essentials.'],
+              [Calculator, 'Accounting', 'Income and expenditure, by category, for any period — exported to Excel in one click.'],
+            ].map(([Icon, title, body]: any) => (
+              <div key={title} className="rounded-xl border border-black/5 p-5">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-brand-green/10 text-brand-green">
+                  <Icon size={20} />
+                </div>
+                <h3 className="mb-2 font-display text-base font-semibold">{title}</h3>
+                <p className="text-sm text-ink/60">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Running the whole school */}
       <section id="operations" className="border-t border-black/5 bg-white px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-12 max-w-lg font-display text-3xl font-semibold text-ink">
-            The parts of running a school that aren't academic, either.
+            Onboarding is fast, even with hundreds of existing students.
           </h2>
           <div className="grid gap-8 sm:grid-cols-3">
             {RUN_THE_SCHOOL_FEATURES.map((feature) => (

@@ -8,7 +8,7 @@ import { getSessionUser, clearSessionUser, type SessionUser } from '@/lib/sessio
 import { clearToken } from '@/lib/api';
 import PendingSyncBadge from './PendingSyncBadge';
 import NotificationBell from './NotificationBell';
-import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings, History } from 'lucide-react';
 
 function DropdownMenu({
   label,
@@ -114,6 +114,12 @@ export default function SchoolNav({
           <Link href={`/${slug}/admin/settings`} className="flex items-center gap-1.5">
             <Settings size={15} />
             Settings
+          </Link>
+        )}
+        {isSchoolAdmin && (
+          <Link href={`/${slug}/admin/audit-log`} className="flex items-center gap-1.5">
+            <History size={15} />
+            Audit Log
           </Link>
         )}
         {isStaffOrAdmin && <DropdownMenu label="Academic" icon={GraduationCap} items={academicItems} />}

@@ -7,12 +7,13 @@ import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 const SECTIONS = [
-  { href: '#features', label: 'Features' },
-  { href: '#session-wrap', label: 'Session Wrap' },
-  { href: '#cbt', label: 'CBT' },
-  { href: '#lesson-notes', label: 'Lesson Notes' },
-  { href: '#offline', label: 'Offline-first' },
-  { href: '#infrastructure', label: 'Hardware' },
+  { id: 'features', label: 'Features' },
+  { id: 'session-wrap', label: 'Session Wrap' },
+  { id: 'cbt', label: 'CBT' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'lesson-notes', label: 'Lesson Notes' },
+  { id: 'offline', label: 'Offline-first' },
+  { id: 'infrastructure', label: 'Hardware' },
 ];
 
 export default function SiteHeader() {
@@ -21,6 +22,8 @@ export default function SiteHeader() {
 
   // Highlights whichever section is currently in view, so the nav
   // reflects scroll position instead of staying static the whole time.
+  // These sections only exist on the homepage, so on other pages this
+  // simply finds nothing to observe and activeSection stays null.
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -31,7 +34,7 @@ export default function SiteHeader() {
       { rootMargin: '-40% 0px -50% 0px' },
     );
     SECTIONS.forEach((s) => {
-      const el = document.querySelector(s.href);
+      const el = document.getElementById(s.id);
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
@@ -48,9 +51,9 @@ export default function SiteHeader() {
         <nav className="hidden items-center gap-5 text-sm lg:flex">
           {SECTIONS.map((s) => (
             <a
-              key={s.href}
-              href={s.href}
-              className={`transition ${activeSection === s.href ? 'font-medium text-brand-blue' : 'text-ink/60 hover:text-ink'}`}
+              key={s.id}
+              href={`/#${s.id}`}
+              className={`transition ${activeSection === `#${s.id}` ? 'font-medium text-brand-blue' : 'text-ink/60 hover:text-ink'}`}
             >
               {s.label}
             </a>
@@ -77,7 +80,7 @@ export default function SiteHeader() {
       {mobileOpen && (
         <nav className="flex flex-col gap-1 border-t border-black/5 px-6 py-4 lg:hidden">
           {SECTIONS.map((s) => (
-            <a key={s.href} href={s.href} className="py-2 text-sm text-ink/70" onClick={() => setMobileOpen(false)}>
+            <a key={s.id} href={`/#${s.id}`} className="py-2 text-sm text-ink/70" onClick={() => setMobileOpen(false)}>
               {s.label}
             </a>
           ))}
