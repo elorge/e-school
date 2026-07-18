@@ -129,6 +129,12 @@ export default function SignupPage() {
               <input className="rounded border px-3 py-2" value={form.phone} onChange={(e) => update('phone', e.target.value)} />
             </label>
             {error && <p className="text-sm text-red-600">{error}</p>}
+            <label className="flex items-start gap-2 text-xs text-ink/60">
+              <input type="checkbox" required className="mt-0.5" />
+              I confirm my school has lawful consent to submit student data, and agree to the{' '}
+              <Link href="/terms" className="text-brand-blue underline">Terms</Link> and{' '}
+              <Link href="/privacy" className="text-brand-blue underline">Privacy Policy</Link>.
+            </label>
             <button
               type="submit"
               disabled={isSubmitting}

@@ -15,6 +15,12 @@ export default function SiteFooter() {
             <Link href="/about" className="hover:text-ink">
               About
             </Link>
+            <Link href="/terms" className="hover:text-ink">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-ink">
+              Privacy
+            </Link>
             <a href="mailto:hello@elorgeschools.com" className="hover:text-ink">
               hello@elorgeschools.com
             </a>
