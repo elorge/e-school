@@ -14,11 +14,13 @@ import {
   listInvoices,
   recordPayment,
   getDebtors,
+  downloadInvoicesExcel,
   type FeeStructure,
   type FeeInvoice,
 } from '@/lib/endpoints/fees';
 import type { Term, Class } from '@/lib/types';
 import RequireRole from '@/components/RequireRole';
+import { Download } from 'lucide-react';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -156,7 +158,22 @@ if (isLoading) return <LoadingScreen />;
           </section>
 
           <section className="card">
-            <h2 className="mb-3 font-medium">Invoices</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-medium">Invoices ({invoices.length})</h2>
+              <button
+                onClick={async () => {
+                  const blob = await downloadInvoicesExcel(params.school, termId);
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'fee-invoices.xlsx';
+                  a.click();
+                }}
+                className="btn-secondary flex items-center gap-1.5 text-xs"
+              >
+                <Download size={14} /> Export to Excel
+              </button>
+            </div>
             <ul className="flex flex-col gap-2 text-sm">
               {invoices.map((inv) => (
                 <li key={inv.id} className="flex items-center justify-between border-b pb-2">

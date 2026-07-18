@@ -1,5 +1,6 @@
 // backend/src/modules/accounting/accounting.service.ts
 import { Injectable } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -26,13 +27,37 @@ export class AccountingService {
     });
   }
 
-  /**
-   * Income & Expenditure summary — income = confirmed fee payments in
-   * range (the real cash a school collected), expenditure = recorded
-   * expenses in range. Deliberately does NOT include the platform
-   * wallet (that's what the school pays ELORGE, a cost of using this
-   * software, not the school's own income/expense books).
-   */
+  async exportXlsx(schoolId: string, from?: string, to?: string): Promise<Buffer> {
+    const expenses = await this.listExpenses(schoolId, from, to);
+    const payments = await this.prisma.feePayment.findMany({
+      where: { schoolId, ...(from || to ? { createdAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } } : {}) },
+    });
+
+    const workbook = XLSX.utils.book_new();
+
+    const expenseRows = expenses.map((e) => ({
+      Date: e.incurredAt.toISOString().slice(0, 10),
+      Category: e.category,
+      Description: e.description,
+      'Amount (₦)': e.amountKobo / 100,
+    }));
+    const expenseSheet = XLSX.utils.json_to_sheet(expenseRows);
+    expenseSheet['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 36 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(workbook, expenseSheet, 'Expenses');
+
+    const incomeRows = payments.map((p) => ({
+      Date: p.createdAt.toISOString().slice(0, 10),
+      Method: p.method,
+      Reference: p.reference,
+      'Amount (₦)': p.amountKobo / 100,
+    }));
+    const incomeSheet = XLSX.utils.json_to_sheet(incomeRows);
+    incomeSheet['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 24 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(workbook, incomeSheet, 'Income (Fee Payments)');
+
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  }
+  
   async getIncomeExpenditureSummary(schoolId: string, from: string, to: string) {
     const [payments, expenses] = await Promise.all([
       this.prisma.feePayment.findMany({ where: { schoolId, createdAt: { gte: new Date(from), lte: new Date(to) } } }),

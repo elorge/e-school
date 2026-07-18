@@ -32,3 +32,28 @@ export function recordTransaction(school: string, itemId: string, type: 'STOCK_I
     body: JSON.stringify({ type, quantity, note }),
   });
 }
+
+export interface InventoryTransaction {
+  id: string;
+  type: 'STOCK_IN' | 'STOCK_OUT';
+  quantity: number;
+  note: string | null;
+  createdAt: string;
+  item: { name: string; unit: string };
+  recordedBy: { fullName: string };
+}
+
+export function listTransactions(school: string): Promise<InventoryTransaction[]> {
+  return apiFetch(`/${school}/inventory/transactions`);
+}
+
+export async function downloadInventoryExcel(school: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const { getToken } = await import('../api');
+  const token = getToken();
+  const res = await fetch(`${API_URL}/${school}/inventory/export`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
+}

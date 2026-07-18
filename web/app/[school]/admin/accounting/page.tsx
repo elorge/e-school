@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Calculator } from 'lucide-react';
-import { recordExpense, listExpenses, getSummary, type ExpenseEntry, type IncomeExpenditureSummary } from '@/lib/endpoints/accounting';
+import { recordExpense, listExpenses, getSummary, downloadAccountingExcel, type ExpenseEntry, type IncomeExpenditureSummary } from '@/lib/endpoints/accounting';
 import RequireRole from '@/components/RequireRole';
+import { Download } from 'lucide-react';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -144,7 +145,22 @@ if (isLoading) return <LoadingScreen />;
       </section>
 
       <section className="card">
-        <h2 className="mb-3 font-medium">Recent expenses</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-medium">Recent expenses</h2>
+          <button
+            onClick={async () => {
+              const blob = await downloadAccountingExcel(params.school, from, to);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'accounting.xlsx';
+              a.click();
+            }}
+            className="btn-secondary flex items-center gap-1.5 text-xs"
+          >
+            <Download size={14} /> Export to Excel
+          </button>
+        </div>
         <ul className="flex flex-col gap-1 text-sm">
           {expenses.map((e) => (
             <li key={e.id}>

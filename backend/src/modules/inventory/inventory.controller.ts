@@ -1,6 +1,6 @@
 // backend/src/modules/inventory/inventory.controller.ts
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { InventoryService } from './inventory.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -24,6 +24,24 @@ export class InventoryController {
   @Get('items/low-stock')
   listLowStock(@Req() req: Request) {
     return this.inventoryService.listLowStock(req.schoolId!);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get('transactions')
+  listTransactions(@Req() req: Request) {
+    return this.inventoryService.listTransactions(req.schoolId!);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get('export')
+  async exportInventory(@Req() req: Request, @Res() res: Response) {
+    const buffer = await this.inventoryService.exportXlsx(req.schoolId!);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="inventory.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
   }
 
   @Roles(Role.SCHOOL_ADMIN)

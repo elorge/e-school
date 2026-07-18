@@ -36,3 +36,14 @@ export function listExpenses(school: string, from?: string, to?: string): Promis
 export function getSummary(school: string, from: string, to: string): Promise<IncomeExpenditureSummary> {
   return apiFetch(`/${school}/accounting/summary?from=${from}&to=${to}`);
 }
+
+export async function downloadAccountingExcel(school: string, from: string, to: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const { getToken } = await import('../api');
+  const token = getToken();
+  const res = await fetch(`${API_URL}/${school}/accounting/export?from=${from}&to=${to}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
+}

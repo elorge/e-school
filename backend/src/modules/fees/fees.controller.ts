@@ -1,6 +1,6 @@
 // backend/src/modules/fees/fees.controller.ts
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { FeesService } from './fees.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -55,6 +55,18 @@ export class FeesController {
     return this.feesService.recordPayment(req.schoolId!, id, body.amountKobo, body.method, user.id);
   }
 
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get('invoices/export')
+  async exportInvoices(@Req() req: Request, @Query('termId') termId: string | undefined, @Res() res: Response) {
+    const buffer = await this.feesService.exportInvoicesXlsx(req.schoolId!, termId);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="fee-invoices.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
+  }
+  
   @Roles(Role.SCHOOL_ADMIN)
   @Get('debtors')
   getDebtors(@Req() req: Request, @Query('termId') termId: string) {

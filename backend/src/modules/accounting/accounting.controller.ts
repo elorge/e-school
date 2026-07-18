@@ -1,6 +1,6 @@
 // backend/src/modules/accounting/accounting.controller.ts
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AccountingService } from './accounting.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -34,5 +34,17 @@ export class AccountingController {
   @Get('summary')
   getSummary(@Req() req: Request, @Query('from') from: string, @Query('to') to: string) {
     return this.accountingService.getIncomeExpenditureSummary(req.schoolId!, from, to);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get('export')
+  async exportAccounting(@Req() req: Request, @Query('from') from: string, @Query('to') to: string, @Res() res: Response) {
+    const buffer = await this.accountingService.exportXlsx(req.schoolId!, from, to);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="accounting.xlsx"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
   }
 }

@@ -143,154 +143,155 @@ export class ReportsService {
     });
     const trend = this.computeTrend(priorResults);
 
-    // Both remote fetches (logo + QR encoding) run in parallel — neither
-    // depends on the other.
     const verificationPrefix = template?.verificationQrPrefix ?? 'https://elorgeschools.com/verify';
     const [logoBuffer, signatureBuffer, photoBuffer, qrDataUrl] = await Promise.all([
       school.logoUrl ? this.fetchLogoBuffer(school.logoUrl) : Promise.resolve(null),
       school.signatureUrl ? this.fetchLogoBuffer(school.signatureUrl) : Promise.resolve(null),
       student.photoUrl ? this.fetchLogoBuffer(student.photoUrl) : Promise.resolve(null),
-      QRCode.toDataURL(`${verificationPrefix}/${result.id}`, { margin: 1, width: 120 }),
+      QRCode.toDataURL(`${verificationPrefix}/${result.id}`, { margin: 1, width: 100 }),
     ]);
     const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
 
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      const contentWidthTop = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      // Explicit portrait A4, single fixed size — no auto page addition
+      // anywhere below. Every block's height is computed and budgeted
+      // against this fixed canvas so the document is guaranteed to be
+      // exactly one page, never two, never landscape.
+      const PAGE_WIDTH = 595.28; // A4 at 72dpi
+      const PAGE_HEIGHT = 841.89;
+      const MARGIN = 36;
+      const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: MARGIN, autoFirstPage: true });
       const chunks: Buffer[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Colored header band — the one visual signature that makes this
-      // look like an issued document rather than a plain text dump.
-      doc.rect(0, 0, doc.page.width, 90).fill('#0B3D91');
-      doc.fillColor('#ffffff');
+      const contentWidth = PAGE_WIDTH - MARGIN * 2;
+      const scores = result.subjectScores as SubjectScores;
+      const subjectEntries = Object.entries(scores);
+      const classification = classifyPerformance(scores);
 
-      // Header — school's own branding, never an Elorge asset (spec doc §10.1).
+      // ── Header band ──────────────────────────────────────────────────
+      const HEADER_HEIGHT = 76;
+      doc.rect(0, 0, PAGE_WIDTH, HEADER_HEIGHT).fill('#0B3D91');
+      doc.fillColor('#ffffff');
       if (logoBuffer) {
         try {
-          doc.image(logoBuffer, doc.page.margins.left, doc.page.margins.top, { width: 60, height: 60, fit: [60, 60] });
+          doc.image(logoBuffer, MARGIN, 14, { width: 48, height: 48, fit: [48, 48] });
         } catch (err) {
-          // pdfkit throws synchronously if the buffer isn't a valid
-          // image format it recognizes (jpg/png) — don't let a corrupt
-          // logo file crash report generation.
-          this.logger.warn(`Logo buffer for school ${schoolId} was not a valid image — skipping: ${err}`);
+          this.logger.warn(`Logo buffer for school ${schoolId} was not a valid image: ${err}`);
         }
       }
-
-      doc.fontSize(18).font('Helvetica-Bold').text(school.name, doc.page.margins.left, 25, { width: contentWidthTop, align: 'center' });
-      doc.fontSize(11).font('Helvetica').text(term.name, doc.page.margins.left, 52, { width: contentWidthTop, align: 'center' });
+      doc.fontSize(16).font('Helvetica-Bold').text(school.name, MARGIN + 58, 18, { width: contentWidth - 58 - 90 });
+      doc.fontSize(9).font('Helvetica').text(`Report Card — ${term.name}`, MARGIN + 58, 40, { width: contentWidth - 58 - 90 });
       doc.fillColor('#000');
-      doc.y = 105; // clear the colored band before continuing normal flow
 
-      // Student passport photo — top-right, absolute position so it
-      // doesn't disturb the normal top-to-bottom text flow.
+      // Passport photo — sits inside the header band, top-right, so it
+      // never competes for vertical space with anything below.
       if (photoBuffer) {
         try {
-          doc.image(photoBuffer, doc.page.width - doc.page.margins.right - 70, doc.page.margins.top, {
-            width: 70,
-            height: 85,
-            fit: [70, 85],
-          });
-          doc.rect(doc.page.width - doc.page.margins.right - 70, doc.page.margins.top, 70, 85).strokeColor('#ddd').stroke();
+          doc.rect(PAGE_WIDTH - MARGIN - 54, 11, 54, 54).fill('#ffffff');
+          doc.image(photoBuffer, PAGE_WIDTH - MARGIN - 52, 13, { width: 50, height: 50, fit: [50, 50] });
         } catch (err) {
           this.logger.warn(`Report photo for student ${studentId} was not a valid image: ${err}`);
         }
       }
 
-      // Cap width to leave room for the passport photo drawn top-right — avoids text running under/behind it.
-      const nameBlockWidth = contentWidthTop - 90;
-      doc.fontSize(13).font('Helvetica-Bold').text(`${student.firstName} ${student.lastName}`, doc.page.margins.left, doc.y, { width: nameBlockWidth });
-      doc.fontSize(10).font('Helvetica').text(`Admission ID: ${student.studentId ?? '—'}`, doc.page.margins.left, doc.y, { width: nameBlockWidth });
-      doc.moveDown(1);
+      let y = HEADER_HEIGHT + 16;
 
-      doc.fontSize(12).font('Helvetica-Bold').fillColor('#0B3D91').text('Subject Scores', doc.page.margins.left, doc.y, { width: contentWidthTop });
+      // ── Student info row ─────────────────────────────────────────────
+      doc.fontSize(13).font('Helvetica-Bold').fillColor('#000').text(`${student.firstName} ${student.lastName}`, MARGIN, y, { width: contentWidth - 100 });
+      doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Admission ID: ${student.studentId ?? '—'}`, MARGIN, y + 17, { width: contentWidth - 100 });
       doc.fillColor('#000');
-      doc.moveDown(0.4);
-      const scores = result.subjectScores as SubjectScores;
-      const tableTop = doc.y;
-      let rowY = tableTop;
-      const subjectEntries = Object.entries(scores);
+      y += 40;
+
+      // ── Subject score table — height budgeted per row so N subjects
+      // never overflow. Row height shrinks slightly if there are many
+      // subjects, rather than letting the table run off the page. ──────
+      const ROW_HEIGHT = subjectEntries.length > 12 ? 15 : 18;
+      const tableTop = y;
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text('Subject Scores', MARGIN, y, { width: contentWidth });
+      doc.fillColor('#000');
+      y += 18;
+
+      const colScoreX = MARGIN + contentWidth - 40;
       for (let i = 0; i < subjectEntries.length; i++) {
         const [subject, score] = subjectEntries[i];
         if (i % 2 === 1) {
-          doc.rect(doc.page.margins.left, rowY - 2, contentWidthTop, 16).fill('#F5F7FA');
+          doc.rect(MARGIN, y - 2, contentWidth, ROW_HEIGHT).fill('#F5F7FA');
           doc.fillColor('#000');
         }
-        doc.fontSize(10).font('Helvetica').text(subject, doc.page.margins.left + 4, rowY, { width: contentWidthTop - 60 });
-        doc.font('Helvetica-Bold').text(String(score), doc.page.margins.left + contentWidthTop - 40, rowY, { width: 36, align: 'right' });
+        doc.fontSize(9).font('Helvetica').text(subject, MARGIN + 4, y, { width: contentWidth - 60 });
+        doc.font('Helvetica-Bold').text(String(score), colScoreX, y, { width: 36, align: 'right' });
         doc.font('Helvetica');
-        rowY += 16;
+        y += ROW_HEIGHT;
       }
-      doc.y = rowY + 6;
-      doc.moveDown(0.6);
+      y += 8;
 
-      const classification = classifyPerformance(scores);
-
-      doc.fontSize(12).font('Helvetica-Bold').text('Areas of Strength & Weakness');
-      doc.moveDown(0.4);
-      this.drawPerformanceChart(doc, scores, classification);
-      doc.moveDown(0.8);
-
-      const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-
-      doc
-        .fontSize(9)
-        .font('Helvetica-Oblique')
-        .fillColor('#555')
-        .text('Green = strength (70+)   Amber = needs improvement (50-69)   Red = at risk (below 50)', doc.page.margins.left, doc.y, {
-          width: contentWidth,
-        });
+      // ── Compact strength/weakness bar chart — fixed height regardless
+      // of subject count, since it reuses the same row positions above
+      // rather than a separate full-size chart block. ───────────────────
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text('Areas of Strength & Weakness', MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
-      doc.moveDown(1);
+      y += 16;
 
-      doc.fontSize(12).font('Helvetica-Bold').text('Teacher Recommendation', doc.page.margins.left, doc.y, { width: contentWidth });
-      doc.moveDown(0.3);
-      doc
-        .fontSize(10)
-        .font('Helvetica')
-        .text(this.buildRecommendationText(classification), doc.page.margins.left, doc.y, { width: contentWidth });
-      doc.moveDown(1);
-
-      doc.fontSize(12).font('Helvetica-Bold').text('Performance Trend');
-      doc.moveDown(0.3);
-      for (const [subject, history] of Object.entries(trend)) {
-        const line = history.map((h) => h.score).join(' → ');
-        doc.fontSize(10).font('Helvetica').text(`${subject}: ${line}`);
+      const barLabelWidth = 90;
+      const barMaxWidth = contentWidth - barLabelWidth - 32;
+      const barRowHeight = subjectEntries.length > 10 ? 11 : 13;
+      const colorFor = (subject: string) => {
+        if (classification.strengths.includes(subject)) return '#1F9D55';
+        if (classification.needsImprovement.includes(subject)) return '#F08C00';
+        return '#e03131';
+      };
+      for (const [subject, score] of subjectEntries) {
+        doc.fontSize(7.5).font('Helvetica').text(subject, MARGIN, y + 1, { width: barLabelWidth });
+        const barWidth = Math.max(2, (score / 100) * barMaxWidth);
+        doc.rect(MARGIN + barLabelWidth, y, barMaxWidth, barRowHeight - 3).fillColor('#eee').fill();
+        doc.rect(MARGIN + barLabelWidth, y, barWidth, barRowHeight - 3).fillColor(colorFor(subject)).fill();
+        doc.fillColor('#000').fontSize(7.5).text(String(score), MARGIN + barLabelWidth + barMaxWidth + 6, y, { width: 24 });
+        y += barRowHeight;
       }
-      doc.moveDown(1);
+      y += 6;
+      doc.fontSize(7).font('Helvetica-Oblique').fillColor('#666').text('Green = strength (70+)  Amber = needs improvement (50-69)  Red = at risk (below 50)', MARGIN, y, { width: contentWidth });
+      doc.fillColor('#000');
+      y += 16;
 
+      // ── Recommendation — clamped to a max height via a fixed font
+      // size and width; long text wraps but never grows unbounded. ─────
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text('Teacher Recommendation', MARGIN, y, { width: contentWidth });
+      doc.fillColor('#000');
+      y += 14;
+      doc.fontSize(8.5).font('Helvetica').text(this.buildRecommendationText(classification), MARGIN, y, { width: contentWidth });
+      y = doc.y + 10;
+
+      // ── Teacher's comment ────────────────────────────────────────────
       if (result.teacherComment) {
-        doc.fontSize(12).font('Helvetica-Bold').text("Teacher's Comment");
-        doc.fontSize(10).font('Helvetica').text(result.teacherComment);
-        doc.moveDown(1);
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text("Teacher's Comment", MARGIN, y, { width: contentWidth });
+        doc.fillColor('#000');
+        y += 14;
+        doc.fontSize(8.5).font('Helvetica-Oblique').text(result.teacherComment, MARGIN, y, { width: contentWidth });
+        y = doc.y + 10;
       }
 
-      // Authorized signature — bottom-left, mirrors the QR on the
-      // bottom-right. The two serve different purposes: the QR is
-      // digital, always-verifiable proof; the signature is what a
-      // human reading the physical page expects to see on an official
-      // school document, regardless of whether they ever scan anything.
-      const signatureY = doc.page.height - 150;
+      // ── Everything below this point is PINNED to the bottom of the
+      // page (not flowed), so it can never push onto a second page no
+      // matter how long the content above ran. ──────────────────────────
+      const FOOTER_TOP = PAGE_HEIGHT - 90;
+
       if (signatureBuffer) {
         try {
-          doc.image(signatureBuffer, doc.page.margins.left, signatureY, { width: 100, height: 40, fit: [100, 40] });
+          doc.image(signatureBuffer, MARGIN, FOOTER_TOP, { width: 90, height: 32, fit: [90, 32] });
         } catch (err) {
           this.logger.warn(`Signature image for school ${schoolId} was not a valid image: ${err}`);
         }
       }
-      doc
-        .moveTo(doc.page.margins.left, signatureY + 45)
-        .lineTo(doc.page.margins.left + 140, signatureY + 45)
-        .strokeColor('#ccc')
-        .stroke();
-      doc.fontSize(8).fillColor('#666').text('Head of School — Authorized Signature', doc.page.margins.left, signatureY + 48, { width: 140 });
+      doc.moveTo(MARGIN, FOOTER_TOP + 36).lineTo(MARGIN + 130, FOOTER_TOP + 36).strokeColor('#ccc').stroke();
+      doc.fontSize(7).fillColor('#666').text('Head of School — Authorized Signature', MARGIN, FOOTER_TOP + 39, { width: 130 });
       doc.fillColor('#000');
 
-      // Verification QR — small, bottom-right.
-      doc.image(qrImageBuffer, doc.page.width - 130, doc.page.height - 150, { width: 80 });
-      doc.fontSize(7).text('Scan to verify', doc.page.width - 130, doc.page.height - 65, { width: 80, align: 'center' });
+      doc.image(qrImageBuffer, PAGE_WIDTH - MARGIN - 60, FOOTER_TOP, { width: 60 });
+      doc.fontSize(6).fillColor('#999').text('Scan to verify', PAGE_WIDTH - MARGIN - 60, FOOTER_TOP + 62, { width: 60, align: 'center' });
+      doc.fillColor('#000');
 
       doc.end();
     });

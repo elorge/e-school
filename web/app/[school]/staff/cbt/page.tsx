@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
-import { Laptop } from 'lucide-react';
+import { Laptop, Clock, Target, FileText, Printer, BarChart3, KeyRound } from 'lucide-react';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
@@ -199,8 +199,10 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       </section>
 
       {selectedTest && selectedTest.status === 'DRAFT' && (
-        <section className="card">
-          <h2 className="mb-3 font-medium">Add questions to "{selectedTest.title}"</h2>
+        <section className="card card-amber">
+          <h2 className="mb-3 flex items-center gap-2 font-medium">
+            <FileText size={16} /> Add questions to "{selectedTest.title}"
+          </h2>
 
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded bg-black/5 p-3 text-sm">
             <button
@@ -337,52 +339,122 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       )}
 
       <section className="card">
-        <h2 className="mb-3 font-medium">All tests</h2>
-        <ul className="flex flex-col gap-1">
+        <h2 className="mb-4 font-medium">All tests</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
           {tests.map((t) => (
-            <li key={t.id} className="flex items-center justify-between text-sm">
-              <span>
-                {t.title} — {t.subject} ({t.status})
-              </span>
-              <div className="flex gap-3">
-                <button
-                  className="text-brand-blue underline"
-                  onClick={async () => openPdfBlob(await fetchTestPaperPdf(params.school, t.id))}
+            <div
+              key={t.id}
+              className={`card ${
+                t.status === 'PUBLISHED' ? 'card-green' : t.status === 'DRAFT' ? 'card-amber' : 'card-blue'
+              } !p-4`}
+            >
+              <div className="mb-2 flex items-start justify-between">
+                <div>
+                  <p className="font-medium">{t.title}</p>
+                  <p className="text-xs text-ink/50">{t.subject}</p>
+                </div>
+                <span
+                  className={`badge ${
+                    t.status === 'PUBLISHED' ? 'badge-green' : t.status === 'DRAFT' ? 'badge-amber' : 'badge-gray'
+                  }`}
                 >
-                  Print paper
-                </button>
-                {t.status !== 'DRAFT' && (
-                  <button className="text-brand-blue underline" onClick={() => loadAttempts(t)}>
-                    View scores
-                  </button>
+                  {t.status}
+                </span>
+              </div>
+
+              <div className="mb-3 flex items-center gap-3 text-xs text-ink/50">
+                <span className="flex items-center gap-1">
+                  <Clock size={12} /> {t.durationMinutes} min
+                </span>
+                <span className="flex items-center gap-1">
+                  <Target size={12} /> {t.objectiveMaxScore} pts
+                </span>
+                {t.theoryMaxScore > 0 && (
+                  <span className="flex items-center gap-1">
+                    <FileText size={12} /> +{t.theoryMaxScore} theory
+                  </span>
                 )}
               </div>
-            </li>
+
+              <div className="flex items-center gap-3 border-t pt-3 text-xs">
+                <button
+                  className="flex items-center gap-1 text-brand-blue hover:underline"
+                  onClick={async () => openPdfBlob(await fetchTestPaperPdf(params.school, t.id))}
+                >
+                  <Printer size={13} /> Print paper
+                </button>
+                {t.status !== 'DRAFT' && (
+                  <button className="flex items-center gap-1 text-brand-blue hover:underline" onClick={() => loadAttempts(t)}>
+                    <BarChart3 size={13} /> View scores
+                  </button>
+                )}
+                {t.status === 'PUBLISHED' && t.accessCode && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-black/5 px-2 py-1 font-mono text-ink/60">
+                    <KeyRound size={12} /> {t.accessCode}
+                  </span>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
 
       {attempts.length > 0 && selectedTest && (
         <section className="card">
-          <h2 className="mb-3 font-medium">Scores — {selectedTest.title}</h2>
-          <ul className="flex flex-col gap-2">
-            {attempts.map((a) => (
-              <li key={a.id} className="flex items-center justify-between text-sm">
-                <span>
-                  {a.student.firstName} {a.student.lastName} — Objective: {a.objectiveScore ?? '—'}/{selectedTest.objectiveMaxScore}
-                </span>
-                {selectedTest.theoryMaxScore > 0 && a.status !== 'IN_PROGRESS' && (
-                  <input
-                    className="w-20 rounded border px-2 py-1 text-xs"
-                    type="number"
-                    placeholder={`/${selectedTest.theoryMaxScore}`}
-                    defaultValue={a.theoryScore ?? ''}
-                    onBlur={(e) => e.target.value && handleGradeTheory(a.id, e.target.value)}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-medium">Scores — {selectedTest.title}</h2>
+            <span className="text-xs text-ink/50">
+              {attempts.filter((a) => a.status !== 'IN_PROGRESS').length} / {attempts.length} submitted
+            </span>
+          </div>
+          <div className="overflow-hidden rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="bg-black/5 text-xs text-ink/50">
+                <tr>
+                  <th className="px-3 py-2 text-left">Student</th>
+                  <th className="px-3 py-2 text-center">Status</th>
+                  <th className="px-3 py-2 text-right">Objective</th>
+                  {selectedTest.theoryMaxScore > 0 && <th className="px-3 py-2 text-right">Theory</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {attempts.map((a) => (
+                  <tr key={a.id} className="border-t">
+                    <td className="px-3 py-2">
+                      {a.student.firstName} {a.student.lastName}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span
+                        className={`badge ${
+                          a.status === 'GRADED' ? 'badge-green' : a.status === 'SUBMITTED' ? 'badge-amber' : 'badge-gray'
+                        }`}
+                      >
+                        {a.status === 'IN_PROGRESS' ? 'In progress' : a.status === 'SUBMITTED' ? 'Awaiting theory' : 'Graded'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono">
+                      {a.objectiveScore ?? '—'}/{selectedTest.objectiveMaxScore}
+                    </td>
+                    {selectedTest.theoryMaxScore > 0 && (
+                      <td className="px-3 py-2 text-right">
+                        {a.status === 'IN_PROGRESS' ? (
+                          <span className="text-ink/30">—</span>
+                        ) : (
+                          <input
+                            className="w-16 rounded border px-2 py-1 text-right text-xs"
+                            type="number"
+                            placeholder={`/${selectedTest.theoryMaxScore}`}
+                            defaultValue={a.theoryScore ?? ''}
+                            onBlur={(e) => e.target.value && handleGradeTheory(a.id, e.target.value)}
+                          />
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
     </main>

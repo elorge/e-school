@@ -53,5 +53,17 @@ export function recordPayment(school: string, invoiceId: string, amountKobo: num
 export function getDebtors(school: string, termId: string) {
   return apiFetch<{ student: { firstName: string; lastName: string; studentId: string | null }; totalKobo: number; paidKobo: number; outstandingKobo: number }[]>(
     `/${school}/fees/debtors?termId=${termId}`,
-  );
+  ); 
+}
+
+export async function downloadInvoicesExcel(school: string, termId?: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const { getToken } = await import('../api');
+  const token = getToken();
+  const qs = termId ? `?termId=${termId}` : '';
+  const res = await fetch(`${API_URL}/${school}/fees/invoices/export${qs}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Export failed');
+  return res.blob();
 }

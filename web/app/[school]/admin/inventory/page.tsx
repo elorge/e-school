@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Boxes } from 'lucide-react';
-import { listItems, listLowStock, createItem, recordTransaction, type InventoryItem } from '@/lib/endpoints/inventory';
+import { listItems, listLowStock, createItem, recordTransaction, listTransactions, downloadInventoryExcel, type InventoryTransaction, type InventoryItem } from '@/lib/endpoints/inventory';
 import RequireRole from '@/components/RequireRole';
+import { Download } from 'lucide-react';
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
 
@@ -15,6 +16,7 @@ export default function InventoryPage({ params }: { params: { school: string } }
   const [isLoading, setIsLoading] = useState(true);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [lowStock, setLowStock] = useState<InventoryItem[]>([]);
+  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', category: '', unit: 'pcs', reorderLevel: 0, unitCostKobo: 0 });
 
@@ -22,6 +24,7 @@ export default function InventoryPage({ params }: { params: { school: string } }
     try {
       setItems(await listItems(params.school));
       setLowStock(await listLowStock(params.school));
+      setTransactions(await listTransactions(params.school));
     } finally {
       setIsLoading(false);
     }
@@ -144,6 +147,56 @@ if (isLoading) return <LoadingScreen />;
             </li>
           ))}
         </ul>
+      </section>
+      <section className="card">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-medium">Recent transactions</h2>
+          <button
+            onClick={async () => {
+              const blob = await downloadInventoryExcel(params.school);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'inventory.xlsx';
+              a.click();
+            }}
+            className="btn-secondary flex items-center gap-1.5 text-xs"
+          >
+            <Download size={14} /> Export to Excel
+          </button>
+        </div>
+        {transactions.length === 0 ? (
+          <p className="text-sm text-ink/40">No transactions recorded yet.</p>
+        ) : (
+          <div className="max-h-72 overflow-y-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-black/5 text-xs text-ink/50">
+                <tr>
+                  <th className="px-3 py-2 text-left">Date</th>
+                  <th className="px-3 py-2 text-left">Item</th>
+                  <th className="px-3 py-2 text-left">Type</th>
+                  <th className="px-3 py-2 text-right">Qty</th>
+                  <th className="px-3 py-2 text-left">By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((t) => (
+                  <tr key={t.id} className="border-t">
+                    <td className="px-3 py-2 text-ink/60">{t.createdAt.slice(0, 10)}</td>
+                    <td className="px-3 py-2">{t.item.name}</td>
+                    <td className="px-3 py-2">
+                      <span className={`badge ${t.type === 'STOCK_IN' ? 'badge-green' : 'badge-red'}`}>{t.type === 'STOCK_IN' ? 'In' : 'Out'}</span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {t.quantity} {t.item.unit}
+                    </td>
+                    <td className="px-3 py-2 text-ink/60">{t.recordedBy.fullName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </main>
   </RequireRole>

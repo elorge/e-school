@@ -1,5 +1,6 @@
 // backend/src/modules/fees/fees.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeeInvoiceStatus } from '@prisma/client';
 
@@ -80,6 +81,39 @@ export class FeesService {
     const status: FeeInvoiceStatus = newPaidKobo >= invoice.totalKobo ? 'PAID' : newPaidKobo > 0 ? 'PARTIALLY_PAID' : 'UNPAID';
 
     return this.prisma.feeInvoice.update({ where: { id: invoiceId }, data: { paidKobo: newPaidKobo, status } });
+  }
+
+  async exportInvoicesXlsx(schoolId: string, termId?: string): Promise<Buffer> {
+    const invoices = await this.prisma.feeInvoice.findMany({
+      where: { schoolId, ...(termId ? { termId } : {}) },
+      include: { student: { select: { firstName: true, lastName: true, studentId: true } }, payments: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const rows = invoices.map((inv) => ({
+      Student: `${inv.student.firstName} ${inv.student.lastName}`,
+      'Admission ID': inv.student.studentId ?? '—',
+      'Total (₦)': inv.totalKobo / 100,
+      'Paid (₦)': inv.paidKobo / 100,
+      'Outstanding (₦)': (inv.totalKobo - inv.paidKobo) / 100,
+      Status: inv.status,
+      Payments: inv.payments.length,
+    }));
+    const totalRow = {
+      Student: 'TOTAL',
+      'Admission ID': '',
+      'Total (₦)': rows.reduce((s, r) => s + r['Total (₦)'], 0),
+      'Paid (₦)': rows.reduce((s, r) => s + r['Paid (₦)'], 0),
+      'Outstanding (₦)': rows.reduce((s, r) => s + r['Outstanding (₦)'], 0),
+      Status: '',
+      Payments: '',
+    };
+
+    const worksheet = XLSX.utils.json_to_sheet([...rows, totalRow]);
+    worksheet['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 10 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Fee Invoices');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
 
   async getDebtorsSummary(schoolId: string, termId: string) {
