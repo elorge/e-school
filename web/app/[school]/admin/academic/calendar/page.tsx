@@ -40,6 +40,16 @@ export default function CalendarPage({ params }: { params: { school: string } })
   const [editingId, setEditingId] = useState<string | null>(null);
   const [genForm, setGenForm] = useState({ startDate: '', weeks: 13, midtermBreakWeek: 6, examWeeks: 2 });
 
+  // Draft editing — drafts have no id yet (nothing's saved), so we track
+  // which one is being edited by its position in the array instead.
+  const [editingDraftIndex, setEditingDraftIndex] = useState<number | null>(null);
+  const [draftEditForm, setDraftEditForm] = useState({
+    type: 'CUSTOM' as CalendarEventType,
+    title: '',
+    startDate: '',
+    endDate: '',
+  });
+
   useEffect(() => {
     listTerms(params.school)
       .then(setTerms)
@@ -50,7 +60,7 @@ export default function CalendarPage({ params }: { params: { school: string } })
     if (termId) listCalendarEvents(params.school, termId).then(setEvents);
   }, [termId, params.school]);
 
-async function handleSubmitEvent(e: React.FormEvent) {
+  async function handleSubmitEvent(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
@@ -112,6 +122,43 @@ async function handleSubmitEvent(e: React.FormEvent) {
     setEvents(await listCalendarEvents(params.school, termId));
   }
 
+  function startEditingDraft(index: number) {
+    const e = draft[index];
+    setEditingDraftIndex(index);
+    setDraftEditForm({
+      type: e.type,
+      title: e.title,
+      startDate: e.startDate.slice(0, 10),
+      endDate: e.endDate ? e.endDate.slice(0, 10) : '',
+    });
+  }
+
+  function cancelEditingDraft() {
+    setEditingDraftIndex(null);
+  }
+
+  function saveDraftEdit(index: number) {
+    setDraft((d) =>
+      d.map((e, i) =>
+        i === index
+          ? {
+              ...e,
+              type: draftEditForm.type,
+              title: draftEditForm.title,
+              startDate: new Date(draftEditForm.startDate).toISOString(),
+              endDate: draftEditForm.endDate ? new Date(draftEditForm.endDate).toISOString() : null,
+            }
+          : e,
+      ),
+    );
+    setEditingDraftIndex(null);
+  }
+
+  function deleteDraftEvent(index: number) {
+    setDraft((d) => d.filter((_, i) => i !== index));
+    if (editingDraftIndex === index) setEditingDraftIndex(null);
+  }
+
   if (isLoading) return <LoadingScreen />;
 
   return (
@@ -138,7 +185,8 @@ async function handleSubmitEvent(e: React.FormEvent) {
           <section className="card">
             <h2 className="mb-3 font-medium">Generate a draft term schedule</h2>
             <p className="mb-3 text-xs text-ink/50">
-              Nothing is saved yet — review the draft below and save only the events you want.
+              Nothing is saved yet — review the draft below, edit or remove entries as needed, then save only the events
+              you want to keep.
             </p>
             <div className="flex flex-wrap items-end gap-2">
               <label className="flex flex-col gap-1 text-xs">
@@ -184,17 +232,68 @@ async function handleSubmitEvent(e: React.FormEvent) {
 
             {draft.length > 0 && (
               <ul className="mt-4 flex flex-col gap-2">
-                {draft.map((e, i) => (
-                  <li key={i} className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-sm">
-                    <span>
-                      {e.title} — {e.startDate.slice(0, 10)}
-                      {e.endDate ? ` to ${e.endDate.slice(0, 10)}` : ''}
-                    </span>
-                    <button onClick={() => handleSaveDraftEvent(e)} className="text-brand-blue underline">
-                      Save
-                    </button>
-                  </li>
-                ))}
+                {draft.map((e, i) =>
+                  editingDraftIndex === i ? (
+                    <li
+                      key={i}
+                      className="flex flex-wrap items-end gap-2 rounded border border-brand-blue bg-brand-blue/5 px-3 py-2 text-sm"
+                    >
+                      <select
+                        className="rounded border px-2 py-1 text-xs"
+                        value={draftEditForm.type}
+                        onChange={(ev) => setDraftEditForm((f) => ({ ...f, type: ev.target.value as CalendarEventType }))}
+                      >
+                        {EVENT_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {t.replace(/_/g, ' ')}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="rounded border px-2 py-1 text-xs"
+                        placeholder="Title"
+                        value={draftEditForm.title}
+                        onChange={(ev) => setDraftEditForm((f) => ({ ...f, title: ev.target.value }))}
+                      />
+                      <input
+                        className="rounded border px-2 py-1 text-xs"
+                        type="date"
+                        value={draftEditForm.startDate}
+                        onChange={(ev) => setDraftEditForm((f) => ({ ...f, startDate: ev.target.value }))}
+                      />
+                      <input
+                        className="rounded border px-2 py-1 text-xs"
+                        type="date"
+                        value={draftEditForm.endDate}
+                        onChange={(ev) => setDraftEditForm((f) => ({ ...f, endDate: ev.target.value }))}
+                      />
+                      <button onClick={() => saveDraftEdit(i)} className="rounded bg-brand-blue px-2 py-1 text-xs text-white">
+                        Apply
+                      </button>
+                      <button onClick={cancelEditingDraft} className="rounded border px-2 py-1 text-xs">
+                        Cancel
+                      </button>
+                    </li>
+                  ) : (
+                    <li key={i} className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-sm">
+                      <span>
+                        {e.title} — {e.startDate.slice(0, 10)}
+                        {e.endDate ? ` to ${e.endDate.slice(0, 10)}` : ''}
+                      </span>
+                      <div className="flex gap-3">
+                        <button onClick={() => startEditingDraft(i)} className="text-xs text-brand-blue underline">
+                          Edit
+                        </button>
+                        <button onClick={() => deleteDraftEvent(i)} className="text-xs text-red-600 underline">
+                          Delete
+                        </button>
+                        <button onClick={() => handleSaveDraftEvent(e)} className="text-brand-blue underline">
+                          Save
+                        </button>
+                      </div>
+                    </li>
+                  ),
+                )}
               </ul>
             )}
           </section>
