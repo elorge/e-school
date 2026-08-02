@@ -13,6 +13,8 @@ import {
   publishLessonNote,
   unpublishLessonNote,
   deleteLessonNote,
+  deleteMaterial,
+  uploadMaterial,
   type LessonNote,
   type LessonNoteInput,
 } from '@/lib/endpoints/lesson-notes';
@@ -45,6 +47,8 @@ export default function LessonNotesPage({ params }: { params: { school: string }
   const [form, setForm] = useState<LessonNoteInput>(BLANK);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+  const currentNoteMaterials = notes.find((n) => n.id === editingId)?.materials ?? [];
 
   async function load() {
     try {
@@ -109,6 +113,29 @@ export default function LessonNotesPage({ params }: { params: { school: string }
 
   async function handleDelete(id: string) {
     await deleteLessonNote(params.school, id);
+    load();
+  }
+
+  async function handleMaterialUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editingId) return;
+    const anchor = (document.getElementById('material-anchor') as HTMLSelectElement).value;
+    setIsUploadingMaterial(true);
+    setError(null);
+    try {
+      await uploadMaterial(params.school, editingId, file, anchor);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload material');
+    } finally {
+      setIsUploadingMaterial(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleDeleteMaterial(materialId: string) {
+    if (!editingId) return;
+    await deleteMaterial(params.school, editingId, materialId);
     load();
   }
 
@@ -260,6 +287,50 @@ export default function LessonNotesPage({ params }: { params: { school: string }
           </div>
         </form>
       </section>
+
+      {editingId && (
+        <section className="card">
+          <h2 className="mb-3 font-medium">Materials</h2>
+          <p className="mb-2 text-xs text-ink/50">
+            Upload diagrams, scanned pages, PDFs, or PowerPoint slides. Each becomes its own slide in Presenter Mode —
+            pick where it should appear.
+          </p>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <select id="material-anchor" className="rounded border px-2 py-1.5 text-xs">
+              <option value="start">At the start</option>
+              <option value="objectives">After Objectives</option>
+              <option value="previousKnowledge">After Previous Knowledge</option>
+              <option value="evaluation">After Evaluation</option>
+              <option value="assignment">After Assignment</option>
+              <option value="summary">After Summary</option>
+              <option value="end">At the end</option>
+            </select>
+            <label className="cursor-pointer rounded bg-brand-green px-3 py-1.5 text-xs text-white">
+              {isUploadingMaterial ? 'Uploading…' : 'Upload file'}
+              <input
+                type="file"
+                accept="image/*,.pdf,.pptx"
+                className="hidden"
+                disabled={isUploadingMaterial}
+                onChange={handleMaterialUpload}
+              />
+            </label>
+          </div>
+          <ul className="flex flex-col gap-1 text-xs">
+            {currentNoteMaterials.map((m) => (
+              <li key={m.id} className="flex items-center justify-between rounded bg-black/5 px-2 py-1.5">
+                <span className="truncate">
+                  {m.originalFilename ?? m.type} — {m.insertAfter}
+                </span>
+                <button onClick={() => handleDeleteMaterial(m.id)} className="text-red-600 underline">
+                  Remove
+                </button>
+              </li>
+            ))}
+            {currentNoteMaterials.length === 0 && <li className="text-ink/40">No materials uploaded yet.</li>}
+          </ul>
+        </section>
+      )}
 
       <section className="card">
         <h2 className="mb-3 font-medium">All lesson notes</h2>

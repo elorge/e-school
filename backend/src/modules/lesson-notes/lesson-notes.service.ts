@@ -13,12 +13,16 @@ export class LessonNotesService {
   findAllForStaff(schoolId: string, classId?: string, termId?: string) {
     return this.prisma.lessonNote.findMany({
       where: { schoolId, ...(classId ? { classId } : {}), ...(termId ? { termId } : {}) },
+      include: { materials: { orderBy: { order: 'asc' } } },
       orderBy: { updatedAt: 'desc' },
     });
   }
 
   async findOneOrThrow(schoolId: string, id: string) {
-    const note = await this.prisma.lessonNote.findFirst({ where: { id, schoolId } });
+    const note = await this.prisma.lessonNote.findFirst({
+      where: { id, schoolId },
+      include: { materials: { orderBy: { order: 'asc' } } },
+    });
     if (!note) throw new NotFoundException('Lesson note not found');
     return note;
   }

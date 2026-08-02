@@ -669,9 +669,30 @@ model LessonNote {
   createdBy             User             @relation("LessonNoteCreatedBy", fields: [createdByStaffId], references: [id])
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+  materials             LessonMaterial[]
 
   @@index([schoolId, classId, termId, status])
   @@map("lesson_notes")
+}
+
+enum LessonMaterialType {
+  IMAGE
+  PDF_PAGE
+  SLIDE
+}
+
+model LessonMaterial {
+  id               String             @id @default(uuid())
+  lessonNoteId     String
+  lessonNote       LessonNote         @relation(fields: [lessonNoteId], references: [id], onDelete: Cascade)
+  type             LessonMaterialType
+  url              String
+  order            Int
+  insertAfter      String             // "start" | "objectives" | "previousKnowledge" | "evaluation" | "assignment" | "summary" | "end"
+  originalFilename String?
+  createdAt        DateTime           @default(now())
+
+  @@index([lessonNoteId])
 }
 
 model Notification {

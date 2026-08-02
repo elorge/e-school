@@ -7,32 +7,37 @@ import { Pencil, Eraser, Trash2, X } from 'lucide-react';
 const COLORS = ['#ffffff', '#f08c00', '#1f9d55', '#e03131'];
 
 /**
- * A full-screen drawing overlay for Presenter Mode. Deliberately simple
- * — pen + eraser + clear, no shapes/text tool — since the real use case
- * is "annotate a math step live," not building a diagramming app.
- * Strokes are kept in memory only (not synced anywhere) — a whiteboard
- * annotation is inherently transient, unlike a lesson note itself.
+ * A drawing overlay for Presenter Mode. Two modes:
+ * - overlay=true: sits absolutely positioned over the current slide's
+ *   content container (not the whole viewport), transparent background,
+ *   for annotating directly on top of a diagram, photo, or slide text.
+ * - overlay=false (default): the original full-screen blank canvas,
+ *   for freeform explanation unrelated to any specific slide.
+ * Strokes are kept in memory only — transient by design, same as before.
  */
-export default function Whiteboard({ onClose }: { onClose: () => void }) {
+export default function Whiteboard({ onClose, overlay = false }: { onClose: () => void; overlay?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [color, setColor] = useState(COLORS[0]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     const resize = () => {
       const ctx = canvas.getContext('2d');
       const prev = ctx?.getImageData(0, 0, canvas.width, canvas.height);
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const rect = overlay ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+      canvas.width = rect.width;
+      canvas.height = rect.height;
       if (prev) ctx?.putImageData(prev, 0, 0);
     };
     resize();
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
-  }, []);
+  }, [overlay]);
 
   function getCtx() {
     return canvasRef.current?.getContext('2d') ?? null;
@@ -76,7 +81,7 @@ export default function Whiteboard({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95">
+    <div ref={containerRef} className={overlay ? 'absolute inset-0 z-40' : 'fixed inset-0 z-50 bg-black/95'}>
       <canvas
         ref={canvasRef}
         className="h-full w-full touch-none"
