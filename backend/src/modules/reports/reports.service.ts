@@ -11,6 +11,10 @@ interface SubjectScores {
   [subject: string]: number;
 }
 
+type TrendMap = Record<string, { termId: string; score: number }[]>;
+
+const TREND_LINE_COLORS = ['#0B3D91', '#2f9e44', '#e8590c', '#9c36b5', '#0c8599'];
+
 @Injectable()
 export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
@@ -50,55 +54,8 @@ export class ReportsService {
     return parts.join(' ');
   }
 
-  /**
-   * Draws a horizontal bar per subject, colored by classification.
-   * Pure pdfkit primitives — no charting library needed since the shape
-   * is simple (one bar per subject, 0-100 scale).
-   */
-  private drawPerformanceChart(
-    doc: PDFKit.PDFDocument,
-    scores: SubjectScores,
-    classification: PerformanceClassification,
-  ) {
-    const chartX = doc.page.margins.left;
-    const chartWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const labelWidth = 110;
-    const barMaxWidth = chartWidth - labelWidth - 40; // leave room for the score number
-    const barHeight = 12;
-    const rowGap = 8;
-
-    const colorFor = (subject: string) => {
-      if (classification.strengths.includes(subject)) return '#2f9e44'; // green
-      if (classification.needsImprovement.includes(subject)) return '#f08c00'; // amber
-      return '#e03131'; // red
-    };
-
-    for (const [subject, score] of Object.entries(scores)) {
-      const y = doc.y;
-      doc.fontSize(9).font('Helvetica').fillColor('#000').text(subject, chartX, y + 1, { width: labelWidth });
-
-      const barWidth = Math.max(2, (score / 100) * barMaxWidth);
-      doc
-        .rect(chartX + labelWidth, y, barMaxWidth, barHeight)
-        .fillColor('#eee')
-        .fill(); // track/background
-      doc
-        .rect(chartX + labelWidth, y, barWidth, barHeight)
-        .fillColor(colorFor(subject))
-        .fill(); // filled portion
-
-      doc
-        .fontSize(9)
-        .fillColor('#000')
-        .text(String(score), chartX + labelWidth + barMaxWidth + 6, y + 1, { width: 30 });
-
-      doc.y = y + barHeight + rowGap;
-    }
-    doc.fillColor('#000'); // reset for whatever renders next
-  }
-
-  private computeTrend(priorResults: { termId: string; subjectScores: unknown; createdAt: Date }[]) {
-    const trend: Record<string, { termId: string; score: number }[]> = {};
+  private computeTrend(priorResults: { termId: string; subjectScores: unknown; createdAt: Date }[]): TrendMap {
+    const trend: TrendMap = {};
     for (const result of priorResults) {
       const scores = result.subjectScores as SubjectScores;
       for (const [subject, score] of Object.entries(scores)) {
@@ -107,6 +64,140 @@ export class ReportsService {
       }
     }
     return trend;
+  }
+
+  /**
+   * Shortens `text` with a trailing ellipsis until it fits within
+   * `maxHeight` at the font/size already set on `doc`. Used as a last
+   * resort for the (rare) case where a long teacher's comment, combined
+   * with a high subject count, would otherwise exceed the page's fixed
+   * budget. Binary search over character count — cheap, since report
+   * text is always short (well under a few hundred characters).
+   */
+  private truncateToFit(doc: PDFKit.PDFDocument, text: string, width: number, maxHeight: number): string {
+    if (maxHeight <= 0) return '';
+    if (doc.heightOfString(text, { width }) <= maxHeight) return text;
+
+    let lo = 0;
+    let hi = text.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      const candidate = `${text.slice(0, mid).trimEnd()}…`;
+      if (doc.heightOfString(candidate, { width }) <= maxHeight) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo === 0 ? '' : `${text.slice(0, lo).trimEnd()}…`;
+  }
+
+  /**
+   * Fills the gap between the comment block and the pinned footer with
+   * a performance-trend line chart, built from `trend` (already
+   * computed earlier — previously never rendered). Deliberately
+   * conservative: draws nothing without real multi-term history AND
+   * enough vertical room to show it clearly — no placeholder text, no
+   * "not enough data" message. A first-term student's report, or a
+   * report with a very full subject table, simply keeps its current,
+   * correct one-page layout with the space left blank.
+   */
+  private drawTrendChart(
+    doc: PDFKit.PDFDocument,
+    trend: TrendMap,
+    termNameById: Map<string, string>,
+    currentScores: SubjectScores,
+    chartTop: number,
+    availableHeight: number,
+    contentWidth: number,
+    marginLeft: number,
+  ): boolean {
+    const orderedTermIds: string[] = [];
+    for (const points of Object.values(trend)) {
+      for (const p of points) {
+        if (!orderedTermIds.includes(p.termId)) orderedTermIds.push(p.termId);
+      }
+    }
+    if (orderedTermIds.length < 2) return false;
+
+    const xTermIds = orderedTermIds.slice(-4);
+
+    const currentSubjects = Object.keys(currentScores);
+    const otherSubjects = Object.keys(trend).filter((s) => !currentSubjects.includes(s));
+    const subjects = [...currentSubjects, ...otherSubjects]
+      .filter((s) => trend[s]?.some((p) => xTermIds.includes(p.termId)))
+      .filter((s) => trend[s].filter((p) => xTermIds.includes(p.termId)).length >= 2)
+      .slice(0, 5);
+    if (subjects.length === 0) return false;
+
+    const MIN_HEIGHT = 100;
+    const MAX_HEIGHT = 150;
+    const LEGEND_HEIGHT = 14;
+    const AXIS_LABEL_HEIGHT = 12;
+    const chartHeight = Math.max(0, Math.min(MAX_HEIGHT, availableHeight) - LEGEND_HEIGHT - AXIS_LABEL_HEIGHT - 10);
+    if (chartHeight < MIN_HEIGHT - LEGEND_HEIGHT - AXIS_LABEL_HEIGHT - 10) return false;
+
+    const blockHeight = chartHeight + LEGEND_HEIGHT + AXIS_LABEL_HEIGHT + 10;
+    const topOffset = Math.max(0, (availableHeight - blockHeight) / 2);
+    const blockTop = chartTop + topOffset;
+
+    const yAxisLabelWidth = 22;
+    const chartX = marginLeft + yAxisLabelWidth;
+    const chartWidth = contentWidth - yAxisLabelWidth;
+
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#0B3D91').text('Performance Trend', marginLeft, blockTop, { width: contentWidth });
+    doc.fillColor('#000');
+    const chartY = blockTop + 14;
+
+    doc.fontSize(6).font('Helvetica').fillColor('#999');
+    for (const mark of [0, 50, 100]) {
+      const gy = chartY + chartHeight - (mark / 100) * chartHeight;
+      doc.moveTo(chartX, gy).lineTo(chartX + chartWidth, gy).strokeColor('#eee').lineWidth(0.5).stroke();
+      doc.text(String(mark), marginLeft, gy - 3, { width: yAxisLabelWidth - 4, align: 'right' });
+    }
+    doc.fillColor('#000');
+
+    const plotX = (i: number) => chartX + (xTermIds.length === 1 ? 0 : (i / (xTermIds.length - 1)) * chartWidth);
+    const plotY = (score: number) => chartY + chartHeight - (score / 100) * chartHeight;
+
+    subjects.forEach((subject, si) => {
+      const color = TREND_LINE_COLORS[si % TREND_LINE_COLORS.length];
+      const points = xTermIds
+        .map((termId, i) => {
+          const match = trend[subject].find((p) => p.termId === termId);
+          return match ? { x: plotX(i), y: plotY(match.score) } : null;
+        })
+        .filter((p): p is { x: number; y: number } => p !== null);
+
+      doc.strokeColor(color).lineWidth(1.3);
+      points.forEach((pt, i) => {
+        if (i === 0) doc.moveTo(pt.x, pt.y);
+        else doc.lineTo(pt.x, pt.y);
+      });
+      doc.stroke();
+      points.forEach((pt) => {
+        doc.circle(pt.x, pt.y, 1.8).fillColor(color).fill();
+      });
+    });
+    doc.fillColor('#000');
+
+    doc.fontSize(6.5).font('Helvetica').fillColor('#666');
+    xTermIds.forEach((termId, i) => {
+      const label = termNameById.get(termId) ?? '—';
+      const x = plotX(i);
+      doc.text(label, x - 30, chartY + chartHeight + 4, { width: 60, align: 'center' });
+    });
+    doc.fillColor('#000');
+
+    let legendY = chartY + chartHeight + AXIS_LABEL_HEIGHT + 4;
+    let legendX = marginLeft;
+    doc.fontSize(6.5).font('Helvetica');
+    subjects.forEach((subject, si) => {
+      const color = TREND_LINE_COLORS[si % TREND_LINE_COLORS.length];
+      doc.rect(legendX, legendY + 1, 6, 6).fillColor(color).fill();
+      doc.fillColor('#333').text(subject, legendX + 9, legendY, { width: 80 });
+      legendX += 90;
+    });
+    doc.fillColor('#000');
+
+    return true;
   }
 
   /**
@@ -143,6 +234,10 @@ export class ReportsService {
     });
     const trend = this.computeTrend(priorResults);
 
+    const uniqueTermIds = Array.from(new Set(priorResults.map((r) => r.termId)));
+    const trendTerms = uniqueTermIds.length > 0 ? await this.prisma.term.findMany({ where: { id: { in: uniqueTermIds } } }) : [];
+    const termNameById = new Map(trendTerms.map((t) => [t.id, t.name]));
+
     const verificationPrefix = template?.verificationQrPrefix ?? 'https://elorgeschools.com/verify';
     const [logoBuffer, signatureBuffer, photoBuffer, qrDataUrl] = await Promise.all([
       school.logoUrl ? this.fetchLogoBuffer(school.logoUrl) : Promise.resolve(null),
@@ -153,14 +248,21 @@ export class ReportsService {
     const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
 
     return new Promise((resolve, reject) => {
-      // Explicit portrait A4, single fixed size — no auto page addition
-      // anywhere below. Every block's height is computed and budgeted
-      // against this fixed canvas so the document is guaranteed to be
-      // exactly one page, never two, never landscape.
       const PAGE_WIDTH = 595.28; // A4 at 72dpi
       const PAGE_HEIGHT = 841.89;
       const MARGIN = 36;
       const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: MARGIN, autoFirstPage: true });
+
+      // Disable PDFKit's own auto-pagination entirely. Every block below
+      // is placed against a budget we compute ourselves — if PDFKit were
+      // still free to insert a page break on its own bottom-margin
+      // boundary, a long comment or a high subject count could silently
+      // spill onto page 2 exactly like the original QR-code bug, just
+      // triggered from a different block. With this at 0, an overflow
+      // becomes visually tight/cramped in the worst case, never a
+      // silent second page.
+      doc.page.margins.bottom = 0;
+
       const chunks: Buffer[] = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -169,6 +271,7 @@ export class ReportsService {
       const contentWidth = PAGE_WIDTH - MARGIN * 2;
       const scores = result.subjectScores as SubjectScores;
       const subjectEntries = Object.entries(scores);
+      const n = subjectEntries.length;
       const classification = classifyPerformance(scores);
 
       // ── Header band ──────────────────────────────────────────────────
@@ -177,6 +280,7 @@ export class ReportsService {
       doc.fillColor('#ffffff');
       if (logoBuffer) {
         try {
+          doc.roundedRect(MARGIN - 3, 11, 54, 54, 8).fill('#ffffff');
           doc.image(logoBuffer, MARGIN, 14, { width: 48, height: 48, fit: [48, 48] });
         } catch (err) {
           this.logger.warn(`Logo buffer for school ${schoolId} was not a valid image: ${err}`);
@@ -186,8 +290,6 @@ export class ReportsService {
       doc.fontSize(9).font('Helvetica').text(`Report Card — ${term.name}`, MARGIN + 58, 40, { width: contentWidth - 58 - 90 });
       doc.fillColor('#000');
 
-      // Passport photo — sits inside the header band, top-right, so it
-      // never competes for vertical space with anything below.
       if (photoBuffer) {
         try {
           doc.rect(PAGE_WIDTH - MARGIN - 54, 11, 54, 54).fill('#ffffff');
@@ -205,14 +307,79 @@ export class ReportsService {
       doc.fillColor('#000');
       y += 40;
 
-      // ── Subject score table — height budgeted per row so N subjects
-      // never overflow. Row height shrinks slightly if there are many
-      // subjects, rather than letting the table run off the page. ──────
-      const ROW_HEIGHT = subjectEntries.length > 12 ? 15 : 18;
-      const tableTop = y;
+      // ── Footer geometry, fixed regardless of content ────────────────
+      const FOOTER_BLOCK_HEIGHT = 76;
+      const FOOTER_TOP = PAGE_HEIGHT - MARGIN - FOOTER_BLOCK_HEIGHT;
+      const BODY_BOTTOM_LIMIT = FOOTER_TOP - 14; // hard ceiling everything above the footer must respect
+
+      // ── Pre-measure the variable-length text blocks BEFORE drawing
+      // anything subject-count-dependent, so table/bar row heights can
+      // be sized against what's actually left — rather than guessing
+      // with fixed thresholds that don't account for comment length or
+      // how many subject names land in the recommendation sentence. ────
+      const recommendationText = this.buildRecommendationText(classification);
+      doc.fontSize(8.5).font('Helvetica');
+      const recommendationTextHeight = doc.heightOfString(recommendationText, { width: contentWidth });
+
+      const hasComment = !!result.teacherComment;
+      doc.fontSize(8.5).font('Helvetica-Oblique');
+      const rawCommentHeight = hasComment ? doc.heightOfString(result.teacherComment!, { width: contentWidth }) : 0;
+
+      const RECOMMENDATION_TITLE_H = 14;
+      const RECOMMENDATION_GAP = 10;
+      const COMMENT_TITLE_H = 14;
+      const COMMENT_GAP = 10;
+      const TABLE_TITLE_H = 18;
+      const TABLE_GAP = 8;
+      const BARS_TITLE_H = 16;
+      const BARS_NOTE_H = 16;
+
+      const fixedBlocksHeight =
+        TABLE_TITLE_H +
+        TABLE_GAP +
+        BARS_TITLE_H +
+        BARS_NOTE_H +
+        RECOMMENDATION_TITLE_H +
+        RECOMMENDATION_GAP +
+        recommendationTextHeight +
+        (hasComment ? COMMENT_TITLE_H + COMMENT_GAP : 0);
+
+      // Budget left for the n table rows + n bar rows combined.
+      const rowsBudget = Math.max(0, BODY_BOTTOM_LIMIT - y - fixedBlocksHeight - (hasComment ? rawCommentHeight : 0));
+
+      // Split the per-subject budget between table row and bar row,
+      // keeping the original 18:13 ratio (table rows read slightly
+      // taller than bars) while clamping to a sensible min/max so a
+      // 2-subject report doesn't get comically tall rows and a 20+
+      // subject report doesn't get illegibly thin ones.
+      const perSubjectBudget = n > 0 ? rowsBudget / n : 0;
+      const ROW_HEIGHT = Math.min(18, Math.max(9, perSubjectBudget * (18 / 31)));
+      const barRowHeight = Math.min(13, Math.max(6, perSubjectBudget * (13 / 31)));
+
+      if (n > 0 && (ROW_HEIGHT <= 9.01 || barRowHeight <= 6.01)) {
+        this.logger.warn(
+          `Report for student ${studentId}, term ${termId} hit the minimum row-height floor with ${n} subjects — layout is at its tightest supported density.`,
+        );
+      }
+
+      // Comment gets truncated only as a last resort, and only by
+      // however much is left after the table/bars/recommendation have
+      // taken their (already-fitted) share — so it degrades gracefully
+      // instead of silently overflowing onto a second page.
+      const commentBudget = Math.max(
+        0,
+        BODY_BOTTOM_LIMIT - y - fixedBlocksHeight - n * ROW_HEIGHT - n * barRowHeight,
+      );
+      let commentTextToRender = result.teacherComment ?? '';
+      if (hasComment && rawCommentHeight > commentBudget) {
+        doc.fontSize(8.5).font('Helvetica-Oblique');
+        commentTextToRender = this.truncateToFit(doc, result.teacherComment!, contentWidth, commentBudget);
+      }
+
+      // ── Subject score table ──────────────────────────────────────────
       doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text('Subject Scores', MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
-      y += 18;
+      y += TABLE_TITLE_H;
 
       const colScoreX = MARGIN + contentWidth - 40;
       for (let i = 0; i < subjectEntries.length; i++) {
@@ -221,63 +388,67 @@ export class ReportsService {
           doc.rect(MARGIN, y - 2, contentWidth, ROW_HEIGHT).fill('#F5F7FA');
           doc.fillColor('#000');
         }
-        doc.fontSize(9).font('Helvetica').text(subject, MARGIN + 4, y, { width: contentWidth - 60 });
+        doc.fontSize(9).font('Helvetica').text(subject, MARGIN + 4, y, { width: contentWidth - 60, height: ROW_HEIGHT, ellipsis: true });
         doc.font('Helvetica-Bold').text(String(score), colScoreX, y, { width: 36, align: 'right' });
         doc.font('Helvetica');
         y += ROW_HEIGHT;
       }
-      y += 8;
+      y += TABLE_GAP;
 
-      // ── Compact strength/weakness bar chart — fixed height regardless
-      // of subject count, since it reuses the same row positions above
-      // rather than a separate full-size chart block. ───────────────────
+      // ── Compact strength/weakness bar chart ──────────────────────────
       doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text('Areas of Strength & Weakness', MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
-      y += 16;
+      y += BARS_TITLE_H;
 
       const barLabelWidth = 90;
       const barMaxWidth = contentWidth - barLabelWidth - 32;
-      const barRowHeight = subjectEntries.length > 10 ? 11 : 13;
       const colorFor = (subject: string) => {
         if (classification.strengths.includes(subject)) return '#1F9D55';
         if (classification.needsImprovement.includes(subject)) return '#F08C00';
         return '#e03131';
       };
+      const barFontSize = barRowHeight >= 11 ? 7.5 : 6.5;
       for (const [subject, score] of subjectEntries) {
-        doc.fontSize(7.5).font('Helvetica').text(subject, MARGIN, y + 1, { width: barLabelWidth });
+        doc.fontSize(barFontSize).font('Helvetica').text(subject, MARGIN, y + 1, { width: barLabelWidth, height: barRowHeight, ellipsis: true });
+        const barHeight = Math.max(4, barRowHeight - 3);
         const barWidth = Math.max(2, (score / 100) * barMaxWidth);
-        doc.rect(MARGIN + barLabelWidth, y, barMaxWidth, barRowHeight - 3).fillColor('#eee').fill();
-        doc.rect(MARGIN + barLabelWidth, y, barWidth, barRowHeight - 3).fillColor(colorFor(subject)).fill();
-        doc.fillColor('#000').fontSize(7.5).text(String(score), MARGIN + barLabelWidth + barMaxWidth + 6, y, { width: 24 });
+        doc.rect(MARGIN + barLabelWidth, y, barMaxWidth, barHeight).fillColor('#eee').fill();
+        doc.rect(MARGIN + barLabelWidth, y, barWidth, barHeight).fillColor(colorFor(subject)).fill();
+        doc.fillColor('#000').fontSize(barFontSize).text(String(score), MARGIN + barLabelWidth + barMaxWidth + 6, y, { width: 24 });
         y += barRowHeight;
       }
-      y += 6;
       doc.fontSize(7).font('Helvetica-Oblique').fillColor('#666').text('Green = strength (70+)  Amber = needs improvement (50-69)  Red = at risk (below 50)', MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
-      y += 16;
+      y += BARS_NOTE_H;
 
-      // ── Recommendation — clamped to a max height via a fixed font
-      // size and width; long text wraps but never grows unbounded. ─────
+      // ── Recommendation ────────────────────────────────────────────────
       doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text('Teacher Recommendation', MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
-      y += 14;
-      doc.fontSize(8.5).font('Helvetica').text(this.buildRecommendationText(classification), MARGIN, y, { width: contentWidth });
-      y = doc.y + 10;
+      y += RECOMMENDATION_TITLE_H;
+      doc.fontSize(8.5).font('Helvetica').text(recommendationText, MARGIN, y, { width: contentWidth });
+      y += recommendationTextHeight + RECOMMENDATION_GAP;
 
-      // ── Teacher's comment ────────────────────────────────────────────
-      if (result.teacherComment) {
+      // ── Teacher's comment (possibly truncated above) ──────────────────
+      if (hasComment && commentTextToRender) {
         doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text("Teacher's Comment", MARGIN, y, { width: contentWidth });
         doc.fillColor('#000');
-        y += 14;
-        doc.fontSize(8.5).font('Helvetica-Oblique').text(result.teacherComment, MARGIN, y, { width: contentWidth });
-        y = doc.y + 10;
+        y += COMMENT_TITLE_H;
+        doc.fontSize(8.5).font('Helvetica-Oblique');
+        const renderedHeight = doc.heightOfString(commentTextToRender, { width: contentWidth });
+        doc.text(commentTextToRender, MARGIN, y, { width: contentWidth });
+        y += renderedHeight + COMMENT_GAP;
       }
 
-      // ── Everything below this point is PINNED to the bottom of the
-      // page (not flowed), so it can never push onto a second page no
-      // matter how long the content above ran. ──────────────────────────
-      const FOOTER_TOP = PAGE_HEIGHT - 90;
+      // ── Performance trend chart — fills whatever's left of the gap
+      // between content and footer, using data already computed above.
+      // Never forces or fakes a chart if there isn't room or history. ──
+      const gapTop = y + 6;
+      const gapAvailable = FOOTER_TOP - 14 - gapTop;
+      if (gapAvailable > 0) {
+        this.drawTrendChart(doc, trend, termNameById, scores, gapTop, gapAvailable, contentWidth, MARGIN);
+      }
 
+      // ── Footer — pinned, never flowed ─────────────────────────────────
       if (signatureBuffer) {
         try {
           doc.image(signatureBuffer, MARGIN, FOOTER_TOP, { width: 90, height: 32, fit: [90, 32] });

@@ -16,17 +16,19 @@ export default function PlatformNav({ title }: { title: string }) {
   }
 
   return (
-    <nav className="nav-wash flex items-center justify-between border-b border-black/5 px-4 py-3">
+    <nav className="nav-wash flex items-center justify-between gap-3 border-b border-black/5 px-4 py-3">
       <div className="flex items-center gap-2.5">
-        <Image src="/logo.png" alt="" width={36} height={36} aria-hidden />
+        <div className="rounded-full bg-white p-1 shadow-sm">
+          <Image src="/logo.png" alt="" width={28} height={28} aria-hidden />
+        </div>
         <span className="font-display font-semibold">{title}</span>
       </div>
       <div className="flex items-center gap-4">
         <NotificationBell />
-      <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-ink/50">
-        <LogOut size={15} />
-        Log out
-      </button>
+        <button onClick={handleLogout} className="flex items-center gap-1.5 whitespace-nowrap text-sm text-ink/50">
+          <LogOut size={15} />
+          Log out
+        </button>
       </div>
     </nav>
   );

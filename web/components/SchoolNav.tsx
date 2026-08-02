@@ -32,7 +32,7 @@ function DropdownMenu({
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5">
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5 whitespace-nowrap">
         <Icon size={15} />
         {label}
         <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -94,38 +94,50 @@ export default function SchoolNav({
   const academicItems = isSchoolAdmin ? adminAcademicItems : staffAcademicItems;
 
   return (
-    <nav className="nav-wash flex flex-col gap-2 border-b border-black/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center justify-between">
+    <nav className="nav-wash flex flex-col gap-2.5 border-b border-black/5 px-4 py-3">
+      {/* Top bar: logo/name on the left, utility actions on the right. Never wraps. */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="" width={36} height={36} aria-hidden />
+          <div className="rounded-full bg-white p-1 shadow-sm">
+            <Image src="/logo.png" alt="" width={28} height={28} aria-hidden />
+          </div>
           <span className="font-display font-semibold">{schoolName}</span>
         </div>
-        <div className="sm:hidden">
+        <div className="flex items-center gap-3">
           <PendingSyncBadge />
+          <NotificationBell />
+          {user && (
+            <button onClick={handleLogout} className="flex items-center gap-1.5 whitespace-nowrap text-sm text-ink/50">
+              <LogOut size={15} />
+              Log out
+            </button>
+          )}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+
+      {/* Link row: free to wrap on narrow screens, but wraps as a unit, centered — never stranding one item alone. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm sm:justify-center">
         {isSchoolAdmin && (
-          <Link href={`/${slug}/admin`} className="flex items-center gap-1.5">
+          <Link href={`/${slug}/admin`} className="flex items-center gap-1.5 whitespace-nowrap">
             <LayoutDashboard size={15} />
             Admin
           </Link>
         )}
         {isSchoolAdmin && (
-          <Link href={`/${slug}/admin/settings`} className="flex items-center gap-1.5">
+          <Link href={`/${slug}/admin/settings`} className="flex items-center gap-1.5 whitespace-nowrap">
             <Settings size={15} />
             Settings
           </Link>
         )}
         {isSchoolAdmin && (
-          <Link href={`/${slug}/admin/audit-log`} className="flex items-center gap-1.5">
+          <Link href={`/${slug}/admin/audit-log`} className="flex items-center gap-1.5 whitespace-nowrap">
             <History size={15} />
             Audit Log
           </Link>
         )}
         {isStaffOrAdmin && <DropdownMenu label="Academic" icon={GraduationCap} items={academicItems} />}
         {isSchoolAdmin && (
-          <Link href={`/${slug}/admin/documents`} className="flex items-center gap-1.5">
+          <Link href={`/${slug}/admin/documents`} className="flex items-center gap-1.5 whitespace-nowrap">
             <FileText size={15} />
             Documents
           </Link>
@@ -142,24 +154,14 @@ export default function SchoolNav({
             ]}
           />
         )}
-        <Link href={`/${slug}/results`} className="flex items-center gap-1.5">
+        <Link href={`/${slug}/results`} className="flex items-center gap-1.5 whitespace-nowrap">
           <Search size={15} />
           Check Result
         </Link>
-        <Link href={`/${slug}/lessons`} className="flex items-center gap-1.5">
+        <Link href={`/${slug}/lessons`} className="flex items-center gap-1.5 whitespace-nowrap">
           <BookOpen size={15} />
           Lessons
         </Link>
-        {user && (
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-gray-500">
-            <LogOut size={15} />
-            Log out
-          </button>
-        )}
-      </div>
-      <div className="hidden items-center gap-3 sm:flex">
-        <PendingSyncBadge />
-        <NotificationBell />
       </div>
     </nav>
   );
