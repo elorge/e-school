@@ -28,6 +28,7 @@ import {
   type CbtTest,
   type CbtAttemptSummary,
 } from '@/lib/endpoints/cbt';
+import WeightHint from '@/components/WeightHint';
 import { fetchTestPaperPdf, openPdfBlob } from '@/lib/endpoints/documents';
 import type { Class, Term } from '@/lib/types';
 
@@ -110,11 +111,11 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
     if (!selectedTest) return;
     setError(null);
     try {
-      await addQuestion(params.school, selectedTest.id, question);
+      await addQuestion(params.school, selectedTest.id, { type: 'OBJECTIVE', ...question });
       setQuestion({ questionText: '', options: ['', '', '', ''], correctOptionIndex: 0, points: 1 });
       setQuestionCount((c) => c + 1);
-    } catch {
-      setError('Could not add question');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add question');
     }
   }
 
@@ -180,72 +181,73 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       {notice && <p className="text-sm text-brand-green">{notice}</p>}
 
       <section className="card">
-        <h2 className="mb-3 font-medium">Create a test</h2>
-        <form onSubmit={handleCreateTest} className="flex flex-wrap items-end gap-2">
-          <select className="rounded border px-2 py-1.5" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))} required>
-            <option value="">Class</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <select className="rounded border px-2 py-1.5" value={form.termId} onChange={(e) => setForm((f) => ({ ...f, termId: e.target.value }))} required>
-            <option value="">Term</option>
-            {terms.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <input className="rounded border px-2 py-1.5" placeholder="Subject" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required />
-          <input className="rounded border px-2 py-1.5" placeholder="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
-          <input
-            className="w-24 rounded border px-2 py-1.5"
-            type="number"
-            placeholder="Minutes"
-            value={form.durationMinutes}
-            onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
-            required
-          />
-          <label className="flex flex-col text-xs">
-            Test date
-            <input
-              className="rounded border px-2 py-1.5"
-              type="date"
-              value={form.scheduledDate}
-              onChange={(e) => setForm((f) => ({ ...f, scheduledDate: e.target.value }))}
-              required
-            />
-          </label>
-          <label className="flex flex-col text-xs">
-            Theory max (0 = objectives only)
-            <input
-              className="w-28 rounded border px-2 py-1.5"
-              type="number"
-              value={form.theoryMaxScore}
-              onChange={(e) => setForm((f) => ({ ...f, theoryMaxScore: Number(e.target.value) }))}
-            />
-          </label>
-          <label className="flex flex-col text-xs">
-            Component (must match a Grading Weight name, e.g. "Test" or "Exam")
-            <input
-              className="rounded border px-2 py-1.5"
-              value={form.componentName}
-              onChange={(e) => setForm((f) => ({ ...f, componentName: e.target.value }))}
-            />
-          </label>
-          <label className="flex items-center gap-1.5 text-xs">
-            <input
-              type="checkbox"
-              checked={form.countsTowardReport}
-              onChange={(e) => setForm((f) => ({ ...f, countsTowardReport: e.target.checked }))}
-            />
-            Counts toward report card
-          </label>
-          <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-            Create
-          </button>
+        <h2 className="mb-4 flex items-center gap-2 font-medium"><FileText size={16} /> Create a test</h2>
+        <form onSubmit={handleCreateTest} className="flex flex-col gap-5">
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">Basics</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm">
+                Title
+                <input className="rounded border px-2 py-1.5" placeholder="e.g. Mid-term Objectives" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Subject
+                <input className="rounded border px-2 py-1.5" placeholder="e.g. Mathematics" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Class
+                <select className="rounded border px-2 py-1.5" value={form.classId} onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))} required>
+                  <option value="">Select class</option>
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Term
+                <select className="rounded border px-2 py-1.5" value={form.termId} onChange={(e) => setForm((f) => ({ ...f, termId: e.target.value }))} required>
+                  <option value="">Select term</option>
+                  {terms.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">Timing</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm">
+                Duration (minutes)
+                <input className="rounded border px-2 py-1.5" type="number" value={form.durationMinutes} onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Test date
+                <input className="rounded border px-2 py-1.5" type="date" value={form.scheduledDate} onChange={(e) => setForm((f) => ({ ...f, scheduledDate: e.target.value }))} required />
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/40">Scoring &amp; report card</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm">
+                Theory portion max score <span className="text-ink/40">(0 = objectives only)</span>
+                <input className="rounded border px-2 py-1.5" type="number" value={form.theoryMaxScore} onChange={(e) => setForm((f) => ({ ...f, theoryMaxScore: Number(e.target.value) }))} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Report card component
+                <input className="rounded border px-2 py-1.5" placeholder='e.g. "Test" or "Exam"' value={form.componentName} onChange={(e) => setForm((f) => ({ ...f, componentName: e.target.value }))} />
+              </label>
+            </div>
+
+            {form.classId && form.subject && <WeightHint school={params.school} classId={form.classId} subject={form.subject} componentName={form.componentName} />}
+
+            <label className="mt-2 flex items-center gap-1.5 text-xs">
+              <input type="checkbox" checked={form.countsTowardReport} onChange={(e) => setForm((f) => ({ ...f, countsTowardReport: e.target.checked }))} />
+              Counts toward the report card {!form.countsTowardReport && <span className="text-ink/40">(practice/mock test — score stays separate)</span>}
+            </label>
+          </div>
+
+          <button type="submit" className="btn-primary w-fit">Create test</button>
         </form>
       </section>
 

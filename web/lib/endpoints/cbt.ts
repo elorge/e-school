@@ -12,6 +12,8 @@ export interface CbtTest {
   theoryMaxScore: number;
   scheduledDate: string;
   accessCode: string | null;
+  countsTowardReport: boolean;
+  componentName: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 }
 
@@ -143,7 +145,21 @@ export type AddQuestionInput =
       points: number;
     };
 
-export function addQuestion(school: string, testId: string, body: AddQuestionInput) {
+export function addQuestion(
+  school: string,
+  testId: string,
+  body:
+    | { type: 'OBJECTIVE'; questionText: string; options: string[]; correctOptionIndex: number; points: number }
+    | {
+        type: 'CODE';
+        questionText: string;
+        starterHtml: string;
+        starterCss: string;
+        starterJs: string;
+        testAssertions: { description: string; assertion: string }[];
+        points: number;
+      },
+) {
   return apiFetch(`/${school}/cbt/tests/${testId}/questions`, { method: 'POST', body: JSON.stringify(body) });
 }
 

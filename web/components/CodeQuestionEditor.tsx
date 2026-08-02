@@ -9,14 +9,6 @@ interface Assertion {
   assertion: string;
 }
 
-/**
- * Teacher-side editor for a CODE question — starter HTML/CSS/JS plus
- * test assertions written as plain JS that will run inside the
- * student's sandboxed iframe against `document`/`window`. A "Preview"
- * button lets the teacher run their OWN assertions against the starter
- * code first, to sanity-check the test actually works before
- * publishing it to students.
- */
 export default function CodeQuestionEditor({
   onAdd,
 }: {

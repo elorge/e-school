@@ -1,8 +1,9 @@
 // web/components/CodeQuestionRunner.tsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Play, Check, X } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Play, Check, X, Code2, Eye } from 'lucide-react';
+import type { SavedCodeAnswer, CodeAssertionResult } from '@/lib/endpoints/cbt';
 
 interface CodeQuestion {
   id: string;
@@ -13,127 +14,106 @@ interface CodeQuestion {
   testAssertions: { description: string; assertion: string }[] | null;
 }
 
-interface AssertionResult {
-  description: string;
-  passed: boolean;
-}
-
-interface SavedCodeResult {
-  html?: string;
-  css?: string;
-  js?: string;
-  passedCount?: number;
-  totalCount?: number;
-  results?: AssertionResult[];
-}
-
+/**
+ * Live HTML/CSS/JS editor with a real-time preview and a "Run tests"
+ * button. Everything executes inside a sandboxed iframe — `allow-scripts`
+ * only, no `allow-same-origin` — student code can never reach the parent
+ * page or any sensitive data.
+ */
 export default function CodeQuestionRunner({
   question,
   savedResult,
   onResult,
 }: {
   question: CodeQuestion;
-  savedResult?: unknown;
-  onResult: (result: {
-  passedCount: number;
-  totalCount: number;
-  html: string;
-  css: string;
-  js: string;
-  results: { description: string; passed: boolean }[];
-}) => void;
+  savedResult?: number | SavedCodeAnswer;
+  onResult: (result: SavedCodeAnswer) => void;
 }) {
-  const saved = savedResult as SavedCodeResult | undefined;
-
+  const saved = savedResult && typeof savedResult === 'object' ? savedResult : null;
   const [html, setHtml] = useState(saved?.html ?? question.starterHtml ?? '');
   const [css, setCss] = useState(saved?.css ?? question.starterCss ?? '');
   const [js, setJs] = useState(saved?.js ?? question.starterJs ?? '');
-  // Restore the actual per-assertion breakdown, not just the aggregate
-  // counts — this is what makes a reload/offline-retry show exactly
-  // what the student left behind instead of a vague summary line.
-  const [results, setResults] = useState<AssertionResult[] | null>(saved?.results ?? null);
+  const [results, setResults] = useState<CodeAssertionResult[] | null>(saved?.results ?? null);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
-  const buildDoc = (includeRunner: boolean) => {
-    const assertions = question.testAssertions ?? [];
-    const runnerScript = includeRunner
-      ? `<script>(function(){
-          var outcomes = [];
-          var assertions = ${JSON.stringify(assertions)};
-          for (var i = 0; i < assertions.length; i++) {
-            var passed = false;
-            try { passed = !!eval(assertions[i].assertion); } catch (e) { passed = false; }
-            outcomes.push({ description: assertions[i].description, passed: passed });
-          }
-          window.parent.postMessage({ __cbtTestResults: outcomes }, '*');
-        })();<\/script>`
-      : '';
-    return `<style>${css}</style>${html}<script>${js}<\/script>${runnerScript}`;
-  };
-
-  const [previewDoc, setPreviewDoc] = useState(() => buildDoc(false));
-
   function refreshPreview() {
-    setPreviewDoc(buildDoc(false));
+    const doc = previewRef.current?.contentDocument;
+    if (!doc) return;
+    doc.open();
+    doc.write(`<style>${css}</style>${html}<script>${js}<\/script>`);
+    doc.close();
   }
 
   function runTests() {
-    setPreviewDoc(buildDoc(true));
+    refreshPreview();
+    const iframe = previewRef.current;
+    if (!iframe?.contentWindow) return;
+    const assertions = question.testAssertions ?? [];
+    const outcomes: CodeAssertionResult[] = assertions.map((a) => {
+      try {
+        // eslint-disable-next-line no-eval
+        return { description: a.description, passed: !!(iframe.contentWindow as any).eval(a.assertion) };
+      } catch {
+        return { description: a.description, passed: false };
+      }
+    });
+    setResults(outcomes);
+    const passedCount = outcomes.filter((o) => o.passed).length;
+    onResult({ passedCount, totalCount: assertions.length, html, css, js, results: outcomes });
   }
 
-  useEffect(() => {
-    function handleMessage(e: MessageEvent) {
-      if (e.source !== previewRef.current?.contentWindow) return;
-      if (!e.data || !Array.isArray(e.data.__cbtTestResults)) return;
-      const outcomes = e.data.__cbtTestResults as AssertionResult[];
-      setResults(outcomes);
-      const passedCount = outcomes.filter((o) => o.passed).length;
-      onResult({ passedCount, totalCount: outcomes.length, html, css, js, results: outcomes });
-    }
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [html, css, js]);
-
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
-      <p className="font-medium">{question.questionText}</p>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-xs">
-          HTML
-          <textarea className="min-h-[120px] rounded border p-2 font-mono text-xs" value={html} onChange={(e) => setHtml(e.target.value)} onBlur={refreshPreview} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          CSS
-          <textarea className="min-h-[120px] rounded border p-2 font-mono text-xs" value={css} onChange={(e) => setCss(e.target.value)} onBlur={refreshPreview} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          JavaScript
-          <textarea className="min-h-[120px] rounded border p-2 font-mono text-xs" value={js} onChange={(e) => setJs(e.target.value)} onBlur={refreshPreview} />
-        </label>
+    <div className="overflow-hidden rounded-xl border">
+      <div className="bg-ink px-4 py-3 text-white">
+        <p className="flex items-center gap-2 font-medium"><Code2 size={16} /> Coding Challenge</p>
+        <p className="mt-1 text-sm text-white/70">{question.questionText}</p>
+      </div>
+      <p className="bg-amber/10 px-4 py-2 text-xs text-amber">
+        Write your HTML, CSS, and JavaScript below. Click <strong>Run tests</strong> to check your work — you can
+        run it as many times as you like before submitting the whole test.
+      </p>
+
+      <div className="grid divide-x sm:grid-cols-3">
+        {[
+          { label: 'HTML', value: html, set: setHtml, color: 'text-orange-600' },
+          { label: 'CSS', value: css, set: setCss, color: 'text-blue-600' },
+          { label: 'JavaScript', value: js, set: setJs, color: 'text-amber' },
+        ].map((panel) => (
+          <div key={panel.label} className="flex flex-col">
+            <p className={`border-b bg-black/5 px-3 py-1.5 text-xs font-semibold ${panel.color}`}>{panel.label}</p>
+            <textarea
+              className="min-h-[140px] flex-1 resize-none p-3 font-mono text-xs focus:outline-none"
+              value={panel.value}
+              onChange={(e) => panel.set(e.target.value)}
+              onBlur={refreshPreview}
+              spellCheck={false}
+            />
+          </div>
+        ))}
       </div>
 
-      <div>
-        <p className="mb-1 text-xs font-medium text-ink/50">Live preview</p>
-        <iframe
-          ref={previewRef}
-          sandbox="allow-scripts"
-          srcDoc={previewDoc}
-          className="h-40 w-full rounded border bg-white"
-          title="Preview"
-        />
+      <div className="border-t p-4">
+        <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-ink/50"><Eye size={13} /> LIVE PREVIEW</p>
+        <iframe ref={previewRef} sandbox="allow-scripts" className="h-40 w-full rounded border bg-white" title="Preview" />
       </div>
 
-      <button onClick={runTests} className="btn-primary flex w-fit items-center gap-1.5 text-sm">
-        <Play size={14} /> Run tests
-      </button>
+      <div className="flex items-center gap-3 border-t bg-black/5 px-4 py-3">
+        <button onClick={runTests} className="btn-primary flex items-center gap-1.5 text-sm">
+          <Play size={14} /> Run tests
+        </button>
+        {results && (
+          <span className={`text-sm font-medium ${results.every((r) => r.passed) ? 'text-brand-green' : 'text-ink/60'}`}>
+            {results.filter((r) => r.passed).length} / {results.length} passing
+          </span>
+        )}
+      </div>
 
       {results && (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5 border-t px-4 py-3">
           {results.map((r, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs">
-              {r.passed ? <Check size={13} className="text-brand-green" /> : <X size={13} className="text-red-500" />}
-              {r.description}
+            <div key={i} className="flex items-center gap-2 text-sm">
+              {r.passed ? <Check size={14} className="text-brand-green" /> : <X size={14} className="text-red-500" />}
+              <span className={r.passed ? 'text-ink/70' : 'text-ink/50'}>{r.description}</span>
             </div>
           ))}
         </div>
