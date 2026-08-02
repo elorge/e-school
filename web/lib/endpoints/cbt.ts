@@ -21,8 +21,50 @@ export function listTests(school: string): Promise<CbtTest[]> {
   return apiFetch(`/${school}/cbt/tests`);
 }
 
-export function getTest(school: string, testId: string): Promise<CbtTest & { questions: unknown[] }> {
+export type CbtQuestionDetail =
+  | {
+      id: string;
+      type: 'OBJECTIVE';
+      questionText: string;
+      options: string[];
+      correctOptionIndex: number;
+      points: number;
+    }
+  | {
+      id: string;
+      type: 'CODE';
+      questionText: string;
+      starterHtml: string | null;
+      starterCss: string | null;
+      starterJs: string | null;
+      testAssertions: { description: string; assertion: string }[] | null;
+      points: number;
+    };
+
+export function getTest(school: string, testId: string): Promise<CbtTest & { questions: CbtQuestionDetail[] }> {
   return apiFetch(`/${school}/cbt/tests/${testId}`);
+}
+
+export function updateQuestion(
+  school: string,
+  testId: string,
+  questionId: string,
+  body: Partial<{
+    questionText: string;
+    options: string[];
+    correctOptionIndex: number;
+    points: number;
+    starterHtml: string;
+    starterCss: string;
+    starterJs: string;
+    testAssertions: { description: string; assertion: string }[];
+  }>,
+): Promise<CbtQuestionDetail> {
+  return apiFetch(`/${school}/cbt/tests/${testId}/questions/${questionId}`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+export function deleteQuestion(school: string, testId: string, questionId: string): Promise<{ deleted: boolean }> {
+  return apiFetch(`/${school}/cbt/tests/${testId}/questions/${questionId}`, { method: 'DELETE' });
 }
 
 export function createTest(
@@ -273,4 +315,12 @@ export async function downloadAttemptsExcel(school: string, testId: string): Pro
   const res = await fetch(`${API_URL}/${school}/cbt/tests/${testId}/attempts/export`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
   if (!res.ok) throw new Error('Export failed');
   return res.blob();
+}
+
+export function updateTest(
+  school: string,
+  testId: string,
+  body: Partial<Pick<CbtTest, 'title' | 'subject' | 'durationMinutes' | 'theoryMaxScore' | 'scheduledDate' | 'countsTowardReport' | 'componentName'>>,
+): Promise<CbtTest> {
+  return apiFetch(`/${school}/cbt/tests/${testId}`, { method: 'PATCH', body: JSON.stringify(body) });
 }

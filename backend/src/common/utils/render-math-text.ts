@@ -1,17 +1,7 @@
 // backend/src/common/utils/render-math-text.ts
-import * as SVGtoPDF from 'svg-to-pdfkit';
+import SVGtoPDF from 'svg-to-pdfkit';
 import { MathRendererService } from '../services/math-renderer.service';
 
-/**
- * Splits text on $...$ (same convention as the frontend's MathText
- * component) and draws it onto a pdfkit document as a single flowed
- * line: plain text via doc.text(), equations via SVG embed.
- *
- * Deliberately simplified vs. real word-processor text flow: if a line
- * would overflow the page width, the WHOLE remaining segment wraps to
- * the next line rather than breaking mid-word/mid-equation. Good enough
- * for exam questions (which are short), not a general-purpose typesetter.
- */
 export function renderTextWithMath(
   doc: PDFKit.PDFDocument,
   mathRenderer: MathRendererService,
@@ -25,6 +15,9 @@ export function renderTextWithMath(
   let cursorX = x;
   let cursorY = y;
   const lineHeight = fontSizePt * 1.4;
+  // Standard approximation of a Helvetica's ascent (distance from the top
+  // of the line box down to the text baseline) as a fraction of font size.
+  const ascentPt = fontSizePt * 0.8;
 
   doc.fontSize(fontSizePt).font('Helvetica');
 
@@ -50,10 +43,12 @@ export function renderTextWithMath(
         cursorY += lineHeight;
       }
 
-      // svg-to-pdfkit draws top-left anchored; nudge down slightly so the
-      // equation's baseline roughly matches surrounding text's baseline.
-      const verticalNudge = (lineHeight - rendered.heightPt) / 2;
-      (SVGtoPDF as any)(doc, rendered.svg, cursorX, cursorY + verticalNudge, {
+      // svg-to-pdfkit draws top-left anchored. We want the equation's own
+      // baseline — which sits (heightPt - depthPt) down from its top edge —
+      // to land at the same y as the surrounding plain text's baseline
+      // (ascentPt down from the top of the line box). Solving for the nudge:
+      const verticalNudge = ascentPt - (rendered.heightPt - rendered.depthPt);
+      SVGtoPDF(doc, rendered.svg, cursorX, cursorY + verticalNudge, {
         width: rendered.widthPt,
         height: rendered.heightPt,
       });

@@ -70,6 +70,53 @@ createTest(
     return this.prisma.cbtTest.findMany({ where: { schoolId }, orderBy: { createdAt: 'desc' } });
   }
 
+  /**
+   * DRAFT: any of title/subject/durationMinutes/theoryMaxScore/
+   * scheduledDate/countsTowardReport/componentName may change freely —
+   * nothing has been scored or scheduled to students yet.
+   *
+   * PUBLISHED/CLOSED: only title and scheduledDate are accepted, even if
+   * the caller sends other fields — they're just dropped rather than
+   * erroring, so a client built against the DRAFT field set doesn't need
+   * special-case error handling, it just silently has less effect.
+   * Scoring fields are locked because objectiveMaxScore and any synced
+   * ResultEntry rows already depend on them; durationMinutes is locked
+   * because in-progress attempts have already computed deadlineAt from it.
+   */
+  async updateTest(
+    schoolId: string,
+    testId: string,
+    data: {
+      title?: string;
+      subject?: string;
+      durationMinutes?: number;
+      theoryMaxScore?: number;
+      scheduledDate?: string;
+      countsTowardReport?: boolean;
+      componentName?: string;
+    },
+  ) {
+    const test = await this.findOneOrThrow(schoolId, testId);
+
+    const patch: Record<string, unknown> = {};
+    if (test.status === CbtTestStatus.DRAFT) {
+      if (data.title !== undefined) patch.title = data.title;
+      if (data.subject !== undefined) patch.subject = data.subject;
+      if (data.durationMinutes !== undefined) patch.durationMinutes = data.durationMinutes;
+      if (data.theoryMaxScore !== undefined) patch.theoryMaxScore = data.theoryMaxScore;
+      if (data.scheduledDate !== undefined) patch.scheduledDate = new Date(data.scheduledDate);
+      if (data.countsTowardReport !== undefined) patch.countsTowardReport = data.countsTowardReport;
+      if (data.componentName !== undefined) patch.componentName = data.componentName;
+    } else {
+      // PUBLISHED or CLOSED — cosmetic/reschedule fields only.
+      if (data.title !== undefined) patch.title = data.title;
+      if (data.scheduledDate !== undefined) patch.scheduledDate = new Date(data.scheduledDate);
+    }
+
+    if (Object.keys(patch).length === 0) return test;
+    return this.prisma.cbtTest.update({ where: { id: testId }, data: patch });
+  }
+
   async findOneOrThrow(schoolId: string, testId: string) {
     const test = await this.prisma.cbtTest.findFirst({ where: { id: testId, schoolId }, include: { questions: true } });
     if (!test) throw new NotFoundException('Test not found');
@@ -88,6 +135,55 @@ createTest(
     }
     const order = test.questions.length;
     return this.prisma.cbtQuestion.create({ data: { testId, order, ...data } });
+  }
+
+  /**
+   * DRAFT only — see the class comment on updateTest for why. Once
+   * PUBLISHED, objectiveMaxScore and any attempts already in progress or
+   * graded are keyed off these exact questions; editing correctOptionIndex
+   * or points afterward would silently desync scores nobody would notice.
+   */
+  async updateQuestion(schoolId: string, testId: string, questionId: string, data: any) {
+    const test = await this.findOneOrThrow(schoolId, testId);
+    if (test.status !== CbtTestStatus.DRAFT) {
+      throw new BadRequestException('Cannot edit questions after a test is published');
+    }
+    const question = test.questions.find((q) => q.id === questionId);
+    if (!question) throw new NotFoundException('Question not found on this test');
+
+    const patch: Record<string, unknown> = {};
+    if (data.questionText !== undefined) patch.questionText = data.questionText;
+    if (data.points !== undefined) patch.points = data.points;
+
+    if (question.type === 'OBJECTIVE') {
+      const options = data.options !== undefined ? data.options : (question.options as string[]);
+      const correctOptionIndex = data.correctOptionIndex !== undefined ? data.correctOptionIndex : question.correctOptionIndex;
+      if (correctOptionIndex == null || correctOptionIndex < 0 || correctOptionIndex >= options.length) {
+        throw new BadRequestException('correctOptionIndex must point at one of the given options');
+      }
+      if (data.options !== undefined) patch.options = data.options;
+      if (data.correctOptionIndex !== undefined) patch.correctOptionIndex = data.correctOptionIndex;
+    } else {
+      if (data.starterHtml !== undefined) patch.starterHtml = data.starterHtml;
+      if (data.starterCss !== undefined) patch.starterCss = data.starterCss;
+      if (data.starterJs !== undefined) patch.starterJs = data.starterJs;
+      if (data.testAssertions !== undefined) patch.testAssertions = data.testAssertions;
+    }
+
+    if (Object.keys(patch).length === 0) return question;
+    return this.prisma.cbtQuestion.update({ where: { id: questionId }, data: patch });
+  }
+
+  /** Same DRAFT-only restriction as updateQuestion, and for the same reason. */
+  async deleteQuestion(schoolId: string, testId: string, questionId: string) {
+    const test = await this.findOneOrThrow(schoolId, testId);
+    if (test.status !== CbtTestStatus.DRAFT) {
+      throw new BadRequestException('Cannot remove questions after a test is published');
+    }
+    const question = test.questions.find((q) => q.id === questionId);
+    if (!question) throw new NotFoundException('Question not found on this test');
+    await this.prisma.cbtQuestion.delete({ where: { id: questionId } });
+    return { deleted: true };
   }
 
   /** Generates a blank fill-in template — same column order the parser below expects. */
@@ -524,7 +620,7 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
           y = renderTextWithMath(
             doc,
             this.mathRenderer,
-            `${i + 1}. ${q.questionText} — [Code challenge: complete on a computer, not on paper]`,
+            `${i + 1}. ${q.questionText} (${q.points} pt${q.points !== 1 ? 's' : ''})`,
             doc.page.margins.left,
             y,
             contentWidth,

@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
-import { Laptop, Clock, Target, FileText, Printer, BarChart3, KeyRound, Download } from 'lucide-react';
+import { Laptop, Clock, Target, FileText, Printer, BarChart3, KeyRound } from 'lucide-react';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
@@ -14,23 +14,22 @@ import ShapeToolbar from '@/components/ShapeToolbar';
 import MathText from '@/components/MathText';
 import AttemptDetailModal from '@/components/AttemptDetailModal';
 import CodeQuestionEditor from '@/components/CodeQuestionEditor';
+import ViewScoresModal from '@/components/ViewScoresModal';
 import {
   listTests,
   createTest,
   addQuestion,
   publishTest,
-  listAttempts,
-  gradeTheory,
   downloadQuestionTemplate,
   bulkUploadQuestions,
-  downloadAttemptsExcel,
   getTest,
   type CbtTest,
-  type CbtAttemptSummary,
 } from '@/lib/endpoints/cbt';
 import WeightHint from '@/components/WeightHint';
 import { fetchTestPaperPdf, openPdfBlob } from '@/lib/endpoints/documents';
 import type { Class, Term } from '@/lib/types';
+import EditTestModal from '@/components/EditTestModal';
+import QuestionsListModal from '@/components/QuestionsListModal';
 
 export default function StaffCbtPage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -39,7 +38,6 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [terms, setTerms] = useState<Term[]>([]);
   const [tests, setTests] = useState<CbtTest[]>([]);
   const [selectedTest, setSelectedTest] = useState<CbtTest | null>(null);
-  const [attempts, setAttempts] = useState<CbtAttemptSummary[]>([]);
   const [classStudents, setClassStudents] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [questionCount, setQuestionCount] = useState(0);
@@ -47,6 +45,9 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [viewingAttempt, setViewingAttempt] = useState<{ testId: string; attemptId: string } | null>(null);
+  const [viewingScoresFor, setViewingScoresFor] = useState<CbtTest | null>(null);
+  const [editingTest, setEditingTest] = useState<CbtTest | null>(null);
+  const [viewingQuestionsFor, setViewingQuestionsFor] = useState<CbtTest | null>(null);
   const [activeFieldId, setActiveFieldId] = useState('question-text-input');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED' | 'CLOSED'>('ALL');
   const [page, setPage] = useState(1);
@@ -68,7 +69,12 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
     countsTowardReport: true,
     componentName: 'Test',
   });
-  const [question, setQuestion] = useState({ questionText: '', options: ['', '', '', ''], correctOptionIndex: 0, points: 1 });
+  const [question, setQuestion] = useState({
+    questionText: '',
+    options: ['', '', '', ''],
+    correctOptionIndex: -1, // nothing selected until the teacher explicitly picks one
+    points: 1,
+  });
 
   useEffect(() => {
     Promise.all([listClasses(params.school), listTerms(params.school), listTests(params.school)])
@@ -84,18 +90,44 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   async function handleCreateTest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-          try {
-              const test = await createTest(params.school, form);
-              setTests((t) => [test, ...t]);
-              setSelectedTest(test);
-              setQuestionCount(0);
-              const students = await listStudents(params.school, test.classId);
-              setClassStudents(students);
-              setSelectedStudentIds(new Set(students.map((s) => s.id)));
-          } catch {
-            setError('Could not create test');
-          }
-        }
+    try {
+      const test = await createTest(params.school, form);
+      setTests((t) => [test, ...t]);
+      setSelectedTest(test);
+      setQuestionCount(0);
+      const students = await listStudents(params.school, test.classId);
+      setClassStudents(students);
+      setSelectedStudentIds(new Set(students.map((s) => s.id)));
+    } catch {
+      setError('Could not create test');
+    }
+  }
+
+  async function resumeDraftTest(test: CbtTest) {
+    setError(null);
+    setSelectedTest(test);
+    try {
+      const [refreshed, students] = await Promise.all([
+        getTest(params.school, test.id),
+        listStudents(params.school, test.classId),
+      ]);
+      setQuestionCount(refreshed.questions.length);
+      setClassStudents(students);
+      setSelectedStudentIds(new Set(students.map((s) => s.id)));
+      document.getElementById('add-questions-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch {
+      setError('Could not load this test to continue adding questions');
+    }
+  }
+
+  /** Card click routes by status: DRAFT resumes question-building, everything else opens the metadata edit modal. */
+  function handleCardClick(test: CbtTest) {
+    if (test.status === 'DRAFT') {
+      resumeDraftTest(test);
+    } else {
+      setEditingTest(test);
+    }
+  }
 
   function toggleStudent(id: string) {
     setSelectedStudentIds((prev) => {
@@ -109,10 +141,14 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
   async function handleAddQuestion(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedTest) return;
+    if (question.correctOptionIndex === -1) {
+      setError('Select which option is correct before adding the question.');
+      return;
+    }
     setError(null);
     try {
       await addQuestion(params.school, selectedTest.id, { type: 'OBJECTIVE', ...question });
-      setQuestion({ questionText: '', options: ['', '', '', ''], correctOptionIndex: 0, points: 1 });
+      setQuestion({ questionText: '', options: ['', '', '', ''], correctOptionIndex: -1, points: 1 });
       setQuestionCount((c) => c + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add question');
@@ -152,17 +188,6 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
     } catch (err: any) {
       setError(err?.message ?? 'Could not publish — check wallet balance and that questions exist');
     }
-  }
-
-  async function loadAttempts(test: CbtTest) {
-    setSelectedTest(test);
-    const data = await listAttempts(params.school, test.id);
-    setAttempts(data);
-  }
-
-  async function handleGradeTheory(attemptId: string, value: string) {
-    await gradeTheory(params.school, attemptId, Number(value));
-    if (selectedTest) loadAttempts(selectedTest);
   }
 
   if (isLoading) return <LoadingScreen />;
@@ -252,7 +277,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
       </section>
 
       {selectedTest && selectedTest.status === 'DRAFT' && (
-        <section className="card card-amber">
+        <section id="add-questions-section" className="card card-amber">
           <h2 className="mb-3 flex items-center gap-2 font-medium">
             <FileText size={16} /> Add questions to "{selectedTest.title}"
           </h2>
@@ -312,20 +337,25 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
 
           <p className="mb-2 text-xs text-ink/50">Or add one question at a time below:</p>
 
-          <div className="mb-3 flex gap-1 text-xs">
-            {(['OBJECTIVE', 'CODE'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setQuestionType(t)}
-                className={`rounded-full px-3 py-1.5 ${questionType === t ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
-              >
-                {t === 'OBJECTIVE' ? 'Multiple choice' : 'Code challenge'}
-              </button>
-            ))}
+          <div className="mb-3 flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setQuestionType('OBJECTIVE')}
+              className={`rounded-full px-3 py-1.5 ${questionType === 'OBJECTIVE' ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
+            >
+              Multiple choice
+            </button>
+            <button
+              type="button"
+              title="Code challenges are temporarily disabled while a runner bug is fixed"
+              onClick={() => setNotice('Code challenge questions are coming soon — temporarily disabled while a bug is fixed.')}
+              className="rounded-full bg-black/5 px-3 py-1.5 text-ink/30"
+            >
+              Code challenge <span className="text-[10px]">(coming soon)</span>
+            </button>
           </div>
 
-          {questionType === 'CODE' ? (
+          {false ? (
             <CodeQuestionEditor onAdd={handleAddCodeQuestion} />
           ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -366,13 +396,16 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
                 in the bulk-upload Excel template offline. Select the radio button next to an option to mark it as the
                 correct answer.
               </p>
-              <input
-                className="w-24 rounded border px-2 py-1"
-                type="number"
-                placeholder="Points"
-                value={question.points}
-                onChange={(e) => setQuestion((q) => ({ ...q, points: Number(e.target.value) }))}
-              />
+              <label className="flex w-24 flex-col gap-1 text-xs text-ink/60">
+                Add point
+                <input
+                  className="rounded border px-2 py-1 text-sm text-ink"
+                  type="number"
+                  min={1}
+                  value={question.points}
+                  onChange={(e) => setQuestion((q) => ({ ...q, points: Number(e.target.value) }))}
+                />
+              </label>
               <button type="submit" className="w-fit rounded bg-brand-green px-3 py-1.5 text-sm text-white">
                 Add question
               </button>
@@ -438,7 +471,13 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
           {pagedTests.map((t) => (
             <div
               key={t.id}
-              className={`card ${
+              onClick={() => handleCardClick(t)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') handleCardClick(t);
+              }}
+              className={`card cursor-pointer transition-shadow hover:shadow-md ${
                 t.status === 'PUBLISHED' ? 'card-green' : t.status === 'DRAFT' ? 'card-amber' : 'card-blue'
               } !p-4`}
             >
@@ -456,7 +495,7 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
                 </span>
               </div>
 
-              <div className="mb-3 flex items-center gap-3 text-xs text-ink/50">
+              <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-ink/50">
                 <span className="flex items-center gap-1">
                   <Clock size={12} /> {t.durationMinutes} min
                 </span>
@@ -468,17 +507,40 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
                     <FileText size={12} /> +{t.theoryMaxScore} theory
                   </span>
                 )}
+                {t.status === 'DRAFT' && (
+                  <span className="flex items-center gap-1 font-medium text-brand-blue">
+                    <FileText size={12} /> Click to continue adding questions →
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-3 border-t pt-3 text-xs">
                 <button
                   className="flex items-center gap-1 text-brand-blue hover:underline"
-                  onClick={async () => openPdfBlob(await fetchTestPaperPdf(params.school, t.id))}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    openPdfBlob(await fetchTestPaperPdf(params.school, t.id));
+                  }}
                 >
                   <Printer size={13} /> Print paper
                 </button>
+                <button
+                  className="flex items-center gap-1 text-brand-blue hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewingQuestionsFor(t);
+                  }}
+                >
+                  <FileText size={13} /> Questions
+                </button>
                 {t.status !== 'DRAFT' && (
-                  <button className="flex items-center gap-1 text-brand-blue hover:underline" onClick={() => loadAttempts(t)}>
+                  <button
+                    className="flex items-center gap-1 text-brand-blue hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingScoresFor(t);
+                    }}
+                  >
                     <BarChart3 size={13} /> View scores
                   </button>
                 )}
@@ -504,87 +566,13 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
         )}
       </section>
 
-      {attempts.length > 0 && selectedTest && (
-        <section className="card">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-medium">Scores — {selectedTest.title}</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-ink/50">
-                {attempts.filter((a) => a.status !== 'IN_PROGRESS').length} / {attempts.length} submitted
-              </span>
-              <button
-                onClick={async () => {
-                  const blob = await downloadAttemptsExcel(params.school, selectedTest.id);
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'cbt-attempts.xlsx';
-                  a.click();
-                }}
-                className="btn-secondary flex items-center gap-1.5 text-xs"
-              >
-                <Download size={13} /> Export to Excel
-              </button>
-            </div>
-          </div>
-          <div className="overflow-hidden rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-black/5 text-xs text-ink/50">
-                <tr>
-                  <th className="px-3 py-2 text-left">Student</th>
-                  <th className="px-3 py-2 text-center">Status</th>
-                  <th className="px-3 py-2 text-right">Objective</th>
-                  {selectedTest.theoryMaxScore > 0 && <th className="px-3 py-2 text-right">Theory</th>}
-                  <th className="px-3 py-2 text-right">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attempts.map((a) => (
-                  <tr key={a.id} className="border-t">
-                    <td className="px-3 py-2">
-                      {a.student.firstName} {a.student.lastName}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span
-                        className={`badge ${
-                          a.status === 'GRADED' ? 'badge-green' : a.status === 'SUBMITTED' ? 'badge-amber' : 'badge-gray'
-                        }`}
-                      >
-                        {a.status === 'IN_PROGRESS' ? 'In progress' : a.status === 'SUBMITTED' ? 'Awaiting theory' : 'Graded'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono">
-                      {a.objectiveScore ?? '—'}/{selectedTest.objectiveMaxScore}
-                    </td>
-                    {selectedTest.theoryMaxScore > 0 && (
-                      <td className="px-3 py-2 text-right">
-                        {a.status === 'IN_PROGRESS' ? (
-                          <span className="text-ink/30">—</span>
-                        ) : (
-                          <input
-                            className="w-16 rounded border px-2 py-1 text-right text-xs"
-                            type="number"
-                            placeholder={`/${selectedTest.theoryMaxScore}`}
-                            defaultValue={a.theoryScore ?? ''}
-                            onBlur={(e) => e.target.value && handleGradeTheory(a.id, e.target.value)}
-                          />
-                        )}
-                      </td>
-                    )}
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        className="text-brand-blue hover:underline"
-                        onClick={() => setViewingAttempt({ testId: selectedTest.id, attemptId: a.id })}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+      {viewingScoresFor && (
+        <ViewScoresModal
+          school={params.school}
+          test={viewingScoresFor}
+          onClose={() => setViewingScoresFor(null)}
+          onViewAttempt={(attemptId) => setViewingAttempt({ testId: viewingScoresFor.id, attemptId })}
+        />
       )}
 
       {viewingAttempt && (
@@ -593,6 +581,29 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
           testId={viewingAttempt.testId}
           attemptId={viewingAttempt.attemptId}
           onClose={() => setViewingAttempt(null)}
+        />
+      )}
+
+      {editingTest && (
+        <EditTestModal
+          school={params.school}
+          test={editingTest}
+          onClose={() => setEditingTest(null)}
+          onSaved={(updated) => {
+            setTests((ts) => ts.map((x) => (x.id === updated.id ? updated : x)));
+            if (selectedTest?.id === updated.id) setSelectedTest(updated);
+          }}
+        />
+      )}
+
+      {viewingQuestionsFor && (
+        <QuestionsListModal
+          school={params.school}
+          test={viewingQuestionsFor}
+          onClose={() => setViewingQuestionsFor(null)}
+          onQuestionsChanged={(count) => {
+            if (selectedTest?.id === viewingQuestionsFor.id) setQuestionCount(count);
+          }}
         />
       )}
     </main>

@@ -1,5 +1,5 @@
 // backend/src/modules/cbt/cbt.controller.ts
-import { Body, Controller, Get, Param, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
@@ -8,6 +8,8 @@ import { Public } from '../../common/decorators/roles.decorator';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { CreateTestDto } from './dto/create-test.dto';
 import { AddQuestionDto } from './dto/add-question.dto';
+import { UpdateTestDto } from './dto/update-test.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -38,9 +40,32 @@ export class CbtController {
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Patch(':id')
+  update(@Req() req: Request, @Param('id') id: string, @Body() body: UpdateTestDto) {
+    return this.cbtService.updateTest(req.schoolId!, id, body);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Post(':id/questions')
   addQuestion(@Req() req: Request, @Param('id') id: string, @Body() body: AddQuestionDto) {
     return this.cbtService.addQuestion(req.schoolId!, id, body);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Patch(':id/questions/:questionId')
+  updateQuestion(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('questionId') questionId: string,
+    @Body() body: UpdateQuestionDto,
+  ) {
+    return this.cbtService.updateQuestion(req.schoolId!, id, questionId, body);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Delete(':id/questions/:questionId')
+  deleteQuestion(@Req() req: Request, @Param('id') id: string, @Param('questionId') questionId: string) {
+    return this.cbtService.deleteQuestion(req.schoolId!, id, questionId);
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)

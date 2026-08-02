@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { X, Check, XCircle } from 'lucide-react';
 import { getAttemptDetail, type AttemptDetail } from '@/lib/endpoints/cbt';
+import { ApiError } from '@/lib/api';
 import MathText from './MathText';
 
 export default function AttemptDetailModal({
@@ -33,8 +34,23 @@ export default function AttemptDetailModal({
       .then((data) => {
         if (!cancelled) setDetail(data);
       })
-      .catch(() => {
-        if (!cancelled) setError('Could not load this attempt — check your connection and try again.');
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError) {
+          // Server responded — surface its actual message instead of a
+          // generic one, so an expired session or a genuine 404 don't
+          // both look like a network problem.
+          setError(
+            err.status === 401 || err.status === 403
+              ? 'Your session may have expired — please log in again.'
+              : err.message || `Could not load this attempt (error ${err.status}).`,
+          );
+        } else {
+          // fetch() itself never completed — a real network/DNS/reachability
+          // failure, e.g. the API isn't reachable at NEXT_PUBLIC_API_URL
+          // from this device.
+          setError('Could not reach the server — check your network connection and try again.');
+        }
       });
 
     return () => {

@@ -28,27 +28,44 @@ export default function CodeQuestionEditor({
     setAssertions((a) => a.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)));
   }
 
+  /**
+   * Runs the staff member's own assertions against their own starter
+   * code — this is a self-test, not third-party/student content, so
+   * `allow-same-origin` is added alongside `allow-scripts`. Without it,
+   * the frame gets a unique opaque origin and `contentDocument`/
+   * `contentWindow.eval` are blocked entirely (returns null / throws),
+   * which is what was crashing this button. Using `srcdoc` + waiting
+   * for the `load` event (instead of `document.write` right after
+   * `appendChild`) avoids racing the frame's own initialization, which
+   * is flaky across browsers even when origin isn't the issue.
+   */
   function runPreview() {
     const iframe = document.createElement('iframe');
-    iframe.sandbox.add('allow-scripts');
+    iframe.sandbox.add('allow-scripts', 'allow-same-origin');
     iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument!;
-    doc.open();
-    doc.write(`<style>${starterCss}</style>${starterHtml}<script>${starterJs}</script>`);
-    doc.close();
 
-    let passed = 0;
-    for (const a of assertions) {
-      try {
-        // eslint-disable-next-line no-eval
-        if ((iframe.contentWindow as any).eval(a.assertion)) passed++;
-      } catch {
-        // treated as failed, not a crash
-      }
-    }
-    setPreviewResult(`${passed} / ${assertions.length} assertions pass against the starter code (expected to be low/zero — this is the unsolved starting point).`);
-    document.body.removeChild(iframe);
+    iframe.addEventListener(
+      'load',
+      () => {
+        let passed = 0;
+        for (const a of assertions) {
+          try {
+            // eslint-disable-next-line no-eval
+            if ((iframe.contentWindow as any)?.eval(a.assertion)) passed++;
+          } catch {
+            // treated as failed, not a crash
+          }
+        }
+        setPreviewResult(
+          `${passed} / ${assertions.length} assertions pass against the starter code (expected to be low/zero — this is the unsolved starting point).`,
+        );
+        document.body.removeChild(iframe);
+      },
+      { once: true },
+    );
+
+    document.body.appendChild(iframe);
+    iframe.srcdoc = `<style>${starterCss}</style>${starterHtml}<script>${starterJs}<\/script>`;
   }
 
   function handleSubmit() {
