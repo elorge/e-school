@@ -18,27 +18,51 @@ export class AssessmentController {
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Get('assessment-weights')
-  list(@Req() req: Request, @Query('classId') classId: string, @Query('subject') subject?: string) {
-    return this.scoring.getWeights(req.schoolId!, classId, subject ?? null as any);
+  list(
+    @Req() req: Request,
+    @Query('classId') classId: string,
+    @Query('subject') subject?: string,
+    @Query('termId') termId?: string,
+  ) {
+    return this.scoring.getWeights(req.schoolId!, classId, subject ?? (null as any), termId ?? (null as any));
+  }
+
+  /** Per-term coverage summary for the grading UI — see AssessmentScoringService.getCoverage. */
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Get('assessment-weights/coverage')
+  coverage(@Req() req: Request, @Query('classId') classId: string, @Query('subject') subject?: string) {
+    return this.scoring.getCoverage(req.schoolId!, classId, subject ?? (null as any));
   }
 
   @Roles(Role.SCHOOL_ADMIN)
   @Post('assessment-weights')
   async upsert(
     @Req() req: Request,
-    @Body() body: { classId: string; subject?: string; components: { componentName: string; weightPercent: number }[] },
+    @Body()
+    body: {
+      classId: string;
+      subject?: string;
+      termId?: string;
+      components: { componentName: string; weightPercent: number }[];
+    },
   ) {
     const total = body.components.reduce((s, c) => s + c.weightPercent, 0);
     if (total !== 100) throw new BadRequestException('Component weights must sum to exactly 100');
 
     await this.prisma.assessmentWeight.deleteMany({
-      where: { schoolId: req.schoolId!, classId: body.classId, subject: body.subject ?? null },
+      where: {
+        schoolId: req.schoolId!,
+        classId: body.classId,
+        subject: body.subject ?? null,
+        termId: body.termId ?? null,
+      },
     });
     await this.prisma.assessmentWeight.createMany({
       data: body.components.map((c) => ({
         schoolId: req.schoolId!,
         classId: body.classId,
         subject: body.subject ?? null,
+        termId: body.termId ?? null,
         componentName: c.componentName,
         weightPercent: c.weightPercent,
       })),

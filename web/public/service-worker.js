@@ -1,9 +1,4 @@
 // web/public/service-worker.js
-// Deliberately minimal: caches the app SHELL (static assets) so the app
-// still loads with no connection. It does NOT cache API responses — your
-// offline queues (students, results, CBT attempts) already handle data
-// correctly with proper conflict-safety; caching GET API responses here
-// too would risk showing stale data as if it were live.
 
 const CACHE_NAME = 'eschools-shell-v1';
 const SHELL_ASSETS = ['/', '/manifest.json', '/logo.png', '/icons/icon-192.png'];

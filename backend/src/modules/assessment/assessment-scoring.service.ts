@@ -2,15 +2,57 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+export type WeightResolutionLevel = 'term-subject' | 'subject-default' | 'term-classwide' | 'class-default' | 'unweighted';
+
 @Injectable()
 export class AssessmentScoringService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Subject-specific weights take priority over a class-wide (subject: null) default set. */
-  async getWeights(schoolId: string, classId: string, subject: string) {
-    const specific = await this.prisma.assessmentWeight.findMany({ where: { schoolId, classId, subject } });
-    if (specific.length > 0) return specific;
-    return this.prisma.assessmentWeight.findMany({ where: { schoolId, classId, subject: null } });
+  /**
+   * Resolves weights by widening from most to least specific, and
+   * reports which level actually matched — the coverage endpoint below
+   * uses `level` to tell an admin whether a given term is genuinely
+   * configured or just inheriting a wider default (or nothing at all).
+   *   1. this subject,  this term    → 'term-subject'
+   *   2. this subject,  every term   → 'subject-default'
+   *   3. every subject, this term    → 'term-classwide'
+   *   4. every subject, every term   → 'class-default'
+   *   (nothing found)                → 'unweighted'
+   */
+  private async resolveWeights(schoolId: string, classId: string, subject: string, termId: string) {
+    const attempts: { subject: string | null; termId: string | null; level: WeightResolutionLevel }[] = [
+      { subject, termId, level: 'term-subject' },
+      { subject, termId: null, level: 'subject-default' },
+      { subject: null, termId, level: 'term-classwide' },
+      { subject: null, termId: null, level: 'class-default' },
+    ];
+    for (const { level, ...where } of attempts) {
+      const rows = await this.prisma.assessmentWeight.findMany({ where: { schoolId, classId, ...where } });
+      if (rows.length > 0) return { level, weights: rows };
+    }
+    return { level: 'unweighted' as const, weights: [] };
+  }
+
+  async getWeights(schoolId: string, classId: string, subject: string, termId: string) {
+    const { weights } = await this.resolveWeights(schoolId, classId, subject, termId);
+    return weights;
+  }
+
+  /**
+   * Per-term breakdown for the grading UI's coverage summary — shows an
+   * admin, for the class/subject they're looking at, which terms have
+   * their own weights, which are inheriting a default, and which have
+   * nothing configured at all (→ unweighted, direct-score behavior).
+   */
+  async getCoverage(schoolId: string, classId: string, subject: string) {
+    const terms = await this.prisma.term.findMany({ where: { schoolId }, orderBy: [{ academicSession: 'desc' }, { termNumber: 'asc' }] });
+    const rows = await Promise.all(
+      terms.map(async (term) => {
+        const { level } = await this.resolveWeights(schoolId, classId, subject, term.id);
+        return { termId: term.id, termName: term.name, level };
+      }),
+    );
+    return rows;
   }
 
   async recordComponentScore(
@@ -32,9 +74,10 @@ export class AssessmentScoringService {
   /**
    * Recomputes the weighted final score and writes it into
    * ResultEntry.subjectScores. Returns null if no weight config exists
-   * for this class/subject — callers must fall back to their own direct
-   * write in that case, which preserves the exact pre-existing behavior
-   * for every school that hasn't opted into weighting.
+   * for this class/subject/term, at any level of the fallback cascade —
+   * callers must fall back to their own direct write in that case,
+   * which preserves the exact pre-existing behavior for every school
+   * that hasn't opted into weighting.
    *
    * If some but not all configured components have a score yet, this
    * projects the total from whatever's entered so far, scaled up — not
@@ -43,7 +86,7 @@ export class AssessmentScoringService {
    */
   async recomputeAndSync(schoolId: string, studentId: string, termId: string, subject: string) {
     const student = await this.prisma.student.findUniqueOrThrow({ where: { id: studentId } });
-    const weights = await this.getWeights(schoolId, student.classId, subject);
+    const weights = await this.getWeights(schoolId, student.classId, subject, termId);
     if (weights.length === 0) return null;
 
     const components = await this.prisma.assessmentScore.findMany({ where: { schoolId, studentId, termId, subject } });

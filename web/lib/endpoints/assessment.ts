@@ -4,18 +4,41 @@ import { apiFetch } from '../api';
 export interface AssessmentWeight {
   id: string;
   classId: string;
+  termId: string | null;
   subject: string | null;
   componentName: string;
   weightPercent: number;
 }
 
-export function getWeights(school: string, classId: string, subject?: string): Promise<AssessmentWeight[]> {
-  const qs = subject ? `&subject=${encodeURIComponent(subject)}` : '';
-  return apiFetch(`/${school}/assessment-weights?classId=${classId}${qs}`);
+export type WeightResolutionLevel = 'term-subject' | 'subject-default' | 'term-classwide' | 'class-default' | 'unweighted';
+
+export interface AssessmentWeightCoverageRow {
+  termId: string;
+  termName: string;
+  level: WeightResolutionLevel;
 }
 
-export function setWeights(school: string, classId: string, subject: string | undefined, components: { componentName: string; weightPercent: number }[]) {
-  return apiFetch(`/${school}/assessment-weights`, { method: 'POST', body: JSON.stringify({ classId, subject, components }) });
+export function getWeights(school: string, classId: string, subject?: string, termId?: string): Promise<AssessmentWeight[]> {
+  const params = new URLSearchParams({ classId });
+  if (subject) params.set('subject', subject);
+  if (termId) params.set('termId', termId);
+  return apiFetch(`/${school}/assessment-weights?${params.toString()}`);
+}
+
+export function getCoverage(school: string, classId: string, subject?: string): Promise<AssessmentWeightCoverageRow[]> {
+  const params = new URLSearchParams({ classId });
+  if (subject) params.set('subject', subject);
+  return apiFetch(`/${school}/assessment-weights/coverage?${params.toString()}`);
+}
+
+export function setWeights(
+  school: string,
+  classId: string,
+  subject: string | undefined,
+  termId: string | undefined,
+  components: { componentName: string; weightPercent: number }[],
+) {
+  return apiFetch(`/${school}/assessment-weights`, { method: 'POST', body: JSON.stringify({ classId, subject, termId, components }) });
 }
 
 export function listComponentScores(school: string, studentId: string, termId: string, subject: string) {

@@ -201,6 +201,7 @@ model Term {
   feeInvoices    FeeInvoice[]
   lessonNotes    LessonNote[]
   assessmentScores AssessmentScore[]
+  assessmentWeights AssessmentWeight[]
 
   @@unique([schoolId, academicSession, termNumber])
   @@index([schoolId, academicSession])
@@ -721,6 +722,8 @@ model AssessmentWeight {
   school        School   @relation(fields: [schoolId], references: [id])
   classId       String
   class         Class    @relation(fields: [classId], references: [id])
+  termId        String?  // null = applies to every term unless overridden by a term-specific set — same pattern as `subject`
+  term          Term?    @relation(fields: [termId], references: [id])
   subject       String?  // null = applies to every subject in this class unless overridden by a subject-specific set
   componentName String   // e.g. "Test", "Exam", "CA1" — free text, not a fixed enum, since schools vary
   weightPercent Int
