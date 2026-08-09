@@ -583,6 +583,17 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
     ]);
     const logoBuffer = school.logoUrl ? await this.fetchImageBuffer(school.logoUrl) : null;
 
+    // Matches the on-screen palette (#137CBD / #2D3B45 / #6B7780 / #C7CDD1 /
+    // #F5F5F5) so the printed paper and the quiz-taking screen read as the
+    // same product rather than two different tools.
+    const INK = '#2D3B45';
+    const MUTED = '#6B7780';
+    const BORDER = '#C7CDD1';
+    const HEADER_FILL = '#F5F5F5';
+    const HEADER_BAR_HEIGHT = 22;
+    const CARD_PADDING = 10;
+    const CARD_GAP = 14;
+
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const chunks: Buffer[] = [];
@@ -599,58 +610,87 @@ async getAttemptForStudent(schoolId: string, testId: string, studentId: string) 
           this.logger.warn(`Test paper logo for school ${schoolId} was not a valid image: ${err}`);
         }
       }
-      doc.fontSize(16).font('Helvetica-Bold').text(school.name, { align: 'center' });
+      doc.fillColor(INK).fontSize(16).font('Helvetica-Bold').text(school.name, { align: 'center' });
       doc.fontSize(12).font('Helvetica').text(`${test.title} — ${test.subject}`, { align: 'center' });
-      doc.fontSize(9).fillColor('#666').text(`Class: ${klass.name}   •   Duration: ${test.durationMinutes} minutes`, { align: 'center' });
-      doc.fillColor('#000');
+      doc.fontSize(9).fillColor(MUTED).text(`Class: ${klass.name}   •   Duration: ${test.durationMinutes} minutes`, { align: 'center' });
+      doc.fillColor(INK);
       doc.moveDown(1.5);
 
       const sortedQuestions = [...test.questions].sort((a, b) => a.order - b.order);
 
       for (let i = 0; i < sortedQuestions.length; i++) {
         const q = sortedQuestions[i];
-        let y = doc.y;
 
-        if (y > doc.page.height - doc.page.margins.bottom - 100) {
+        // Reserve enough room for at least the header bar + a couple lines
+        // before starting a new card — a card is never allowed to open on
+        // one page and immediately continue on the next.
+        if (doc.y > doc.page.height - doc.page.margins.bottom - 130) {
           doc.addPage();
-          y = doc.page.margins.top;
         }
+
+        const cardStartY = doc.y;
+        const headerY = cardStartY;
+
+        // Header bar: light fill, "Question N" left / "X pts" right,
+        // vertically centered within HEADER_BAR_HEIGHT.
+        doc.rect(doc.page.margins.left, headerY, contentWidth, HEADER_BAR_HEIGHT).fill(HEADER_FILL);
+
+        const pointsLabel = `${q.points} pt${q.points !== 1 ? 's' : ''}`;
+        doc
+          .fillColor(INK)
+          .font('Helvetica-Bold')
+          .fontSize(10.5)
+          .text(`Question ${i + 1}`, doc.page.margins.left + CARD_PADDING, headerY + 6, {
+            width: contentWidth - CARD_PADDING * 2 - 60,
+            lineBreak: false,
+          });
+        doc
+          .fillColor(MUTED)
+          .font('Helvetica')
+          .fontSize(9.5)
+          .text(pointsLabel, doc.page.margins.left, headerY + 6, {
+            width: contentWidth - CARD_PADDING,
+            align: 'right',
+            lineBreak: false,
+          });
+        doc.fillColor(INK);
+
+        let y = headerY + HEADER_BAR_HEIGHT + CARD_PADDING;
+        const bodyLeft = doc.page.margins.left + CARD_PADDING;
+        const bodyWidth = contentWidth - CARD_PADDING * 2;
 
         if (q.type !== 'OBJECTIVE') {
-          y = renderTextWithMath(
-            doc,
-            this.mathRenderer,
-            `${i + 1}. ${q.questionText} (${q.points} pt${q.points !== 1 ? 's' : ''})`,
-            doc.page.margins.left,
-            y,
-            contentWidth,
-            11,
-          );
+          y = renderTextWithMath(doc, this.mathRenderer, q.questionText, bodyLeft, y, bodyWidth, 11);
           doc.y = y;
-          doc.moveDown(0.8);
-          continue;
+          doc
+            .fontSize(8.5)
+            .fillColor(MUTED)
+            .text('Code challenge — completed on-screen, no written answer space.', bodyLeft, doc.y + 4, { width: bodyWidth });
+          doc.fillColor(INK);
+          y = doc.y;
+        } else {
+          y = renderTextWithMath(doc, this.mathRenderer, q.questionText, bodyLeft, y, bodyWidth, 11);
+          doc.y = y;
+          doc.moveDown(0.2);
+          y = doc.y;
+
+          const options = q.options as string[];
+          const letters = ['A', 'B', 'C', 'D'];
+          for (let j = 0; j < options.length; j++) {
+            const newY = renderTextWithMath(doc, this.mathRenderer, `${letters[j]}) ${options[j]}`, bodyLeft + 10, y, bodyWidth - 10, 10);
+            y = newY;
+          }
+          doc.y = y;
         }
 
-        y = renderTextWithMath(doc, this.mathRenderer, `${i + 1}. ${q.questionText}`, doc.page.margins.left, y, contentWidth, 11);
-        doc.y = y;
-        doc.moveDown(0.2);
+        const cardEndY = doc.y + CARD_PADDING;
 
-        const options = q.options as string[];
-        const letters = ['A', 'B', 'C', 'D'];
-        for (let j = 0; j < options.length; j++) {
-          const optY = doc.y;
-          const newY = renderTextWithMath(
-            doc,
-            this.mathRenderer,
-            `   ${letters[j]}) ${options[j]}`,
-            doc.page.margins.left,
-            optY,
-            contentWidth,
-            10,
-          );
-          doc.y = newY;
-        }
-        doc.moveDown(0.8);
+        // Card border, drawn after the content so its true height is known —
+        // a thin stroke around the whole header+body, matching the on-screen
+        // card's border color.
+        doc.rect(doc.page.margins.left, cardStartY, contentWidth, cardEndY - cardStartY).lineWidth(0.75).strokeColor(BORDER).stroke();
+
+        doc.y = cardEndY + CARD_GAP;
       }
 
       doc.end();

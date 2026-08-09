@@ -411,18 +411,40 @@ export default function StaffCbtPage({ params }: { params: { school: string } })
               </button>
             </form>
 
-            <div className="rounded-lg border-2 border-dashed p-4">
-              <p className="mb-2 text-xs uppercase tracking-wide text-ink/40">Live preview — what the student sees</p>
-              <p className="mb-3 font-medium">
-                {question.questionText ? <MathText text={question.questionText} /> : 'Your question text will appear here…'}
-              </p>
-              <div className="flex flex-col gap-2">
-                {question.options.map((opt, i) => (
-                  <label key={i} className="flex items-center gap-2 text-sm">
-                    <input type="radio" disabled checked={question.correctOptionIndex === i} readOnly />
-                    {opt ? <MathText text={opt} /> : <span className="text-ink/30">Option {i + 1}</span>}
-                  </label>
-                ))}
+            <div className="overflow-hidden rounded border border-[#C7CDD1] bg-white">
+              <div className="flex items-center justify-between border-b border-[#C7CDD1] bg-[#F5F5F5] px-4 py-2.5">
+                <p className="font-semibold text-[#2D3B45]">Question {questionCount + 1}</p>
+                <p className="text-sm text-[#6B7780]">
+                  {question.points} pt{question.points !== 1 ? 's' : ''}
+                </p>
+              </div>
+
+              <div className="px-4 py-4">
+                <p className="mb-1 text-xs uppercase tracking-wide text-ink/40">Live preview — what the student sees</p>
+                <p className="mb-4 mt-2 text-[#2D3B45]">
+                  {question.questionText ? (
+                    <MathText text={question.questionText} />
+                  ) : (
+                    <span className="text-ink/30">Your question text will appear here…</span>
+                  )}
+                </p>
+
+                <div className="flex flex-col gap-1">
+                  {question.options.map((opt, i) => {
+                    const markedCorrect = question.correctOptionIndex === i;
+                    return (
+                      <label
+                        key={i}
+                        className={`flex items-center gap-3 rounded border px-3 py-2.5 text-sm ${
+                          markedCorrect ? 'border-[#137CBD] bg-[#137CBD]/5' : 'border-transparent'
+                        }`}
+                      >
+                        <input type="radio" disabled checked={markedCorrect} readOnly className="h-4 w-4 accent-[#137CBD]" />
+                        {opt ? <MathText text={opt} /> : <span className="text-ink/30">Option {i + 1}</span>}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

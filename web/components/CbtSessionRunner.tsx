@@ -2,7 +2,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { answerQuestion, submitLocalAttempt, retryQueuedSubmit, clearLocalAttempt, getLocalAttempt } from '@/lib/cbt-offline';
+import { Menu, ChevronDown } from 'lucide-react';
+import { answerQuestion, submitLocalAttempt, retryQueuedSubmit } from '@/lib/cbt-offline';
 import type { AttemptSession, SavedCodeAnswer } from '@/lib/endpoints/cbt';
 import MathText from './MathText';
 import CodeQuestionRunner from './CodeQuestionRunner';
@@ -22,13 +23,42 @@ function isObjectiveAnswer(value: unknown): value is number {
   return typeof value === 'number';
 }
 
-/** Shared quiz-taking UI — used by both the staff-assisted flow and the student self-service flow. Assumes initLocalAttempt() was already called by the caller. */
-export default function CbtSessionRunner({ session }: { session: AttemptSession }) {
+interface CbtSessionRunnerProps {
+  session: AttemptSession;
+  /** Shown as the small breadcrumb line in the header, e.g. the test's subject — "CSE270" */
+  courseCode?: string;
+  /** Shown as the bold line under the breadcrumb, e.g. the test's title — "W07 Final Exam" */
+  quizTitle?: string;
+  /** Instructions bullets. Sensible defaults are used if omitted. */
+  purpose?: string;
+  conditions?: string;
+  /** When the attempt began — defaults to "now" if omitted (only affects the "Started:" display). */
+  startedAt?: string;
+}
+
+/**
+ * Shared quiz-taking UI — used by both the staff-assisted flow and the
+ * student self-service flow. Assumes initLocalAttempt() was already
+ * called by the caller. Styled to match a Canvas-style quiz player: a
+ * blue app header with a collapsible instructions panel, then one
+ * bordered card per question with a light "Question N / pts" header
+ * row above the body.
+ */
+export default function CbtSessionRunner({
+  session,
+  courseCode = 'CBT',
+  quizTitle = 'Test',
+  purpose,
+  conditions,
+  startedAt,
+}: CbtSessionRunnerProps) {
   const [answers, setAnswers] = useState<AnswerMap>(session.savedAnswers);
   const [msRemaining, setMsRemaining] = useState(0);
   const [done, setDone] = useState(false);
   const [queued, setQueued] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(true);
   const submittedRef = useRef(false);
+  const started = useRef(new Date(startedAt ?? Date.now())).current;
 
   useEffect(() => {
     const tick = () => {
@@ -72,63 +102,163 @@ export default function CbtSessionRunner({ session }: { session: AttemptSession 
     setDone(true);
   }
 
+  const answeredCount = session.questions.filter((q) => answers[q.id] !== undefined).length;
+  const isLowTime = msRemaining < 60_000;
+
+  const Header = (
+    <>
+      <div className="h-1.5 bg-[#0B1F33]" />
+      <header className="sticky top-0 z-20 bg-[#137CBD] text-white shadow-sm">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+          <button className="rounded p-1 text-white/90 hover:bg-white/10" aria-label="Menu">
+            <Menu size={22} />
+          </button>
+          <div className="text-center leading-tight">
+            <p className="text-sm font-medium">{courseCode}</p>
+            <p className="text-base font-semibold">{quizTitle}</p>
+          </div>
+          {done ? (
+            <span className="w-[22px]" />
+          ) : (
+            <button
+              className="rounded p-1 text-white/90 hover:bg-white/10"
+              onClick={() => setInstructionsOpen((o) => !o)}
+              aria-label="Toggle instructions"
+            >
+              <ChevronDown size={20} className={`transition-transform ${instructionsOpen ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      </header>
+    </>
+  );
+
   if (done) {
     return (
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-2 text-xl font-semibold">Test submitted</h1>
-        {queued ? (
-          <p className="text-sm text-amber-700">
-            No internet right now — your submission is saved on this device and will finish syncing automatically.
-            Please don't close this tab yet.
-          </p>
-        ) : (
-          <p className="text-sm text-green-700">Successfully submitted.</p>
-        )}
+      <div className="min-h-screen bg-[#F5F5F5]">
+        {Header}
+        <main className="mx-auto max-w-3xl px-4 pt-16 text-center">
+          <h1 className="mb-2 text-2xl font-bold text-[#2D3B45]">Test submitted</h1>
+          {queued ? (
+            <p className="text-sm text-amber-700">
+              No internet right now — your submission is saved on this device and will finish syncing
+              automatically. Please don't close this tab yet.
+            </p>
+          ) : (
+            <p className="text-sm text-green-700">Successfully submitted.</p>
+          )}
+        </main>
       </div>
     );
   }
 
-  const isLowTime = msRemaining < 60_000;
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className={`sticky top-0 z-10 mb-6 flex items-center justify-between rounded-lg px-4 py-2 ${isLowTime ? 'bg-red-100' : 'bg-black/5'}`}>
-        <span className="text-sm">Answer every question, then submit.</span>
-        <span className={`font-mono text-lg font-semibold ${isLowTime ? 'text-red-700' : ''}`}>{formatCountdown(msRemaining)}</span>
-      </div>
-      <div className="flex flex-col gap-6">
-        {session.questions.map((q, idx) =>
-          q.type === 'CODE' ? (
-            <CodeQuestionRunner
-              key={q.id}
-              question={q}
-              savedResult={answers[q.id]}
-              onResult={(result) => handleCodeResult(q.id, result)}
-            />
-          ) : (
-            <div key={q.id} className="card">
-              <p className="mb-3 font-medium">
-                {idx + 1}. <MathText text={q.questionText} />
-              </p>
-              <div className="flex flex-col gap-2">
-                {q.options.map((opt, optIdx) => (
-                  <label key={optIdx} className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name={q.id}
-                      checked={isObjectiveAnswer(answers[q.id]) && answers[q.id] === optIdx}
-                      onChange={() => handleSelectOption(q.id, optIdx)}
-                    />
-                    <MathText text={opt} />
-                  </label>
-                ))}
-              </div>
-            </div>
-          ),
+    <div className="min-h-screen bg-[#F5F5F5]">
+      {Header}
+
+      <main className="mx-auto max-w-3xl px-4 pb-32 pt-6">
+        <h1 className="mb-1 text-2xl font-bold text-[#2D3B45]">{quizTitle}</h1>
+        <p className="mb-5 text-sm text-[#6B7780]">
+          Started: {started.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at{' '}
+          {started.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+        </p>
+
+        {instructionsOpen && (
+          <section className="mb-6">
+            <h2 className="mb-2 text-xl font-bold text-[#2D3B45]">Quiz Instructions</h2>
+            <ul className="list-disc space-y-2 pl-5 text-sm text-[#2D3B45]">
+              <li>
+                <span className="font-semibold">Purpose:</span>{' '}
+                {purpose ??
+                  `Complete all ${session.questions.length} question(s) below. Your answers save automatically as you go.`}
+              </li>
+              <li>
+                <span className="font-semibold">Conditions:</span>{' '}
+                {conditions ?? 'Stay on this page until you submit. Once time runs out, the quiz submits itself.'}
+              </li>
+            </ul>
+          </section>
         )}
-      </div>
-      <button onClick={handleSubmit} className="mt-6 w-full rounded bg-brand-green px-4 py-3 font-medium text-white">
-        Submit test
-      </button>
+
+        <hr className="mb-6 border-[#C7CDD1]" />
+
+        <div className="flex flex-col gap-4">
+          {session.questions.map((q, idx) =>
+            q.type === 'CODE' ? (
+              <div key={q.id} className="overflow-hidden rounded border border-[#C7CDD1] bg-white">
+                <div className="flex items-center justify-between border-b border-[#C7CDD1] bg-[#F5F5F5] px-4 py-2.5">
+                  <p className="font-semibold text-[#2D3B45]">Question {idx + 1}</p>
+                  <p className="text-sm text-[#6B7780]">
+                    {q.points} pt{q.points !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="px-4 py-4">
+                  <CodeQuestionRunner
+                    question={q}
+                    savedResult={answers[q.id]}
+                    onResult={(result) => handleCodeResult(q.id, result)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div key={q.id} className="overflow-hidden rounded border border-[#C7CDD1] bg-white">
+                <div className="flex items-center justify-between border-b border-[#C7CDD1] bg-[#F5F5F5] px-4 py-2.5">
+                  <p className="font-semibold text-[#2D3B45]">Question {idx + 1}</p>
+                  <p className="text-sm text-[#6B7780]">
+                    {q.points} pt{q.points !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="px-4 py-4">
+                  <p className="mb-4 text-[#2D3B45]">
+                    <MathText text={q.questionText} />
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    {q.options.map((opt, optIdx) => {
+                      const selected = isObjectiveAnswer(answers[q.id]) && answers[q.id] === optIdx;
+                      return (
+                        <label
+                          key={optIdx}
+                          className={`flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-sm transition-colors ${
+                            selected ? 'border-[#137CBD] bg-[#137CBD]/5' : 'border-transparent hover:bg-black/[0.03]'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={q.id}
+                            checked={selected}
+                            onChange={() => handleSelectOption(q.id, optIdx)}
+                            className="h-4 w-4 accent-[#137CBD]"
+                          />
+                          <MathText text={opt} />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ),
+          )}
+        </div>
+      </main>
+
+      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#C7CDD1] bg-white">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+          <div className="text-sm text-[#2D3B45]">
+            <span className="font-semibold">{answeredCount}</span> / {session.questions.length} answered
+          </div>
+          <div className="flex items-center gap-4">
+            <span className={`font-mono text-sm ${isLowTime ? 'text-red-600' : 'text-[#6B7780]'}`}>
+              {formatCountdown(msRemaining)} left
+            </span>
+            <button
+              onClick={handleSubmit}
+              className="rounded bg-[#137CBD] px-5 py-2 text-sm font-medium text-white"
+            >
+              Submit Quiz
+            </button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
