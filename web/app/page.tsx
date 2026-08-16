@@ -363,7 +363,7 @@ export default function HomePage() {
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-black/5 bg-white px-6 py-20 text-center">
+      <section id="whatsapp-avoid" className="border-t border-black/5 bg-white px-6 py-20 text-center">
         <h2 className="mb-6 font-display text-3xl font-semibold">Ready to see it running on your own data?</h2>
         <Link
           href="/signup"
