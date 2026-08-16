@@ -49,44 +49,52 @@ export class StudentsService {
    * stronger guarantee.
    */
 async createAndAssignId(
-    schoolId: string,
-    schoolCode: string,
-    classId: string,
-    createdByStaffId: string,
-    clientReferenceId: string,
-    data: { firstName: string; lastName: string; photoUrl?: string; admissionYear: number },
-  ) {
-    // If a device is retrying an offline-queued registration that
-    // actually succeeded last time (e.g. the response was lost even
-    // though the write went through), this returns the existing row
-    // instead of creating a second student for the same child.
-    const existing = await this.prisma.student.findUnique({ where: { clientReferenceId } });
-    if (existing) return existing;
+  schoolId: string,
+  schoolCode: string,
+  classId: string,
+  createdByStaffId: string,
+  clientReferenceId: string,
+  data: { firstName: string; lastName: string; photoUrl?: string; admissionYear: number },
+) {
+  const existing = await this.prisma.student.findUnique({ where: { clientReferenceId } });
+  if (existing) return existing;
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const count = await tx.student.count({
-        where: { schoolId, admissionYear: data.admissionYear, status: StudentStatus.ACTIVE },
-      });
-      const sequence = String(count + 1).padStart(4, '0');
-      const studentId = `${schoolCode}/${data.admissionYear}/${sequence}`;
+  return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // Serialize sequence assignment per school+year so two concurrent
+    // registrations can't both read the same count before either commits.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${schoolId} || ${data.admissionYear}))`;
 
-      const student = await tx.student.create({
-        data: {
-          schoolId,
-          classId,
-          createdByStaffId,
-          clientReferenceId,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          photoUrl: data.photoUrl,
-          admissionYear: data.admissionYear,
-          studentId,
-          status: StudentStatus.ACTIVE,
-        },
-      });
-      return student;
+    const count = await tx.student.count({
+      // NOT filtered by status: studentId uniqueness spans every status.
+      // withdraw() soft-deletes (sets status to WITHDRAWN) but
+      // deliberately leaves studentId untouched so result/attendance
+      // history stays attributable — meaning a withdrawn student's id
+      // remains "taken." Counting ACTIVE-only here would let the next
+      // registration recompute a number a withdrawn student already
+      // holds, causing a deterministic unique-constraint failure on
+      // every attempt, not just an occasional race.
+      where: { schoolId, admissionYear: data.admissionYear },
     });
-  }
+    const sequence = String(count + 1).padStart(4, '0');
+    const studentId = `${schoolCode}/${data.admissionYear}/${sequence}`;
+
+    const student = await tx.student.create({
+      data: {
+        schoolId,
+        classId,
+        createdByStaffId,
+        clientReferenceId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        photoUrl: data.photoUrl,
+        admissionYear: data.admissionYear,
+        studentId,
+        status: StudentStatus.ACTIVE,
+      },
+    });
+    return student;
+  });
+}
 
   /** Called right after a student row exists — separate from the transaction above since ID card issuance shouldn't block/rollback registration if it fails for any reason. */
   async ensureIdCard(schoolId: string, studentId: string) {

@@ -1,7 +1,14 @@
 // web/lib/endpoints/students.ts
 import { apiFetch } from '../api';
 import type { Student } from '../types';
-import { enqueueStudent, getQueuedStudents, removeQueuedStudent, queueLength } from '../offline-students-queue';
+import {
+  enqueueStudent,
+  getQueuedStudents,
+  removeQueuedStudent,
+  queueLength,
+  recordSyncFailure,
+  getStuckStudents,
+} from '../offline-students-queue';
 
 export function listStudents(school: string, classId?: string, includeWithdrawn = false): Promise<Student[]> {
   const params = new URLSearchParams();
@@ -55,7 +62,18 @@ export async function registerStudent(
   }
 }
 
-/** Call on reconnect to flush anything registered offline. Safe to call repeatedly — server dedupes on clientReferenceId. */
+/**
+ * Call on reconnect to flush anything registered offline. Safe to call
+ * repeatedly — server dedupes on clientReferenceId.
+ *
+ * A plain `TypeError` means fetch never got a response at all — that's
+ * "still offline," not a real failure, so it doesn't count against the
+ * item and the UI keeps calling this "waiting to sync." Anything else
+ * means the server actually responded (even with an error) and the
+ * request still failed — that's tracked per-item so a request that keeps
+ * failing against a real response gets flagged as needing attention
+ * instead of retried silently forever.
+ */
 export async function syncQueuedStudents(): Promise<{ synced: Student[]; failed: number }> {
   const queued = getQueuedStudents();
   const synced: Student[] = [];
@@ -72,7 +90,10 @@ export async function syncQueuedStudents(): Promise<{ synced: Student[]; failed:
       });
       removeQueuedStudent(item.clientReferenceId);
       synced.push(student);
-    } catch {
+    } catch (err) {
+      if (!(err instanceof TypeError)) {
+        recordSyncFailure(item.clientReferenceId, err instanceof Error ? err.message : 'Sync failed');
+      }
       failed++;
     }
   }
@@ -82,6 +103,11 @@ export async function syncQueuedStudents(): Promise<{ synced: Student[]; failed:
 
 export function getPendingStudentsCount(): number {
   return queueLength();
+}
+
+/** Items that reached the server and were rejected repeatedly — not just waiting for a connection. */
+export function getStuckStudentsCount(threshold = 3): number {
+  return getStuckStudents(threshold).length;
 }
 
 /** Class teacher (of that student's class) or School Admin only. */

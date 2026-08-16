@@ -1,7 +1,15 @@
 // web/lib/endpoints/results.ts
 import { apiFetch } from '../api';
 import type { ResultEntry } from '../types';
-import { enqueueResult, getQueuedResults, removeQueuedResult, queueLength, type QueuedResult } from '../offline-queue';
+import {
+  enqueueResult,
+  getQueuedResults,
+  removeQueuedResult,
+  queueLength,
+  recordSyncFailure,
+  getStuckResults,
+  type QueuedResult,
+} from '../offline-queue';
 
 export function getResult(school: string, studentId: string, termId: string): Promise<ResultEntry | null> {
   return apiFetch(`/${school}/students/${studentId}/results/${termId}`);
@@ -38,11 +46,6 @@ export async function saveResult(
     const result = await upsertResult(school, studentId, termId, body);
     return { queued: false, result };
   } catch (err) {
-    // A validation error (e.g. score out of range) is a 400 from the
-    // server and should be shown to the teacher, not silently queued —
-    // queuing it would just fail again on every retry. Only network-level
-    // failures (fetch throws before getting a response at all, or a
-    // clearly transient 5xx) should be queued.
     const isNetworkFailure = err instanceof TypeError || (err as any)?.status >= 500;
     if (!isNetworkFailure) throw err;
 
@@ -56,6 +59,12 @@ export async function saveResult(
  * anything saved locally. Safe to call repeatedly — the backend's
  * upsertResult is idempotent per (school, studentId, termId), so a
  * retry of an already-synced item just overwrites with identical data.
+ *
+ * As in the students queue: a `TypeError` means fetch never reached the
+ * server at all — genuinely offline, so it's left to retry quietly.
+ * Anything else means the server responded and still rejected it, which
+ * is tracked per-item so a repeatedly-failing result gets flagged
+ * instead of retried forever with no visibility.
  */
 export async function syncQueuedResults(): Promise<{ synced: number; failed: number }> {
   const queued = getQueuedResults();
@@ -67,8 +76,10 @@ export async function syncQueuedResults(): Promise<{ synced: number; failed: num
       await upsertResult(item.school, item.studentId, item.termId, item.body);
       removeQueuedResult(item.id);
       synced++;
-    } catch {
-      // Leave it in the queue — will retry again on the next sync trigger.
+    } catch (err) {
+      if (!(err instanceof TypeError)) {
+        recordSyncFailure(item.id, err instanceof Error ? err.message : 'Sync failed');
+      }
       failed++;
     }
   }
@@ -78,6 +89,11 @@ export async function syncQueuedResults(): Promise<{ synced: number; failed: num
 
 export function getPendingResultsCount(): number {
   return queueLength();
+}
+
+/** Items that reached the server and were rejected repeatedly — not just waiting for a connection. */
+export function getStuckResultsCount(threshold = 3): number {
+  return getStuckResults(threshold).length;
 }
 
 export type { QueuedResult };
