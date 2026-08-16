@@ -56,29 +56,27 @@ async createAndAssignId(
   clientReferenceId: string,
   data: { firstName: string; lastName: string; photoUrl?: string; admissionYear: number },
 ) {
-  const existing = await this.prisma.student.findUnique({ where: { clientReferenceId } });
-  if (existing) return existing;
-
   return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // Serialize sequence assignment per school+year so two concurrent
-    // registrations can't both read the same count before either commits.
+    // Two locks: one serializes sequence-number assignment per
+    // school+year; the other serializes concurrent retries of this
+    // exact registration (e.g. two sync loops firing at once). Both
+    // must be inside the transaction — checking "does this already
+    // exist?" before acquiring any lock is what let two concurrent
+    // requests for the same clientReferenceId both pass the check
+    // and then collide on insert.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${schoolId} || ${data.admissionYear}))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${clientReferenceId}))`;
+
+    const existing = await tx.student.findUnique({ where: { clientReferenceId } });
+    if (existing) return existing;
 
     const count = await tx.student.count({
-      // NOT filtered by status: studentId uniqueness spans every status.
-      // withdraw() soft-deletes (sets status to WITHDRAWN) but
-      // deliberately leaves studentId untouched so result/attendance
-      // history stays attributable — meaning a withdrawn student's id
-      // remains "taken." Counting ACTIVE-only here would let the next
-      // registration recompute a number a withdrawn student already
-      // holds, causing a deterministic unique-constraint failure on
-      // every attempt, not just an occasional race.
       where: { schoolId, admissionYear: data.admissionYear },
     });
     const sequence = String(count + 1).padStart(4, '0');
     const studentId = `${schoolCode}/${data.admissionYear}/${sequence}`;
 
-    const student = await tx.student.create({
+    return tx.student.create({
       data: {
         schoolId,
         classId,
@@ -92,7 +90,6 @@ async createAndAssignId(
         status: StudentStatus.ACTIVE,
       },
     });
-    return student;
   });
 }
 
