@@ -1,7 +1,15 @@
 // web/app/contact/page.tsx
+import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { Mail, MessageCircle, Clock, Users2, Wrench } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Contact Elorge Schools',
+  description:
+    'Get in touch about setting up your school on Elorge, pricing, or support — email or WhatsApp, a real person replies.',
+  alternates: { canonical: '/contact' },
+};
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 

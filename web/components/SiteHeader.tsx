@@ -16,6 +16,11 @@ const SECTIONS = [
   { id: 'infrastructure', label: 'Hardware' },
 ];
 
+// Standalone pages (not homepage anchors) worth surfacing in the main
+// nav. Kept separate from SECTIONS since these aren't scroll-spied —
+// they're always-static links to their own indexable page.
+const PAGE_LINKS = [{ href: '/results', label: 'Check Result' }];
+
 export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -58,6 +63,11 @@ export default function SiteHeader() {
               {s.label}
             </a>
           ))}
+          {PAGE_LINKS.map((l) => (
+            <Link key={l.href} href={l.href} className="text-ink/60 transition hover:text-ink">
+              {l.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="hidden items-center gap-4 sm:flex">
@@ -83,6 +93,16 @@ export default function SiteHeader() {
             <a key={s.id} href={`/#${s.id}`} className="py-2 text-sm text-ink/70" onClick={() => setMobileOpen(false)}>
               {s.label}
             </a>
+          ))}
+          {PAGE_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="py-2 text-sm text-ink/70"
+              onClick={() => setMobileOpen(false)}
+            >
+              {l.label}
+            </Link>
           ))}
           <div className="mt-3 flex flex-col gap-2 border-t border-black/5 pt-3">
             <Link href="/login" className="py-2 text-sm text-ink/70" onClick={() => setMobileOpen(false)}>

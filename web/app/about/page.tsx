@@ -1,9 +1,17 @@
 // web/app/about/page.tsx
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { Linkedin, ShieldCheck, Wifi, Users2 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'About Elorge Technologies — Nigerian School Software Company',
+  description:
+    'Meet the team behind Elorge Schools: education, engineering, security, and legal expertise building school management software for Nigeria.',
+  alternates: { canonical: '/about' },
+};
 
 // TODO: replace with your real team. Add each person's photo to
 // web/public/team/ and point `photo` at it — leave `photo: null` for

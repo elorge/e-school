@@ -7,12 +7,17 @@ import TikTokIcon from './icons/TikTokIcon';
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 
+// Links to dedicated pages where one exists (better for SEO than a
+// same-page anchor — these pages target specific searches like
+// "school CBT software" or "check school result online"). Sections
+// without their own page still point back to the homepage anchor.
 const PRODUCT_LINKS = [
   { href: '/#features', label: 'Features' },
   { href: '/#session-wrap', label: 'Session Wrap' },
-  { href: '/#cbt', label: 'Computer-Based Testing' },
+  { href: '/features/cbt', label: 'Computer-Based Testing' },
   { href: '/#finance', label: 'Fees, Inventory & Accounting' },
-  { href: '/#lesson-notes', label: 'Lesson Notes' },
+  { href: '/features/lesson-notes', label: 'Lesson Notes' },
+  { href: '/results', label: 'Check a Result' },
   { href: '/#offline', label: 'Offline-first' },
 ];
 
@@ -74,9 +79,15 @@ export default function SiteFooter() {
             <ul className="flex flex-col gap-2">
               {PRODUCT_LINKS.map((l) => (
                 <li key={l.href}>
-                  <a href={l.href} className="text-sm text-ink/60 hover:text-ink">
-                    {l.label}
-                  </a>
+                  {l.href.startsWith('/#') ? (
+                    <a href={l.href} className="text-sm text-ink/60 hover:text-ink">
+                      {l.label}
+                    </a>
+                  ) : (
+                    <Link href={l.href} className="text-sm text-ink/60 hover:text-ink">
+                      {l.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

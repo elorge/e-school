@@ -1,8 +1,35 @@
 // web/app/page.tsx
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil, Wallet, Boxes, Calculator, Upload } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Elorge Schools — CBT, Verifiable Results & Lesson Notes for Nigerian Schools',
+  description:
+    'The school management platform with computer-based testing (CBT), QR-verifiable report cards, online result checking, lesson notes with presenter mode, ID cards, fees, and offline-first design.',
+  alternates: { canonical: '/' },
+};
+
+const softwareJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Elorge Schools',
+  applicationCategory: 'EducationalApplication',
+  operatingSystem: 'Web, Android, iOS',
+  offers: { '@type': 'Offer', priceCurrency: 'NGN' },
+  description:
+    'School management software for Nigerian schools with computer-based testing, verifiable results, lesson notes, ID cards, attendance, fees, and offline-first design.',
+  featureList: [
+    'Computer-based testing (CBT)',
+    'QR-verifiable result checking',
+    'Lesson notes with presenter mode',
+    'Digital ID cards and gate attendance',
+    'Fees, invoicing and wallet',
+    'Offline-first, works without internet',
+  ],
+};
 
 const CORE_FEATURES = [
   {
@@ -38,9 +65,47 @@ const RUN_THE_SCHOOL_FEATURES = [
   },
 ];
 
+const FAQS = [
+  {
+    q: 'How does a parent check a school result online with Elorge?',
+    a: 'A parent visits the school\'s results page, enters the student\'s Admission ID and a result PIN issued by the school, and sees a verified, QR-stamped report card — no account required.',
+  },
+  {
+    q: 'Does Elorge support computer-based testing (CBT)?',
+    a: 'Yes. Schools with a computer lab can build a question bank, publish scheduled tests with a spoken access code, and objective questions grade instantly. Schools without a lab can skip CBT entirely and enter scores by hand.',
+  },
+  {
+    q: 'Can teachers write and present lesson notes on Elorge?',
+    a: 'Yes. Teachers write lesson notes in the standard structured format, then turn any note into a full-screen slide deck for the projector with one click, complete with a built-in whiteboard.',
+  },
+  {
+    q: 'Does Elorge work without internet access?',
+    a: 'Yes. Elorge is installable as an app on phone or desktop and keeps working through outages — registering students, entering scores, and sitting CBT tests offline — syncing everything the moment connectivity returns.',
+  },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQS.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+
       <SiteHeader />
 
       {/* Hero */}
@@ -351,6 +416,23 @@ export default function HomePage() {
             </a>{' '}
             — we'll advise on what actually fits your school before recommending anything.
           </p>
+        </div>
+      </section>
+
+      {/* FAQ — matches the FAQPage JSON-LD above, and directly answers target search queries */}
+      <section id="faq" className="border-t border-black/5 bg-white px-6 py-20">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-10 text-center font-display text-3xl font-semibold text-ink">
+            Common questions.
+          </h2>
+          <div className="flex flex-col gap-8">
+            {FAQS.map((faq) => (
+              <div key={faq.q}>
+                <h3 className="mb-2 font-display text-lg font-semibold text-ink">{faq.q}</h3>
+                <p className="text-sm text-ink/60">{faq.a}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
