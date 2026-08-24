@@ -1,16 +1,17 @@
 // backend/src/modules/payments/payments.service.ts
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
+import { timingSafeEqual, randomUUID } from 'crypto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { minorToMajor, majorToMinor } from '../../common/utils/currency.util';
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-constructor(
+  constructor(
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly http: HttpService,
@@ -23,39 +24,27 @@ constructor(
    * (below) — never trust the redirect itself, since a user can hit
    * "back" or close the tab before the webhook fires, or fake the
    * redirect entirely.
+   *
+   * Charges in the SCHOOL'S OWN currency (school.currency), never a
+   * hardcoded NGN — Flutterwave settles in whatever currency you pass
+   * it, as long as that corridor is enabled on your account. amountKobo
+   * is minor units of that currency (not literally kobo unless the
+   * school's currency happens to be NGN).
    */
-  async initialize(schoolId: string, amountKobo: number, provider: 'paystack' | 'flutterwave', payerEmail: string) {
+  async initialize(schoolId: string, amountKobo: number, payerEmail: string) {
     const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
-    const reference = `${provider}-${schoolId}-${randomUUID()}`;
+    const reference = `flutterwave-${schoolId}-${randomUUID()}`;
 
-    if (provider === 'paystack') {
-      const secret = process.env.PAYSTACK_SECRET_KEY;
-      if (!secret) throw new BadRequestException('Paystack is not configured');
-      const response = await firstValueFrom(
-        this.http.post(
-          'https://api.paystack.co/transaction/initialize',
-          {
-            email: payerEmail,
-            amount: amountKobo, // Paystack expects amount in kobo for NGN — matches our unit already
-            reference,
-            metadata: { schoolId, schoolName: school.name },
-          },
-          { headers: { Authorization: `Bearer ${secret}` } },
-        ),
-      );
-      return { redirectUrl: response.data.data.authorization_url, reference };
-    }
-
-    // flutterwave
     const secret = process.env.FLUTTERWAVE_SECRET_KEY;
     if (!secret) throw new BadRequestException('Flutterwave is not configured');
+
     const response = await firstValueFrom(
       this.http.post(
         'https://api.flutterwave.com/v3/payments',
         {
           tx_ref: reference,
-          amount: amountKobo / 100, // Flutterwave expects Naira, not kobo
-          currency: 'NGN',
+          amount: minorToMajor(amountKobo, school.currency), // decimal-place-aware — was a blind /100 that assumed NGN
+          currency: school.currency, // was hardcoded 'NGN'
           redirect_url: process.env.FRONTEND_PAYMENT_CALLBACK_URL,
           customer: { email: payerEmail },
           meta: { schoolId, schoolName: school.name },
@@ -64,15 +53,6 @@ constructor(
       ),
     );
     return { redirectUrl: response.data.data.link, reference };
-  }
-
-  verifyPaystackSignature(rawBody: Buffer, signatureHeader: string | undefined): boolean {
-    const secret = process.env.PAYSTACK_WEBHOOK_SECRET;
-    if (!secret || !signatureHeader) return false;
-    const computed = createHmac('sha512', secret).update(rawBody).digest('hex');
-    const a = Buffer.from(computed);
-    const b = Buffer.from(signatureHeader);
-    return a.length === b.length && timingSafeEqual(a, b);
   }
 
   verifyFlutterwaveSignature(verifHashHeader: string | undefined): boolean {
@@ -87,27 +67,14 @@ constructor(
 
   /**
    * Resolves a gateway's customer/metadata reference back to a schoolId.
-   * Assumes you pass schoolId through as `metadata.schoolId` (Paystack)
-   * or `meta.schoolId` (Flutterwave) when you initialize the charge from
-   * the frontend — cheapest way to avoid a lookup table. Adjust if you
-   * initialize charges differently.
+   * Assumes you pass schoolId through as `meta.schoolId` when you
+   * initialize the charge from the frontend — cheapest way to avoid a
+   * lookup table. Adjust if you initialize charges differently.
    */
   private async resolveSchoolId(candidateSchoolId: unknown): Promise<string | null> {
     if (typeof candidateSchoolId !== 'string') return null;
     const school = await this.prisma.school.findUnique({ where: { id: candidateSchoolId } });
     return school?.id ?? null;
-  }
-
-  async handlePaystackEvent(payload: any) {
-    if (payload.event !== 'charge.success') return;
-    const data = payload.data;
-    const schoolId = await this.resolveSchoolId(data?.metadata?.schoolId);
-    if (!schoolId) {
-      this.logger.error(`Paystack charge.success with unresolvable schoolId — ref ${data?.reference}`);
-      return;
-    }
-    // amountKobo: Paystack sends amount in kobo already for NGN — no conversion needed.
-    await this.walletService.creditFromGateway(schoolId, data.amount, `paystack-${data.reference}`);
   }
 
   async handleFlutterwaveEvent(payload: any) {
@@ -118,8 +85,23 @@ constructor(
       this.logger.error(`Flutterwave charge.completed with unresolvable schoolId — tx ${data?.tx_ref}`);
       return;
     }
-    // Flutterwave sends amount in Naira, not kobo — convert.
-    const amountKobo = Math.round(data.amount * 100);
+
+    // Flutterwave reports `amount` in major units of whatever currency
+    // it charged in — convert back to minor units using THAT currency's
+    // decimal places, not a blind *100 that assumed NGN. Also guard
+    // against a currency mismatch: if the webhook's currency doesn't
+    // match the school's on-file currency, something is wrong (stale
+    // metadata, a manipulated request) — log loudly and skip crediting
+    // rather than silently crediting the wrong amount.
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
+    if (data.currency && data.currency !== school.currency) {
+      this.logger.error(
+        `Flutterwave charge.completed currency mismatch for school ${schoolId}: webhook says ${data.currency}, school is ${school.currency} — tx ${data?.tx_ref}`,
+      );
+      return;
+    }
+
+    const amountKobo = majorToMinor(data.amount, school.currency);
     await this.walletService.creditFromGateway(schoolId, amountKobo, `flutterwave-${data.tx_ref}`);
   }
 }

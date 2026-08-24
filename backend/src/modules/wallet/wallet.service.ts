@@ -7,6 +7,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../../common/services/audit.service';
 import { LedgerSource, LedgerStatus, LedgerType, Role, Prisma } from '@prisma/client';
 import { LOW_BALANCE_WARNING_THRESHOLD_KOBO } from '../../common/constants';
+import { formatMoney } from '../../common/utils/currency.util';
 
 @Injectable()
 export class WalletService {
@@ -17,7 +18,7 @@ export class WalletService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Balance is always derived — never stored directly. See spec doc §7.4. */
+  /** Balance is always derived — never stored directly. See spec doc §7.4. Balance for a single school is unambiguous since every entry for that school shares the school's one currency. */
   async getBalanceKobo(schoolId: string): Promise<number> {
     const [credits, debits] = await Promise.all([
       this.prisma.walletLedgerEntry.aggregate({
@@ -36,7 +37,9 @@ export class WalletService {
    * School Admins are the notification recipients for wallet events —
    * there's no dedicated "billing contact" field on School, so every
    * SCHOOL_ADMIN user at the school gets these. Fetched fresh each call
-   * rather than cached, since staff lists change.
+   * rather than cached, since staff lists change. Also the single place
+   * that resolves a school's currency for email formatting, so callers
+   * don't each fetch School separately just to notify.
    */
   private async getSchoolAndAdmins(schoolId: string) {
     const [school, admins] = await Promise.all([
@@ -48,14 +51,20 @@ export class WalletService {
 
   private async notifyAdmins(
     schoolId: string,
-    send: (admin: { email: string; fullName: string }, schoolName: string) => Promise<unknown>,
+    send: (admin: { email: string; fullName: string }, schoolName: string, currency: string) => Promise<unknown>,
     inApp?: { title: string; body: string; link?: string },
   ) {
     const { school, admins } = await this.getSchoolAndAdmins(schoolId);
-    await Promise.all(admins.map((admin) => send({ email: admin.email, fullName: admin.fullName }, school.name)));
+    await Promise.all(admins.map((admin) => send({ email: admin.email, fullName: admin.fullName }, school.name, school.currency)));
     if (inApp) {
       await this.notificationsService.notifyUsers(admins.map((a) => a.id), inApp.title, inApp.body, inApp.link);
     }
+  }
+
+  /** Every ledger-writing method below fetches the school first (cheap, single-row lookup) purely to stamp `currency` onto the entry — see WalletLedgerEntry.currency in schema-changes.prisma for why that's stored per-entry rather than joined at read time. */
+  private async getSchoolCurrency(schoolId: string): Promise<string> {
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId }, select: { currency: true } });
+    return school.currency;
   }
 
   /**
@@ -67,11 +76,13 @@ export class WalletService {
     const existing = await this.prisma.walletLedgerEntry.findUnique({ where: { reference } });
     if (existing) return existing;
 
+    const currency = await this.getSchoolCurrency(schoolId);
     const entry = await this.prisma.walletLedgerEntry.create({
       data: {
         schoolId,
         type: LedgerType.CREDIT,
         amountKobo,
+        currency,
         source: LedgerSource.GATEWAY,
         status: LedgerStatus.CONFIRMED,
         reference,
@@ -79,7 +90,7 @@ export class WalletService {
     });
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
-    await this.notifyAdmins(schoolId, (admin, schoolName) =>
+    await this.notifyAdmins(schoolId, (admin, schoolName, currency) =>
       this.emailService.sendWalletCreditConfirmed({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -87,6 +98,7 @@ export class WalletService {
         amountKobo,
         newBalanceKobo,
         source: 'card/bank payment',
+        currency,
       }),
     );
 
@@ -102,11 +114,13 @@ export class WalletService {
   async manualCredit(schoolId: string, amountKobo: number, reason: string, approvedByUserId: string) {
     if (amountKobo <= 0) throw new BadRequestException('Amount must be positive');
 
+    const currency = await this.getSchoolCurrency(schoolId);
     const entry = await this.prisma.walletLedgerEntry.create({
       data: {
         schoolId,
         type: LedgerType.CREDIT,
         amountKobo,
+        currency,
         source: LedgerSource.ADMIN_CREDIT,
         status: LedgerStatus.CONFIRMED,
         reference: `admin-credit-${randomUUID()}`,
@@ -115,7 +129,7 @@ export class WalletService {
     });
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
-    await this.notifyAdmins(schoolId, (admin, schoolName) =>
+    await this.notifyAdmins(schoolId, (admin, schoolName, currency) =>
       this.emailService.sendWalletCreditConfirmed({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -123,6 +137,7 @@ export class WalletService {
         amountKobo,
         newBalanceKobo,
         source: reason || 'Platform credit',
+        currency,
       }),
     );
 
@@ -134,27 +149,31 @@ export class WalletService {
       entityId: entry.id,
       metadata: { amountKobo, reason },
     });
-    
+
     return entry;
   }
 
   /**
-   * One-time ₦100,000 welcome credit for a newly onboarded school. See
-   * SchoolsService.create for the accompanying welcome email — this
-   * method itself stays silent so a retry of school creation doesn't
-   * re-send it (grantWelcomeBonus is idempotent; the email is sent once,
-   * from the caller, only on first creation).
+   * One-time ₦100,000-equivalent welcome credit for a newly onboarded
+   * school, in the school's OWN currency at the platform-default minor
+   * amount (WELCOME_BONUS_KOBO). See SchoolsService.create for the
+   * accompanying welcome email — this method itself stays silent so a
+   * retry of school creation doesn't re-send it (grantWelcomeBonus is
+   * idempotent; the email is sent once, from the caller, only on first
+   * creation).
    */
-  async grantWelcomeBonus(schoolId: string, amountKobo = 10_000_000 /* ₦100,000 */) {
+  async grantWelcomeBonus(schoolId: string, amountKobo = 10_000_000 /* platform default, minor units of the school's currency */) {
     const reference = `welcome-bonus-${schoolId}`;
     const existing = await this.prisma.walletLedgerEntry.findUnique({ where: { reference } });
     if (existing) return existing;
 
+    const currency = await this.getSchoolCurrency(schoolId);
     return this.prisma.walletLedgerEntry.create({
       data: {
         schoolId,
         type: LedgerType.CREDIT,
         amountKobo,
+        currency,
         source: LedgerSource.PROMO,
         status: LedgerStatus.CONFIRMED,
         reference,
@@ -172,31 +191,34 @@ export class WalletService {
 
   /** Manual bank transfer claim — created as pending, does not move balance yet. */
   async submitManualTransferClaim(schoolId: string, amountKobo: number, reference: string) {
+    const currency = await this.getSchoolCurrency(schoolId);
     const entry = await this.prisma.walletLedgerEntry.create({
       data: {
         schoolId,
         type: LedgerType.CREDIT,
         amountKobo,
+        currency,
         source: LedgerSource.MANUAL_TRANSFER,
         status: LedgerStatus.PENDING,
         reference,
       },
     });
 
-    await this.notifyAdmins(schoolId, (admin, schoolName) =>
+    await this.notifyAdmins(schoolId, (admin, schoolName, currency) =>
       this.emailService.sendManualTransferSubmitted({
         toEmail: admin.email,
         toName: admin.fullName,
         schoolName,
         amountKobo,
         reference,
+        currency,
       }),
     );
 
     return entry;
   }
 
- /** Platform-wide — every school's pending manual transfer claims, for Finance/Ops to work through. */
+  /** Platform-wide — every school's pending manual transfer claims, for Finance/Ops to work through. Each row carries its own `currency` (via the entry) so the review UI can show the right symbol per row without a join. */
   listPendingManualTransfers() {
     return this.prisma.walletLedgerEntry.findMany({
       where: { source: 'MANUAL_TRANSFER', status: 'PENDING' },
@@ -220,7 +242,7 @@ export class WalletService {
       },
     });
 
-    await this.notifyAdmins(entry.schoolId, (admin, schoolName) =>
+    await this.notifyAdmins(entry.schoolId, (admin, schoolName, currency) =>
       this.emailService.sendManualTransferResolved({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -228,12 +250,13 @@ export class WalletService {
         amountKobo: entry.amountKobo,
         approved: approve,
         reference: entry.reference,
+        currency,
       }),
     );
 
     if (approve) {
       const newBalanceKobo = await this.getBalanceKobo(entry.schoolId);
-      await this.notifyAdmins(entry.schoolId, (admin, schoolName) =>
+      await this.notifyAdmins(entry.schoolId, (admin, schoolName, currency) =>
         this.emailService.sendWalletCreditConfirmed({
           toEmail: admin.email,
           toName: admin.fullName,
@@ -241,6 +264,7 @@ export class WalletService {
           amountKobo: entry.amountKobo,
           newBalanceKobo,
           source: 'bank transfer',
+          currency,
         }),
       );
     }
@@ -248,7 +272,7 @@ export class WalletService {
     return updated;
   }
 
-/**
+  /**
    * ONE charge per (student, term) unlocks BOTH PIN generation and CBT
    * for that student that term — not two separate debits. Whichever
    * happens first (PIN generation or CBT publish) pays; the other is
@@ -265,24 +289,30 @@ export class WalletService {
       throw new BadRequestException('Insufficient wallet balance');
     }
 
+    const currency = await this.getSchoolCurrency(schoolId);
     const entry = await this.prisma.walletLedgerEntry.create({
-      data: { schoolId, type: LedgerType.DEBIT, amountKobo, source: LedgerSource.SYSTEM, status: LedgerStatus.CONFIRMED, reference },
+      data: { schoolId, type: LedgerType.DEBIT, amountKobo, currency, source: LedgerSource.SYSTEM, status: LedgerStatus.CONFIRMED, reference },
     });
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
       await this.notifyAdmins(
         schoolId,
-        (admin, schoolName) =>
-          this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo }),
-        { title: 'Low wallet balance', body: `Balance is now ₦${(newBalanceKobo / 100).toLocaleString('en-NG')}`, link: '/admin' },
+        (admin, schoolName, currency) =>
+          this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo, currency }),
+        { title: 'Low wallet balance', body: `Balance is now ${formatMoney(newBalanceKobo, currency)}`, link: '/admin' },
       );
     }
 
     return { entry, alreadyCharged: false };
   }
-  
+
   async debitForPinGeneration(schoolId: string, amountKobo: number, idempotencyKey: string) {
+    // Fetched outside the transaction below — currency doesn't need
+    // transactional consistency with the balance check, and Prisma's
+    // interactive transaction client doesn't need the extra round trip.
+    const currency = await this.getSchoolCurrency(schoolId);
+
     const entry = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const existing = await tx.walletLedgerEntry.findUnique({ where: { idempotencyKey } });
       if (existing) return existing;
@@ -307,6 +337,7 @@ export class WalletService {
           schoolId,
           type: LedgerType.DEBIT,
           amountKobo,
+          currency,
           source: LedgerSource.SYSTEM,
           status: LedgerStatus.CONFIRMED,
           reference: `debit-${idempotencyKey}`,
@@ -319,13 +350,14 @@ export class WalletService {
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
       await this.notifyAdmins(
         schoolId,
-        (admin, schoolName) =>
+        (admin, schoolName, currency) =>
           this.emailService.sendLowBalanceWarning({
             toEmail: admin.email,
             toName: admin.fullName,
             schoolName,
             balanceKobo: newBalanceKobo,
-        }),
+            currency,
+          }),
       );
     }
 
@@ -344,11 +376,13 @@ export class WalletService {
     const existing = await this.prisma.walletLedgerEntry.findUnique({ where: { reference } });
     if (existing) return existing;
 
+    const currency = await this.getSchoolCurrency(schoolId);
     return this.prisma.walletLedgerEntry.create({
       data: {
         schoolId,
         type: LedgerType.CREDIT,
         amountKobo,
+        currency,
         source: LedgerSource.REFUND,
         status: LedgerStatus.CONFIRMED,
         reference,

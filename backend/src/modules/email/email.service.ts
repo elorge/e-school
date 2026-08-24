@@ -2,8 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { BrevoService } from './brevo.service';
 import * as templates from './email.templates';
-
-const koboToNaira = (kobo: number) => Math.round(kobo) / 100;
+import { formatMoney } from '../../common/utils/currency.util';
 
 /**
  * Business-facing email API. Every "we should notify someone" moment in
@@ -11,6 +10,12 @@ const koboToNaira = (kobo: number) => Math.round(kobo) / 100;
  * generation, password resets) goes through one method here — this is
  * the single place that knows which template maps to which event, so
  * copy changes never touch module services directly.
+ *
+ * All money-carrying methods now take a `currency` param — the caller
+ * (WalletService, PinsService, SchoolsService) is responsible for
+ * knowing which school this concerns and passing its `currency` through.
+ * Formatting itself (symbol, decimal places, thousands separators) is
+ * delegated entirely to formatMoney — this file never assumes Naira.
  *
  * All methods are fire-and-forget from the caller's perspective: they
  * never throw. A failed send is logged inside BrevoService and returns
@@ -21,11 +26,18 @@ const koboToNaira = (kobo: number) => Math.round(kobo) / 100;
 export class EmailService {
   constructor(private readonly brevo: BrevoService) {}
 
-  async sendSchoolWelcome(params: { toEmail: string; toName: string; schoolName: string; slug: string; welcomeBonusKobo: number }) {
+  async sendSchoolWelcome(params: {
+    toEmail: string;
+    toName: string;
+    schoolName: string;
+    slug: string;
+    welcomeBonusKobo: number;
+    currency: string;
+  }) {
     const { subject, html } = templates.schoolWelcomeEmail({
       schoolName: params.schoolName,
       slug: params.slug,
-      welcomeBonusNaira: koboToNaira(params.welcomeBonusKobo),
+      welcomeBonusFormatted: formatMoney(params.welcomeBonusKobo, params.currency),
     });
     return this.brevo.send({
       to: [{ email: params.toEmail, name: params.toName }],
@@ -57,11 +69,12 @@ export class EmailService {
     amountKobo: number;
     newBalanceKobo: number;
     source: string;
+    currency: string;
   }) {
     const { subject, html } = templates.walletCreditConfirmedEmail({
       schoolName: params.schoolName,
-      amountNaira: koboToNaira(params.amountKobo),
-      newBalanceNaira: koboToNaira(params.newBalanceKobo),
+      amountFormatted: formatMoney(params.amountKobo, params.currency),
+      newBalanceFormatted: formatMoney(params.newBalanceKobo, params.currency),
       source: params.source,
     });
     return this.brevo.send({
@@ -72,10 +85,17 @@ export class EmailService {
     });
   }
 
-  async sendManualTransferSubmitted(params: { toEmail: string; toName: string; schoolName: string; amountKobo: number; reference: string }) {
+  async sendManualTransferSubmitted(params: {
+    toEmail: string;
+    toName: string;
+    schoolName: string;
+    amountKobo: number;
+    reference: string;
+    currency: string;
+  }) {
     const { subject, html } = templates.manualTransferSubmittedEmail({
       schoolName: params.schoolName,
-      amountNaira: koboToNaira(params.amountKobo),
+      amountFormatted: formatMoney(params.amountKobo, params.currency),
       reference: params.reference,
     });
     return this.brevo.send({
@@ -93,10 +113,11 @@ export class EmailService {
     amountKobo: number;
     approved: boolean;
     reference: string;
+    currency: string;
   }) {
     const { subject, html } = templates.manualTransferResolvedEmail({
       schoolName: params.schoolName,
-      amountNaira: koboToNaira(params.amountKobo),
+      amountFormatted: formatMoney(params.amountKobo, params.currency),
       approved: params.approved,
       reference: params.reference,
     });
@@ -115,12 +136,13 @@ export class EmailService {
     termName: string;
     studentCount: number;
     totalCostKobo: number;
+    currency: string;
   }) {
     const { subject, html } = templates.pinsGeneratedEmail({
       schoolName: params.schoolName,
       termName: params.termName,
       studentCount: params.studentCount,
-      totalCostNaira: koboToNaira(params.totalCostKobo),
+      totalCostFormatted: formatMoney(params.totalCostKobo, params.currency),
     });
     return this.brevo.send({
       to: [{ email: params.toEmail, name: params.toName }],
@@ -130,10 +152,10 @@ export class EmailService {
     });
   }
 
-  async sendLowBalanceWarning(params: { toEmail: string; toName: string; schoolName: string; balanceKobo: number }) {
+  async sendLowBalanceWarning(params: { toEmail: string; toName: string; schoolName: string; balanceKobo: number; currency: string }) {
     const { subject, html } = templates.lowBalanceWarningEmail({
       schoolName: params.schoolName,
-      balanceNaira: koboToNaira(params.balanceKobo),
+      balanceFormatted: formatMoney(params.balanceKobo, params.currency),
     });
     return this.brevo.send({
       to: [{ email: params.toEmail, name: params.toName }],
@@ -156,7 +178,7 @@ export class EmailService {
       tags: ['onboarding', 'staff', 'invite'],
     });
   }
-  
+
   async sendPasswordReset(params: { toEmail: string; fullName: string; resetUrl: string }) {
     const { subject, html } = templates.passwordResetEmail({
       fullName: params.fullName,

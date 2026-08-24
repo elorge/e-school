@@ -53,17 +53,31 @@ export class SchoolsService {
    * for — the controller/caller is responsible for also creating that
    * User via AuthService (order: school first, then admin user, since the
    * admin user's schoolId FK needs the school to already exist).
+   *
+   * `countryCode`/`currency` are required — every school operates in a
+   * specific country and charges through Flutterwave in a specific
+   * currency; there is no platform-wide default to silently fall back to
+   * (see CreateSchoolDto / CreateSignupRequestDto for validation).
    */
   async create(data: {
     slug: string;
     name: string;
     code: string;
+    countryCode: string;
+    currency: string;
     logoUrl?: string;
     adminEmail: string;
     adminName: string;
   }) {
     const school = await this.prisma.school.create({
-      data: { slug: data.slug, name: data.name, code: data.code, logoUrl: data.logoUrl },
+      data: {
+        slug: data.slug,
+        name: data.name,
+        code: data.code,
+        countryCode: data.countryCode,
+        currency: data.currency,
+        logoUrl: data.logoUrl,
+      },
     });
     await this.walletService.grantWelcomeBonus(school.id, WELCOME_BONUS_KOBO);
 
@@ -73,6 +87,7 @@ export class SchoolsService {
       schoolName: school.name,
       slug: school.slug,
       welcomeBonusKobo: WELCOME_BONUS_KOBO,
+      currency: school.currency,
     });
 
     return school;
@@ -102,6 +117,8 @@ export class SchoolsService {
     schoolName: string;
     slug: string;
     code: string;
+    countryCode: string;
+    currency: string;
     adminName: string;
     adminEmail: string;
     adminPassword: string;
@@ -120,6 +137,8 @@ export class SchoolsService {
         schoolName: data.schoolName,
         slug: data.slug,
         code: data.code,
+        countryCode: data.countryCode,
+        currency: data.currency,
         adminName: data.adminName,
         adminEmail: data.adminEmail,
         adminPassword: adminPasswordHash,
@@ -138,7 +157,7 @@ export class SchoolsService {
 
     return result;
   }
-  
+
   listSignupRequests(status?: SignupRequestStatus) {
     return this.prisma.schoolSignupRequest.findMany({
       where: status ? { status } : {},
@@ -150,7 +169,8 @@ export class SchoolsService {
    * Approves a pending request: creates the real School + its first
    * SCHOOL_ADMIN user directly from the already-hashed password on file
    * — no second password prompt needed. Reuses `create()` below to stay
-   * consistent with the existing sales-assisted flow.
+   * consistent with the existing sales-assisted flow. countryCode/currency
+   * flow straight through from the signup request onto the new School row.
    */
   async approveSignupRequest(requestId: string) {
     const request = await this.prisma.schoolSignupRequest.findUniqueOrThrow({ where: { id: requestId } });
@@ -162,6 +182,8 @@ export class SchoolsService {
       slug: request.slug,
       name: request.schoolName,
       code: request.code,
+      countryCode: request.countryCode,
+      currency: request.currency,
       adminEmail: request.adminEmail,
       adminName: request.adminName,
     });

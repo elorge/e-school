@@ -22,7 +22,7 @@ export class PlatformFinanceController {
   @Roles(Role.FINANCE_OPS, Role.SUPER_ADMIN)
   @Post('expenses')
   recordExpense(
-    @Body() body: { category: string; description: string; amountKobo: number; incurredAt: string },
+    @Body() body: { category: string; description: string; amountKobo: number; incurredAt: string; currency?: string },
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.platformFinanceService.recordExpense(body, user.id);

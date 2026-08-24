@@ -18,14 +18,14 @@ export class PinsService {
     private readonly emailService: EmailService,
   ) {}
 
-async generateBatch(
+  async generateBatch(
     schoolId: string,
     termId: string,
     studentIds: string[],
     pricePerStudentKobo: number,
     idempotencyKey: string,
   ) {
-// Charge per student, but skip anyone already charged this term (e.g.
+    // Charge per student, but skip anyone already charged this term (e.g.
     // via a CBT test that ran for them first) — see
     // WalletService.debitPlatformAccessFee for why this is one shared fee.
     // Tracked separately from studentIds.length * price, since the actual
@@ -53,7 +53,7 @@ async generateBatch(
 
         generated.push({ studentId, plaintextPin });
       }
-      } catch (err) {
+    } catch (err) {
       // Debit succeeded but generation didn't complete for one or more
       // students — refund exactly what was charged in THIS call, not
       // touching any earlier charge from a prior CBT test for the same
@@ -85,6 +85,7 @@ async generateBatch(
           termName: term.name,
           studentCount: studentIds.length,
           totalCostKobo,
+          currency: school.currency,
         }),
       ),
     );
@@ -92,7 +93,7 @@ async generateBatch(
     return generated;
   }
 
-/**
+  /**
    * Verifies admissionId + PIN under the same rate-limit/lockout rules
    * as a result lookup, and returns the authenticated student (with the
    * PIN's termId) on success — WITHOUT fetching a result. Shared by

@@ -29,23 +29,23 @@ export const envValidationSchema = Joi.object({
   WELCOME_BONUS_KOBO: Joi.number().integer().min(0).default(10_000_000),
   LOW_BALANCE_WARNING_THRESHOLD_KOBO: Joi.number().integer().min(0).default(500_000),
 
+  // Platform-wide fallback country/currency — used only where nothing
+  // school-specific applies. Individual schools always carry their own
+  // explicit values (see CreateSchoolDto), never these.
+  DEFAULT_CURRENCY: Joi.string().length(3).uppercase().default('NGN'),
+  DEFAULT_COUNTRY_CODE: Joi.string().length(2).uppercase().default('NG'),
+
   // PIN lookup rate limiting
   MAX_PIN_LOOKUP_ATTEMPTS: Joi.number().integer().min(1).default(5),
 
-// Payment gateways — optional for now. No webhook controller consumes
-  // these yet (see note below); required once that module ships.
-  PAYSTACK_SECRET_KEY: Joi.string().allow('').optional(),
-  PAYSTACK_WEBHOOK_SECRET: Joi.string().allow('').optional(),
-  FLUTTERWAVE_SECRET_KEY: Joi.string().allow('').optional(),
-  FLUTTERWAVE_WEBHOOK_SECRET: Joi.string().allow('').optional(),
+  // Payment gateway — Flutterwave only. Paystack support was removed
+  // entirely (see PaymentsService/PaymentsController); if a second
+  // gateway is reintroduced later, add its keys back here rather than
+  // assuming Flutterwave everywhere.
+  FLUTTERWAVE_SECRET_KEY: Joi.string().required(),
+  FLUTTERWAVE_WEBHOOK_SECRET: Joi.string().required(),
+  FRONTEND_PAYMENT_CALLBACK_URL: Joi.string().uri().required(),
 
-  // Ready to go live delete the above use the below
-  // Payment gateways — required now that PaymentsModule consumes them.
-  // PAYSTACK_SECRET_KEY: Joi.string().required(),
-  // PAYSTACK_WEBHOOK_SECRET: Joi.string().required(),
-  // FLUTTERWAVE_SECRET_KEY: Joi.string().required(),
-  // FLUTTERWAVE_WEBHOOK_SECRET: Joi.string().required(),
-  
   BANK_TRANSFER_SLA_HOURS: Joi.number().integer().min(1).default(24),
 
   PERFORMANCE_STRENGTH_THRESHOLD: Joi.number().integer().min(0).max(100).default(70),

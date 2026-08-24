@@ -30,12 +30,14 @@ model School {
   logoUrl                     String?
   signatureUrl                String? // head of school's signature image, for report cards
   info                        Json? // address, contact info — rendered onto reports
-  pricePerStudentKoboOverride Int? // null = use platform default
+  countryCode                 String       // ISO 3166-1 alpha-2, e.g. "NG", "GH", "KE" — drives which local payment rails (see DVA_SUPPORTED_COUNTRIES) are offered
+  currency                    String       // ISO 4217, e.g. "NGN", "GHS", "KES" — see currency.util.ts. Every Kobo-named field below is actually "minor unit of THIS currency".
+  pricePerStudentKoboOverride Int? // null = use platform default; minor unit of `currency` above, not literally kobo
   sessionWrapEnabled          Boolean      @default(false) // per-school flag — off by default, turned on per pilot school
   status                      SchoolStatus @default(ACTIVE)
   createdAt                   DateTime     @default(now())
   updatedAt                   DateTime     @updatedAt
-  
+
   users             User[]
   classes           Class[]
   students          Student[]
@@ -58,7 +60,7 @@ model School {
   inventoryTx       InventoryTransaction[]
   expenseEntries    ExpenseEntry[]
   assessmentWeights AssessmentWeight[]
-  assessmentScores AssessmentScore[]
+  assessmentScores  AssessmentScore[]
 
   @@map("schools")
 }
@@ -137,6 +139,8 @@ model SchoolSignupRequest {
   schoolName    String
   slug          String              @unique
   code          String
+  countryCode   String              // ISO 3166-1 alpha-2 — carried through to the real School row on approval
+  currency      String              // ISO 4217 — carried through to the real School row on approval
   adminName     String
   adminEmail    String
   adminPassword String // hashed immediately on submit — never stored plaintext, see service
@@ -395,7 +399,8 @@ model WalletLedgerEntry {
   schoolId       String
   school         School       @relation(fields: [schoolId], references: [id])
   type           LedgerType
-  amountKobo     Int // always integer kobo, never a float Naira value
+  amountKobo     Int // minor unit of `currency` below, never a float major-unit value
+  currency       String       // ISO 4217 — copied from School.currency at creation time. Self-describing on purpose: lets platform-finance aggregate revenue per currency via groupBy without a join, and stays correct even if a school's currency were ever changed later.
   source         LedgerSource
   status         LedgerStatus @default(PENDING)
   reference      String       @unique // gateway tx ref, ELG-{school_id}-XXXX for transfers, welcome-bonus-{school_id}, or refund-{idempotencyKey}
@@ -406,6 +411,7 @@ model WalletLedgerEntry {
   createdAt DateTime @default(now())
 
   @@index([schoolId, type, status]) // serves getBalanceKobo's two aggregate queries
+  @@index([currency, type, status, createdAt]) // serves PlatformFinanceService.getOverview's per-currency revenue groupBy
   @@map("wallet_ledger")
 }
 
@@ -714,11 +720,13 @@ model PlatformExpense {
   category     String   // e.g. "Salaries", "Hosting", "Software Licenses", "Marketing"
   description  String
   amountKobo   Int
+  currency     String   @default("NGN") // platform's own operating currency for this line item — usually your home currency (override PLATFORM_DEFAULT_CURRENCY via env), but flexible if a vendor is paid in USD, etc.
   incurredAt   DateTime
   recordedById String
   recordedBy   User     @relation("PlatformExpenseRecordedBy", fields: [recordedById], references: [id])
   createdAt    DateTime @default(now())
 
+  @@index([currency, incurredAt]) // serves PlatformFinanceService.getOverview's per-currency expense groupBy
   @@map("platform_expenses")
 }
 

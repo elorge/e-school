@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/services/audit.service';
 import { FeeInvoiceStatus } from '@prisma/client';
+import { decimalPlacesFor } from '../../common/utils/currency.util';
 
 @Injectable()
 export class FeesService {
@@ -96,7 +97,12 @@ export class FeesService {
     return updated;
   }
 
+  /** All rows share one school's currency (an export is always scoped to one schoolId), so fetch it once and use it for both the divisor and the column labels — never a blind /100. */
   async exportInvoicesXlsx(schoolId: string, termId?: string): Promise<Buffer> {
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId }, select: { currency: true } });
+    const divisor = 10 ** decimalPlacesFor(school.currency);
+    const label = (name: string) => `${name} (${school.currency})`;
+
     const invoices = await this.prisma.feeInvoice.findMany({
       where: { schoolId, ...(termId ? { termId } : {}) },
       include: { student: { select: { firstName: true, lastName: true, studentId: true } }, payments: true },
@@ -106,18 +112,24 @@ export class FeesService {
     const rows = invoices.map((inv) => ({
       Student: `${inv.student.firstName} ${inv.student.lastName}`,
       'Admission ID': inv.student.studentId ?? '—',
-      'Total (₦)': inv.totalKobo / 100,
-      'Paid (₦)': inv.paidKobo / 100,
-      'Outstanding (₦)': (inv.totalKobo - inv.paidKobo) / 100,
+      [label('Total')]: inv.totalKobo / divisor,
+      [label('Paid')]: inv.paidKobo / divisor,
+      [label('Outstanding')]: (inv.totalKobo - inv.paidKobo) / divisor,
       Status: inv.status,
       Payments: inv.payments.length,
     }));
+
+    // Computed from the raw `invoices` (not the already-mapped `rows`) for
+    // two reasons: (1) `rows` is a mixed string/number object, so indexing
+    // it dynamically loses numeric typing; (2) summing raw kobo integers
+    // first and dividing once at the end avoids compounding rounding from
+    // per-row division.
     const totalRow = {
       Student: 'TOTAL',
       'Admission ID': '',
-      'Total (₦)': rows.reduce((s, r) => s + r['Total (₦)'], 0),
-      'Paid (₦)': rows.reduce((s, r) => s + r['Paid (₦)'], 0),
-      'Outstanding (₦)': rows.reduce((s, r) => s + r['Outstanding (₦)'], 0),
+      [label('Total')]: invoices.reduce((s, inv) => s + inv.totalKobo, 0) / divisor,
+      [label('Paid')]: invoices.reduce((s, inv) => s + inv.paidKobo, 0) / divisor,
+      [label('Outstanding')]: invoices.reduce((s, inv) => s + (inv.totalKobo - inv.paidKobo), 0) / divisor,
       Status: '',
       Payments: '',
     };

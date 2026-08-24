@@ -1,5 +1,6 @@
 // backend/src/modules/schools/dto/create-school.dto.ts
-import { IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { SUPPORTED_CURRENCIES } from '../../../common/utils/currency.util';
 
 export class CreateSchoolDto {
   @IsString()
@@ -19,6 +20,16 @@ export class CreateSchoolDto {
   @IsOptional()
   @IsString()
   logoUrl?: string;
+
+  // NEW: which country/currency this school operates in. Not optional —
+  // every school needs both to price correctly and charge through
+  // Flutterwave. See currency.util.ts for what's actually supported.
+  @IsString()
+  @Matches(/^[A-Z]{2}$/, { message: 'countryCode must be an ISO 3166-1 alpha-2 code, e.g. "NG"' })
+  countryCode!: string;
+
+  @IsIn(SUPPORTED_CURRENCIES, { message: `currency must be one of: ${SUPPORTED_CURRENCIES.join(', ')}` })
+  currency!: string;
 
   // NEW: the school's first SCHOOL_ADMIN. SchoolsController.create wires
   // this into both School creation (for the welcome email) and

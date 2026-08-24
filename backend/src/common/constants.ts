@@ -32,6 +32,15 @@ export const PERFORMANCE_STRENGTH_THRESHOLD = Number(process.env.PERFORMANCE_STR
 export const PERFORMANCE_AT_RISK_THRESHOLD = Number(process.env.PERFORMANCE_AT_RISK_THRESHOLD ?? 50);
 // Between AT_RISK and STRENGTH thresholds = "Needs Improvement".
 
+// NEW: platform-wide defaults used only where a country/currency isn't
+// otherwise known — e.g. PlatformFinanceService.recordExpense falling
+// back for an Elorge-internal expense that didn't specify a currency.
+// Individual schools ALWAYS carry their own explicit countryCode/currency
+// (see CreateSchoolDto) — these are never used as a silent per-school
+// default.
+export const PLATFORM_DEFAULT_CURRENCY = process.env.DEFAULT_CURRENCY ?? 'NGN';
+export const PLATFORM_DEFAULT_COUNTRY_CODE = process.env.DEFAULT_COUNTRY_CODE ?? 'NG';
+
 /**
  * Deliberately deterministic and rule-based, NOT AI-generated — this
  * touches a child's future, so every suggestion must be traceable back

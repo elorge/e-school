@@ -1,13 +1,13 @@
 // backend/src/modules/payments/dto/initialize-payment.dto.ts
-import { IsEmail, IsIn, IsInt, Min } from 'class-validator';
+import { IsEmail, IsInt, Min } from 'class-validator';
 
+// `provider` removed — Flutterwave is the only gateway this platform
+// integrates with now. If you ever add a second gateway back, reintroduce
+// the field rather than assuming Flutterwave everywhere in PaymentsService.
 export class InitializePaymentDto {
   @IsInt()
-  @Min(100) // 1 Naira minimum, in kobo
+  @Min(100) // smallest sane charge in minor units across supported currencies
   amountKobo!: number;
-
-  @IsIn(['paystack', 'flutterwave'])
-  provider!: 'paystack' | 'flutterwave';
 
   @IsEmail()
   payerEmail!: string;

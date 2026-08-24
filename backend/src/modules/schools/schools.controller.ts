@@ -73,6 +73,8 @@ export class SchoolsController {
       slug: body.slug,
       name: body.name,
       code: body.code,
+      countryCode: body.countryCode,
+      currency: body.currency,
       logoUrl: body.logoUrl,
       adminEmail: body.adminEmail,
       adminName: body.adminName,

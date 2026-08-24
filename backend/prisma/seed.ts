@@ -66,6 +66,8 @@ async function seedDemoSchool() {
       slug,
       name: 'Greenwood College',
       code: 'GRW',
+      countryCode: 'NG', // NEW — required, ISO 3166-1 alpha-2
+      currency: 'NGN', // NEW — required, ISO 4217
       pricePerStudentKoboOverride: null, // uses platform default
       sessionWrapEnabled: true, // seeded ON so you can demo it immediately
     },
@@ -212,6 +214,7 @@ async function seedDemoSchool() {
       schoolId: school.id,
       type: LedgerType.CREDIT,
       amountKobo: 10_000_000, // ₦100,000
+      currency: school.currency, // NEW — required, copied from the school we just created
       source: LedgerSource.PROMO,
       status: LedgerStatus.CONFIRMED,
       reference: `welcome-bonus-${school.id}`,

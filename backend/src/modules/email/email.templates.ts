@@ -4,6 +4,11 @@
  * consistently across email clients. Each function returns { subject,
  * html }. Keep copy short; these are transactional notifications, not
  * marketing.
+ *
+ * Money is always passed in ALREADY FORMATTED (e.g. "₦12,000.00" or
+ * "GH₵450") via EmailService's calls to formatMoney — these templates
+ * never format currency themselves, so they never accidentally assume
+ * Naira.
  */
 
 const wrapper = (bodyHtml: string) => `
@@ -18,14 +23,14 @@ const wrapper = (bodyHtml: string) => `
   </div>
 </div>`;
 
-export function schoolWelcomeEmail(params: { schoolName: string; slug: string; welcomeBonusNaira: number }) {
+export function schoolWelcomeEmail(params: { schoolName: string; slug: string; welcomeBonusFormatted: string }) {
   return {
     subject: `Welcome to Elorge Schools, ${params.schoolName}!`,
     html: wrapper(`
       <h2 style="font-size: 20px;">Your school is live 🎉</h2>
       <p><strong>${params.schoolName}</strong> has been onboarded onto Elorge Schools.</p>
       <p>We've credited your wallet with a one-time welcome bonus of
-        <strong>₦${params.welcomeBonusNaira.toLocaleString('en-NG')}</strong> — enough to try a full term,
+        <strong>${params.welcomeBonusFormatted}</strong> — enough to try a full term,
         completely free.</p>
       <p>Your school workspace: <strong>${params.slug}</strong></p>
       <p>Next steps: create staff accounts, register your classes and students, and you're ready to go — even offline.</p>
@@ -46,37 +51,37 @@ export function staffAccountCreatedEmail(params: { fullName: string; schoolName:
   };
 }
 
-export function walletCreditConfirmedEmail(params: { schoolName: string; amountNaira: number; newBalanceNaira: number; source: string }) {
+export function walletCreditConfirmedEmail(params: { schoolName: string; amountFormatted: string; newBalanceFormatted: string; source: string }) {
   return {
-    subject: `Wallet credited — ₦${params.amountNaira.toLocaleString('en-NG')}`,
+    subject: `Wallet credited — ${params.amountFormatted}`,
     html: wrapper(`
       <h2 style="font-size: 20px;">Payment confirmed</h2>
       <p><strong>${params.schoolName}</strong>'s wallet has been credited with
-        <strong>₦${params.amountNaira.toLocaleString('en-NG')}</strong> (${params.source}).</p>
-      <p>New wallet balance: <strong>₦${params.newBalanceNaira.toLocaleString('en-NG')}</strong></p>
+        <strong>${params.amountFormatted}</strong> (${params.source}).</p>
+      <p>New wallet balance: <strong>${params.newBalanceFormatted}</strong></p>
     `),
   };
 }
 
-export function manualTransferSubmittedEmail(params: { schoolName: string; amountNaira: number; reference: string }) {
+export function manualTransferSubmittedEmail(params: { schoolName: string; amountFormatted: string; reference: string }) {
   return {
     subject: `Bank transfer received — pending review`,
     html: wrapper(`
       <h2 style="font-size: 20px;">Transfer claim submitted</h2>
       <p>We've received a manual bank transfer claim of
-        <strong>₦${params.amountNaira.toLocaleString('en-NG')}</strong> for <strong>${params.schoolName}</strong>.</p>
+        <strong>${params.amountFormatted}</strong> for <strong>${params.schoolName}</strong>.</p>
       <p>Reference: <strong>${params.reference}</strong></p>
       <p>Our finance team will review and confirm this shortly. Your wallet will be credited once approved.</p>
     `),
   };
 }
 
-export function manualTransferResolvedEmail(params: { schoolName: string; amountNaira: number; approved: boolean; reference: string }) {
+export function manualTransferResolvedEmail(params: { schoolName: string; amountFormatted: string; approved: boolean; reference: string }) {
   return {
-    subject: params.approved ? `Transfer approved — ₦${params.amountNaira.toLocaleString('en-NG')} credited` : `Transfer claim rejected`,
+    subject: params.approved ? `Transfer approved — ${params.amountFormatted} credited` : `Transfer claim rejected`,
     html: wrapper(`
       <h2 style="font-size: 20px;">${params.approved ? 'Transfer approved' : 'Transfer rejected'}</h2>
-      <p>Your bank transfer claim of <strong>₦${params.amountNaira.toLocaleString('en-NG')}</strong>
+      <p>Your bank transfer claim of <strong>${params.amountFormatted}</strong>
         (ref: ${params.reference}) for <strong>${params.schoolName}</strong> has been
         <strong>${params.approved ? 'approved and credited to your wallet' : 'rejected'}</strong>.</p>
       ${params.approved ? '' : '<p>If you believe this is a mistake, please contact support with your transfer receipt.</p>'}
@@ -84,26 +89,26 @@ export function manualTransferResolvedEmail(params: { schoolName: string; amount
   };
 }
 
-export function pinsGeneratedEmail(params: { schoolName: string; termName: string; studentCount: number; totalCostNaira: number }) {
+export function pinsGeneratedEmail(params: { schoolName: string; termName: string; studentCount: number; totalCostFormatted: string }) {
   return {
     subject: `Result PINs generated for ${params.termName}`,
     html: wrapper(`
       <h2 style="font-size: 20px;">PINs generated</h2>
       <p><strong>${params.studentCount}</strong> result PIN(s) were generated for <strong>${params.schoolName}</strong>
-        — ${params.termName} — at a total cost of <strong>₦${params.totalCostNaira.toLocaleString('en-NG')}</strong>.</p>
+        — ${params.termName} — at a total cost of <strong>${params.totalCostFormatted}</strong>.</p>
       <p>Download the PIN sheet from your dashboard to share Admission IDs and PINs with students. For security,
         PINs are shown once and never emailed in plaintext.</p>
     `),
   };
 }
 
-export function lowBalanceWarningEmail(params: { schoolName: string; balanceNaira: number }) {
+export function lowBalanceWarningEmail(params: { schoolName: string; balanceFormatted: string }) {
   return {
     subject: `Low wallet balance — ${params.schoolName}`,
     html: wrapper(`
       <h2 style="font-size: 20px;">Your wallet balance is low</h2>
       <p><strong>${params.schoolName}</strong>'s wallet balance is now
-        <strong>₦${params.balanceNaira.toLocaleString('en-NG')}</strong>.</p>
+        <strong>${params.balanceFormatted}</strong>.</p>
       <p>Fund your wallet to keep generating result PINs without interruption.</p>
     `),
   };
@@ -134,4 +139,3 @@ export function passwordResetEmail(params: { fullName: string; resetUrl: string 
     `),
   };
 }
-

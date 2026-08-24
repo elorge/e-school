@@ -3,6 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InventoryTransactionType } from '@prisma/client';
+import { decimalPlacesFor } from '../../common/utils/currency.util';
 
 @Injectable()
 export class InventoryService {
@@ -26,6 +27,10 @@ export class InventoryService {
   }
 
   async exportXlsx(schoolId: string): Promise<Buffer> {
+    const school = await this.prisma.school.findUniqueOrThrow({ where: { id: schoolId }, select: { currency: true } });
+    const divisor = 10 ** decimalPlacesFor(school.currency);
+    const costLabel = `Unit cost (${school.currency})`;
+
     const items = await this.prisma.inventoryItem.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
     const transactions = await this.prisma.inventoryTransaction.findMany({
       where: { schoolId },
@@ -39,7 +44,7 @@ export class InventoryService {
       'Qty on hand': i.quantityOnHand,
       Unit: i.unit,
       'Reorder level': i.reorderLevel,
-      'Unit cost (₦)': i.unitCostKobo / 100,
+      [costLabel]: i.unitCostKobo / divisor,
     }));
     const txRows = transactions.map((t) => ({
       Date: t.createdAt.toISOString().slice(0, 10),
@@ -61,7 +66,7 @@ export class InventoryService {
 
     return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
-  
+
   listLowStock(schoolId: string) {
     return this.prisma.$queryRaw`
       SELECT * FROM inventory_items
