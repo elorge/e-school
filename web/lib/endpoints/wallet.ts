@@ -13,9 +13,10 @@ export function getBalanceInStudentUnits(
   return apiFetch(`/${school}/wallet/balance/student-units${qs}`);
 }
 
+/** Flutterwave only — `provider` removed. Charges in the school's own currency (School.currency) server-side. */
 export function initializePayment(
   school: string,
-  body: { amountKobo: number; provider: 'paystack' | 'flutterwave'; payerEmail: string },
+  body: { amountKobo: number; payerEmail: string },
 ): Promise<{ redirectUrl: string; reference: string }> {
   return apiFetch(`/${school}/payments/initialize`, {
     method: 'POST',

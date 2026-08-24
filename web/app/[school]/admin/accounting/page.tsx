@@ -8,8 +8,7 @@ import { Calculator } from 'lucide-react';
 import { recordExpense, listExpenses, getSummary, downloadAccountingExcel, type ExpenseEntry, type IncomeExpenditureSummary } from '@/lib/endpoints/accounting';
 import RequireRole from '@/components/RequireRole';
 import { Download } from 'lucide-react';
-
-const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
+import { formatMoney, majorToMinor } from '@/lib/currency';
 
 function firstDayOfMonth() {
   const d = new Date();
@@ -21,6 +20,7 @@ function today() {
 
 export default function AccountingPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const money = (kobo: number) => formatMoney(kobo, school.currency);
   const [isLoading, setIsLoading] = useState(true);
   const [from, setFrom] = useState(firstDayOfMonth());
   const [to, setTo] = useState(today());
@@ -80,16 +80,16 @@ if (isLoading) return <LoadingScreen />;
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="card">
             <p className="text-xs text-ink/50">Income (fee payments)</p>
-            <p className="text-xl font-semibold text-brand-green">{naira(summary.totalIncomeKobo)}</p>
+            <p className="text-xl font-semibold text-brand-green">{money(summary.totalIncomeKobo)}</p>
           </div>
           <div className="card">
             <p className="text-xs text-ink/50">Expenses</p>
-            <p className="text-xl font-semibold text-red-600">{naira(summary.totalExpenseKobo)}</p>
+            <p className="text-xl font-semibold text-red-600">{money(summary.totalExpenseKobo)}</p>
           </div>
           <div className="card">
             <p className="text-xs text-ink/50">Net</p>
             <p className={`text-xl font-semibold ${summary.netKobo >= 0 ? 'text-brand-green' : 'text-red-600'}`}>
-              {naira(summary.netKobo)}
+              {money(summary.netKobo)}
             </p>
           </div>
         </section>
@@ -101,7 +101,7 @@ if (isLoading) return <LoadingScreen />;
           <ul className="text-sm">
             {Object.entries(summary.expenseByCategory).map(([cat, kobo]) => (
               <li key={cat}>
-                {cat}: {naira(kobo)}
+                {cat}: {money(kobo)}
               </li>
             ))}
           </ul>
@@ -128,8 +128,8 @@ if (isLoading) return <LoadingScreen />;
           <input
             className="w-32 rounded border px-2 py-1.5 text-sm"
             type="number"
-            placeholder="Amount (₦)"
-            onChange={(e) => setForm((f) => ({ ...f, amountKobo: Math.round(Number(e.target.value) * 100) }))}
+            placeholder={`Amount (${school.currency})`}
+            onChange={(e) => setForm((f) => ({ ...f, amountKobo: majorToMinor(Number(e.target.value), school.currency) }))}
             required
           />
           <input
@@ -164,7 +164,7 @@ if (isLoading) return <LoadingScreen />;
         <ul className="flex flex-col gap-1 text-sm">
           {expenses.map((e) => (
             <li key={e.id}>
-              {e.incurredAt.slice(0, 10)} — {e.category}: {e.description} ({naira(e.amountKobo)})
+              {e.incurredAt.slice(0, 10)} — {e.category}: {e.description} ({money(e.amountKobo)})
             </li>
           ))}
         </ul>

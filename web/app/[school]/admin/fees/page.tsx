@@ -22,11 +22,11 @@ import type { Term, Class } from '@/lib/types';
 import RequireRole from '@/components/RequireRole';
 import { Download } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
-
-const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
+import { formatMoney, majorToMinor } from '@/lib/currency';
 
 export default function FeesPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const money = (kobo: number) => formatMoney(kobo, school.currency);
   const [isLoading, setIsLoading] = useState(true);
   const [terms, setTerms] = useState<Term[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -39,18 +39,17 @@ export default function FeesPage({ params }: { params: { school: string } }) {
 
   const [structureForm, setStructureForm] = useState({ classId: '', name: '', amountKobo: 0 });
 
-  // add near the invoice recording section
-const [narration, setNarration] = useState('');
-const [matchAmount, setMatchAmount] = useState('');
-const [matches, setMatches] = useState<{ invoiceId: string; studentName: string; admissionId: string | null; outstandingKobo: number; confidence: number }[]>([]);
+  const [narration, setNarration] = useState('');
+  const [matchAmount, setMatchAmount] = useState('');
+  const [matches, setMatches] = useState<{ invoiceId: string; studentName: string; admissionId: string | null; outstandingKobo: number; confidence: number }[]>([]);
 
-async function handleMatch() {
-  const result = await apiFetch(`/${params.school}/fees/match-payment`, {
-    method: 'POST',
-    body: JSON.stringify({ narration, amountKobo: matchAmount ? Math.round(Number(matchAmount) * 100) : undefined }),
-  });
-  setMatches(result as any);
-}
+  async function handleMatch() {
+    const result = await apiFetch(`/${params.school}/fees/match-payment`, {
+      method: 'POST',
+      body: JSON.stringify({ narration, amountKobo: matchAmount ? majorToMinor(Number(matchAmount), school.currency) : undefined }),
+    });
+    setMatches(result as any);
+  }
 
   useEffect(() => {
     Promise.all([listTerms(params.school), listClasses(params.school)]).then(([t, c]) => {
@@ -97,7 +96,7 @@ async function handleMatch() {
   }
 
   async function handleRecordPayment(invoiceId: string, amountStr: string, method: 'CASH' | 'BANK_TRANSFER' | 'CARD') {
-    const amountKobo = Math.round(Number(amountStr) * 100);
+    const amountKobo = majorToMinor(Number(amountStr), school.currency);
     if (!amountKobo) return;
     await recordPayment(params.school, invoiceId, amountKobo, method);
     refresh();
@@ -131,7 +130,7 @@ if (isLoading) return <LoadingScreen />;
             <ul className="mb-3 flex flex-col gap-1 text-sm">
               {structures.map((s) => (
                 <li key={s.id}>
-                  {s.name} {s.classId ? `(one class)` : '(all classes)'} — {naira(s.amountKobo)}
+                  {s.name} {s.classId ? `(one class)` : '(all classes)'} — {money(s.amountKobo)}
                 </li>
               ))}
             </ul>
@@ -158,8 +157,8 @@ if (isLoading) return <LoadingScreen />;
               <input
                 className="w-32 rounded border px-2 py-1.5 text-sm"
                 type="number"
-                placeholder="Amount (₦)"
-                onChange={(e) => setStructureForm((f) => ({ ...f, amountKobo: Math.round(Number(e.target.value) * 100) }))}
+                placeholder={`Amount (${school.currency})`}
+                onChange={(e) => setStructureForm((f) => ({ ...f, amountKobo: majorToMinor(Number(e.target.value), school.currency) }))}
                 required
               />
               <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
@@ -192,7 +191,7 @@ if (isLoading) return <LoadingScreen />;
               {invoices.map((inv) => (
                 <li key={inv.id} className="flex items-center justify-between border-b pb-2">
                   <span className="flex items-center gap-2">
-                    {inv.student?.firstName} {inv.student?.lastName} — {naira(inv.paidKobo)} / {naira(inv.totalKobo)}
+                    {inv.student?.firstName} {inv.student?.lastName} — {money(inv.paidKobo)} / {money(inv.totalKobo)}
                     <span
                       className={`badge ${inv.status === 'PAID' ? 'badge-green' : inv.status === 'PARTIALLY_PAID' ? 'badge-amber' : 'badge-red'}`}
                     >
@@ -204,7 +203,7 @@ if (isLoading) return <LoadingScreen />;
                       <input
                         className="w-24 rounded border px-2 py-1 text-xs"
                         type="number"
-                        placeholder="₦ amount"
+                        placeholder={`${school.currency} amount`}
                         id={`pay-${inv.id}`}
                       />
                       <button
@@ -239,14 +238,14 @@ if (isLoading) return <LoadingScreen />;
             <p className="mb-3 text-xs text-ink/50">Paste the narration from your bank alert — we'll suggest which invoice it likely pays.</p>
             <div className="flex flex-wrap gap-2">
               <input className="flex-1 rounded border px-2 py-1.5 text-sm" placeholder="e.g. Transfer from Chioma Balogun" value={narration} onChange={(e) => setNarration(e.target.value)} />
-              <input className="w-32 rounded border px-2 py-1.5 text-sm" type="number" placeholder="Amount (₦)" value={matchAmount} onChange={(e) => setMatchAmount(e.target.value)} />
+              <input className="w-32 rounded border px-2 py-1.5 text-sm" type="number" placeholder={`Amount (${school.currency})`} value={matchAmount} onChange={(e) => setMatchAmount(e.target.value)} />
               <button onClick={handleMatch} className="btn-primary text-sm">Find matches</button>
             </div>
             {matches.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1">
                 {matches.map((m) => (
                   <li key={m.invoiceId} className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-sm">
-                    <span>{m.studentName} — owes ₦{(m.outstandingKobo / 100).toLocaleString('en-NG')}</span>
+                    <span>{m.studentName} — owes {money(m.outstandingKobo)}</span>
                     <span className="badge badge-blue">{m.confidence}% match</span>
                   </li>
                 ))}
@@ -260,7 +259,7 @@ if (isLoading) return <LoadingScreen />;
             <ul className="flex flex-col gap-1 text-sm">
               {debtors.map((d, i) => (
                 <li key={i}>
-                  {d.student.firstName} {d.student.lastName} — owes {naira(d.outstandingKobo)}
+                  {d.student.firstName} {d.student.lastName} — owes {money(d.outstandingKobo)}
                 </li>
               ))}
             </ul>

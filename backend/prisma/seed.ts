@@ -2,8 +2,34 @@
 import { PrismaClient, Role, StudentStatus, LedgerType, LedgerSource, LedgerStatus, FeePaymentMethod } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { SUBJECT_CAREER_FIELDS } from '../src/common/constants';
 
 const prisma = new PrismaClient();
+
+// ─── Global career-field defaults (schoolId: null) ─────────────────────────
+// Seeds SubjectCareerField from the old hardcoded SUBJECT_CAREER_FIELDS
+// constant, once. Every school sees these by default; a school outside
+// Nigeria (or with a different curriculum) adds its OWN rows on top via
+// POST /:school/career-fields — see CareerFieldsService.
+
+async function seedGlobalCareerFields() {
+  const existingCount = await prisma.subjectCareerField.count({ where: { schoolId: null } });
+  if (existingCount > 0) {
+    console.log('Global SubjectCareerField rows already seeded — skipping.');
+    return;
+  }
+
+  const rows: { subject: string; field: string }[] = [];
+  for (const [subject, fields] of Object.entries(SUBJECT_CAREER_FIELDS)) {
+    for (const field of fields) rows.push({ subject, field });
+  }
+
+  await prisma.subjectCareerField.createMany({
+    data: rows.map((r) => ({ schoolId: null, subject: r.subject, field: r.field })),
+    skipDuplicates: true,
+  });
+  console.log(`Seeded ${rows.length} global subject-career-field mappings.`);
+}
 
 // ─── Super Admin (platform-wide) ───────────────────────────────────────────
 
@@ -66,13 +92,13 @@ async function seedDemoSchool() {
       slug,
       name: 'Greenwood College',
       code: 'GRW',
-      countryCode: 'NG', // NEW — required, ISO 3166-1 alpha-2
-      currency: 'NGN', // NEW — required, ISO 4217
+      countryCode: 'NG',
+      currency: 'NGN',
       pricePerStudentKoboOverride: null, // uses platform default
       sessionWrapEnabled: true, // seeded ON so you can demo it immediately
     },
   });
-  console.log(`Created school: ${school.name} (${school.slug})`);
+  console.log(`Created school: ${school.name} (${school.slug}) — ${school.countryCode} / ${school.currency}`);
 
   // ── Users ──────────────────────────────────────────────────────────────
   const adminPasswordHash = await bcrypt.hash('SchoolAdmin1234!', 10);
@@ -213,8 +239,8 @@ async function seedDemoSchool() {
     data: {
       schoolId: school.id,
       type: LedgerType.CREDIT,
-      amountKobo: 10_000_000, // ₦100,000
-      currency: school.currency, // NEW — required, copied from the school we just created
+      amountKobo: 10_000_000, // ₦100,000 — school.currency is NGN, so this is literally kobo here
+      currency: school.currency,
       source: LedgerSource.PROMO,
       status: LedgerStatus.CONFIRMED,
       reference: `welcome-bonus-${school.id}`,
@@ -286,6 +312,7 @@ async function seedDemoSchool() {
 // ─── Run all seeds ──────────────────────────────────────────────────────────
 
 async function main() {
+  await seedGlobalCareerFields();
   await seedSuperAdmin();
   await seedFinanceOps();
   await seedDemoSchool();

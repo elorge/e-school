@@ -5,9 +5,10 @@ import { InsightsService } from './insights.service';
 import { InsightsController } from './insights.controller';
 import { PinsModule } from '../pins/pins.module';
 import { SchoolsModule } from '../schools/schools.module';
+import { CareerFieldsModule } from '../career-fields/career-fields.module';
 
 @Module({
-  imports: [HttpModule.register({ timeout: 8000 }), PinsModule, SchoolsModule],
+  imports: [HttpModule.register({ timeout: 8000 }), PinsModule, SchoolsModule, CareerFieldsModule],
   providers: [InsightsService],
   controllers: [InsightsController],
 })

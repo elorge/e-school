@@ -13,20 +13,38 @@ import {
 } from '@/lib/endpoints/platform-finance';
 import { Download } from 'lucide-react';
 import { getSessionUser } from '@/lib/session';
+import { formatMoney, majorToMinor, SUPPORTED_CURRENCIES } from '@/lib/currency';
 import SchoolSearchInput from '@/components/SchoolSearchInput';
 import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
+
+/** Merges the three by-currency maps into one row per currency the platform has ANY activity in this month. */
+function currenciesInOverview(overview: PlatformOverview): string[] {
+  const set = new Set([
+    ...Object.keys(overview.revenueThisMonthByCurrency),
+    ...Object.keys(overview.expensesThisMonthByCurrency),
+    ...Object.keys(overview.netThisMonthByCurrency),
+  ]);
+  return Array.from(set).sort();
+}
 
 export default function FinanceDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [transfers, setTransfers] = useState<PendingTransfer[]>([]);
   const [creditSchoolName, setCreditSchoolName] = useState<string | null>(null);
   const [creditSchoolId, setCreditSchoolId] = useState<string | null>(null);
+  const [creditSchoolCurrency, setCreditSchoolCurrency] = useState<string | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
   const [creditReason, setCreditReason] = useState('');
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
-  const [expenseForm, setExpenseForm] = useState({ category: '', description: '', amount: '', incurredAt: new Date().toISOString().slice(0, 10) });
+  const [expenseForm, setExpenseForm] = useState({
+    category: '',
+    description: '',
+    amount: '',
+    currency: 'NGN',
+    incurredAt: new Date().toISOString().slice(0, 10),
+  });
   const [expenses, setExpenses] = useState<PlatformExpense[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +57,7 @@ export default function FinanceDashboard() {
     load();
   }, []);
 
-async function load() {
+  async function load() {
     try {
       const [t, o, e] = await Promise.all([listPendingTransfers(), getOverview(), listPlatformExpenses()]);
       setTransfers(t);
@@ -56,7 +74,7 @@ async function load() {
     e.preventDefault();
     setError(null);
     try {
-      const amountKobo = Math.round(Number(expenseForm.amount) * 100);
+      const amountKobo = majorToMinor(Number(expenseForm.amount), expenseForm.currency);
       if (!amountKobo || amountKobo <= 0) {
         setError('Enter a valid amount greater than zero.');
         return;
@@ -65,9 +83,10 @@ async function load() {
         category: expenseForm.category,
         description: expenseForm.description,
         amountKobo,
+        currency: expenseForm.currency,
         incurredAt: expenseForm.incurredAt,
       });
-      setExpenseForm({ category: '', description: '', amount: '', incurredAt: new Date().toISOString().slice(0, 10) });
+      setExpenseForm((f) => ({ ...f, category: '', description: '', amount: '' }));
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not record expense — check the browser console for details');
@@ -77,10 +96,10 @@ async function load() {
 
   async function handleCredit(e: React.FormEvent) {
     e.preventDefault();
-    if (!creditSchoolId) return;
+    if (!creditSchoolId || !creditSchoolCurrency) return;
     setError(null);
     try {
-      const kobo = Math.round(Number(creditAmount) * 100);
+      const kobo = majorToMinor(Number(creditAmount), creditSchoolCurrency);
       await manualCredit(creditSchoolId, kobo, creditReason);
       setCreditAmount('');
       setCreditReason('');
@@ -99,29 +118,50 @@ async function load() {
     }
   }
 
-if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
+
+  const currencies = overview ? currenciesInOverview(overview) : [];
+  const totalExpenses = expenses.reduce<Record<string, number>>((acc, e) => {
+    acc[e.currency] = (acc[e.currency] ?? 0) + e.amountKobo;
+    return acc;
+  }, {});
 
   return (
     <>
       <PlatformNav title="Elorge — Finance & Ops" />
       <main className="mx-auto max-w-3xl px-6 py-10">
         {overview && (
-          <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="stat-hero">
-              <p className="text-xs text-white/60">Revenue (this month)</p>
-              <p className="font-display text-xl font-semibold">₦{(overview.revenueThisMonthKobo / 100).toLocaleString('en-NG')}</p>
-            </div>
-            <div className="card">
-              <p className="text-xs text-ink/50">Platform expenses</p>
-              <p className="font-display text-xl font-semibold text-red-600">₦{(overview.expensesThisMonthKobo / 100).toLocaleString('en-NG')}</p>
-            </div>
-            <div className="card">
-              <p className="text-xs text-ink/50">Net (this month)</p>
-              <p className={`font-display text-xl font-semibold ${overview.netThisMonthKobo >= 0 ? 'text-brand-green' : 'text-red-600'}`}>
-                ₦{(overview.netThisMonthKobo / 100).toLocaleString('en-NG')}
-              </p>
-            </div>
-            <div className="card">
+          <section className="mb-8">
+            {currencies.length === 0 ? (
+              <p className="text-sm text-ink/50">No revenue or expense activity recorded this month yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {currencies.map((currency) => {
+                  const revenue = overview.revenueThisMonthByCurrency[currency] ?? 0;
+                  const expensesAmt = overview.expensesThisMonthByCurrency[currency] ?? 0;
+                  const net = overview.netThisMonthByCurrency[currency] ?? 0;
+                  return (
+                    <div key={currency} className="grid grid-cols-3 gap-4">
+                      <div className="stat-hero">
+                        <p className="text-xs text-white/60">Revenue — {currency} (this month)</p>
+                        <p className="font-display text-xl font-semibold">{formatMoney(revenue, currency)}</p>
+                      </div>
+                      <div className="card">
+                        <p className="text-xs text-ink/50">Expenses — {currency}</p>
+                        <p className="font-display text-xl font-semibold text-red-600">{formatMoney(expensesAmt, currency)}</p>
+                      </div>
+                      <div className="card">
+                        <p className="text-xs text-ink/50">Net — {currency}</p>
+                        <p className={`font-display text-xl font-semibold ${net >= 0 ? 'text-brand-green' : 'text-red-600'}`}>
+                          {formatMoney(net, currency)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-3 card">
               <p className="text-xs text-ink/50">Schools</p>
               <p className="font-display text-xl font-semibold">
                 {overview.activeSchools} active <span className="text-sm text-red-600">/ {overview.suspendedSchools} suspended</span>
@@ -147,7 +187,7 @@ if (isLoading) return <LoadingScreen />;
               <Download size={14} /> Export to Excel
             </button>
           </div>
-          <p className="mb-3 text-xs text-ink/50">Elorge's own operating costs — salaries, hosting, tools — separate from any school's wallet.</p>
+          <p className="mb-3 text-xs text-ink/50">Elorge's own operating costs — salaries, hosting, tools — separate from any school's wallet. Most will be in your home currency; pick a different one for a vendor billed elsewhere (e.g. hosting in USD).</p>
           <form onSubmit={handleRecordExpense} className="flex flex-wrap items-end gap-2">
             <input
               className="rounded border px-2 py-1.5 text-sm"
@@ -163,10 +203,21 @@ if (isLoading) return <LoadingScreen />;
               onChange={(e) => setExpenseForm((f) => ({ ...f, description: e.target.value }))}
               required
             />
+            <select
+              className="rounded border px-2 py-1.5 text-sm"
+              value={expenseForm.currency}
+              onChange={(e) => setExpenseForm((f) => ({ ...f, currency: e.target.value }))}
+            >
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
             <input
               className="w-28 rounded border px-2 py-1.5 text-sm"
               type="number"
-              placeholder="Amount (₦)"
+              placeholder="Amount"
               value={expenseForm.amount}
               onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))}
               required
@@ -186,9 +237,11 @@ if (isLoading) return <LoadingScreen />;
           <div className="mt-6 border-t pt-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-sm font-medium">Recorded expenses ({expenses.length})</p>
-              {expenses.length > 0 && (
+              {Object.keys(totalExpenses).length > 0 && (
                 <p className="text-sm text-ink/50">
-                  Total: ₦{(expenses.reduce((sum, e) => sum + e.amountKobo, 0) / 100).toLocaleString('en-NG')}
+                  {Object.entries(totalExpenses)
+                    .map(([currency, amount]) => formatMoney(amount, currency))
+                    .join(' + ')}
                 </p>
               )}
             </div>
@@ -213,7 +266,7 @@ if (isLoading) return <LoadingScreen />;
                           <span className="badge badge-blue">{exp.category}</span>
                         </td>
                         <td className="px-3 py-2 text-ink/70">{exp.description}</td>
-                        <td className="px-3 py-2 text-right font-medium">₦{(exp.amountKobo / 100).toLocaleString('en-NG')}</td>
+                        <td className="px-3 py-2 text-right font-medium">{formatMoney(exp.amountKobo, exp.currency)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -228,7 +281,7 @@ if (isLoading) return <LoadingScreen />;
         {transfers.map((t) => (
           <li key={t.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
             <span>
-              {t.school.name} — ₦{(t.amountKobo / 100).toLocaleString('en-NG')} — <span className="text-ink/50">{t.reference}</span>
+              {t.school.name} — {formatMoney(t.amountKobo, t.currency)} — <span className="text-ink/50">{t.reference}</span>
             </span>
             <div className="flex gap-3">
               <button className="text-green-700 underline" onClick={() => handleResolve(t.id, true)}>
@@ -249,20 +302,21 @@ if (isLoading) return <LoadingScreen />;
             onSelect={(school) => {
               setCreditSchoolName(school.name);
               setCreditSchoolId(school.id);
+              setCreditSchoolCurrency(school.currency);
               setError(null);
             }}
             onError={setError}
           />
         </div>
-        {creditSchoolName && (
+        {creditSchoolName && creditSchoolCurrency && (
           <form onSubmit={handleCredit} className="flex flex-col gap-2">
             <p className="text-sm">
-              Crediting: <strong>{creditSchoolName}</strong>
+              Crediting: <strong>{creditSchoolName}</strong> ({creditSchoolCurrency})
             </p>
             <input
               className="rounded border px-2 py-1.5 text-sm"
               type="number"
-              placeholder="Amount (₦)"
+              placeholder={`Amount (${creditSchoolCurrency})`}
               value={creditAmount}
               onChange={(e) => setCreditAmount(e.target.value)}
               required

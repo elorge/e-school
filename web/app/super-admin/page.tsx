@@ -16,6 +16,7 @@ import {
 } from '@/lib/endpoints/schools';
 import { manualCredit } from '@/lib/endpoints/wallet-admin';
 import { getSessionUser } from '@/lib/session';
+import { SUPPORTED_COUNTRIES, currencyForCountry, formatMoney, majorToMinor, minorToMajor } from '@/lib/currency';
 import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
@@ -39,10 +40,12 @@ export default function SuperAdminPage() {
     slug: '',
     name: '',
     code: '',
+    countryCode: '',
     adminEmail: '',
     adminName: '',
     adminPassword: '',
   });
+  const newSchoolCurrency = newSchool.countryCode ? currencyForCountry(newSchool.countryCode) : null;
 
   useEffect(() => {
     const user = getSessionUser();
@@ -90,10 +93,14 @@ export default function SuperAdminPage() {
     e.preventDefault();
     setError(null);
     setNotice(null);
+    if (!newSchoolCurrency) {
+      setError('Please select a country.');
+      return;
+    }
     try {
-      await createSchool(newSchool);
+      await createSchool({ ...newSchool, currency: newSchoolCurrency });
       setNotice(`${newSchool.name} created and live.`);
-      setNewSchool({ slug: '', name: '', code: '', adminEmail: '', adminName: '', adminPassword: '' });
+      setNewSchool({ slug: '', name: '', code: '', countryCode: '', adminEmail: '', adminName: '', adminPassword: '' });
       loadAll();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create school');
@@ -102,7 +109,9 @@ export default function SuperAdminPage() {
 
   function selectSchool(school: School) {
     setSelectedSchool(school);
-    setPriceOverrideInput(school.pricePerStudentKoboOverride ? (school.pricePerStudentKoboOverride / 100).toString() : '');
+    setPriceOverrideInput(
+      school.pricePerStudentKoboOverride != null ? minorToMajor(school.pricePerStudentKoboOverride, school.currency).toString() : '',
+    );
     setCreditAmount('');
     setCreditReason('');
   }
@@ -132,7 +141,7 @@ export default function SuperAdminPage() {
       setSchools((s) => s.map((x) => (x.id === updated.id ? updated : x)));
       setNotice(`${updated.name} is now ${updated.status}.`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not update this school\'s status');
+      setError(err instanceof ApiError ? err.message : "Could not update this school's status");
     }
   }
 
@@ -140,7 +149,7 @@ export default function SuperAdminPage() {
     if (!selectedSchool) return;
     setError(null);
     try {
-      const kobo = priceOverride ? Math.round(Number(priceOverride) * 100) : null;
+      const kobo = priceOverride ? majorToMinor(Number(priceOverride), selectedSchool.currency) : null;
       const updated = await setPriceOverride(selectedSchool.slug, kobo);
       setSelectedSchool(updated);
       setSchools((s) => s.map((x) => (x.id === updated.id ? updated : x)));
@@ -155,9 +164,9 @@ export default function SuperAdminPage() {
     if (!selectedSchool) return;
     setError(null);
     try {
-      const kobo = Math.round(Number(creditAmount) * 100);
+      const kobo = majorToMinor(Number(creditAmount), selectedSchool.currency);
       await manualCredit(selectedSchool.id, kobo, creditReason);
-      setNotice(`Credited ₦${Number(creditAmount).toLocaleString('en-NG')} to ${selectedSchool.name}.`);
+      setNotice(`Credited ${formatMoney(kobo, selectedSchool.currency)} to ${selectedSchool.name}.`);
       setCreditAmount('');
       setCreditReason('');
     } catch (err) {
@@ -181,6 +190,19 @@ export default function SuperAdminPage() {
           <h2 className="mb-3 font-medium">Create a school directly</h2>
           <p className="mb-3 text-xs text-ink/50">Bypasses the signup-request queue — use for sales-assisted onboarding.</p>
           <form onSubmit={handleCreateSchool} className="grid gap-2 sm:grid-cols-2">
+            <select
+              className="rounded border px-2 py-1.5 text-sm"
+              value={newSchool.countryCode}
+              onChange={(e) => setNewSchool((f) => ({ ...f, countryCode: e.target.value }))}
+              required
+            >
+              <option value="">Country</option>
+              {SUPPORTED_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} ({c.currency})
+                </option>
+              ))}
+            </select>
             <input
               className="rounded border px-2 py-1.5 text-sm"
               placeholder="School name"
@@ -280,7 +302,9 @@ export default function SuperAdminPage() {
                       selectedSchool?.id === s.id ? 'bg-black/5' : ''
                     }`}
                   >
-                    <span>{s.name}</span>
+                    <span>
+                      {s.name} <span className="text-xs text-ink/40">({s.countryCode} · {s.currency})</span>
+                    </span>
                     <span className={`badge ${s.status === 'ACTIVE' ? 'badge-green' : 'badge-red'}`}>{s.status}</span>
                   </button>
                 </li>
@@ -295,7 +319,7 @@ export default function SuperAdminPage() {
               <div className="flex flex-col gap-5">
                 <div>
                   <h2 className="font-medium">{selectedSchool.name}</h2>
-                  <p className="text-xs text-ink/50">{selectedSchool.slug}</p>
+                  <p className="text-xs text-ink/50">{selectedSchool.slug} — {selectedSchool.countryCode} / {selectedSchool.currency}</p>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
@@ -318,7 +342,7 @@ export default function SuperAdminPage() {
                 </div>
 
                 <div>
-                  <p className="mb-1 text-sm">Price per student override (₦, blank = platform default)</p>
+                  <p className="mb-1 text-sm">Price per student override ({selectedSchool.currency}, blank = platform default)</p>
                   <div className="flex gap-2">
                     <input
                       className="w-32 rounded border px-2 py-1.5 text-sm"
@@ -338,7 +362,7 @@ export default function SuperAdminPage() {
                     <input
                       className="rounded border px-2 py-1.5 text-sm"
                       type="number"
-                      placeholder="Amount (₦)"
+                      placeholder={`Amount (${selectedSchool.currency})`}
                       value={creditAmount}
                       onChange={(e) => setCreditAmount(e.target.value)}
                       required

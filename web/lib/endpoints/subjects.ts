@@ -11,6 +11,7 @@ export interface ClassSubject {
   subject: Subject;
 }
 
+/** School-wide catalog — already fully school-scoped on the backend, so a school anywhere adds whatever their curriculum uses (e.g. "Kiswahili", "Twi"). Everyone at the school can read it; only SCHOOL_ADMIN edits it. */
 export function listCatalog(school: string): Promise<Subject[]> {
   return apiFetch(`/${school}/subjects`);
 }

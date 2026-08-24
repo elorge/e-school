@@ -1,10 +1,11 @@
 // web/lib/endpoints/platform-finance.ts
 import { apiFetch } from '../api';
 
+/** Revenue/expenses can no longer be summed into one blended total — a school in NGN and a school in GHS produce two different currencies of money. Each is now a map of currency -> amount instead of one bare Kobo number. */
 export interface PlatformOverview {
-  revenueThisMonthKobo: number;
-  expensesThisMonthKobo: number;
-  netThisMonthKobo: number;
+  revenueThisMonthByCurrency: Record<string, number>;
+  expensesThisMonthByCurrency: Record<string, number>;
+  netThisMonthByCurrency: Record<string, number>;
   totalSchools: number;
   activeSchools: number;
   suspendedSchools: number;
@@ -16,6 +17,7 @@ export interface PlatformExpense {
   category: string;
   description: string;
   amountKobo: number;
+  currency: string; // defaults server-side to the platform's operating currency if omitted at creation
   incurredAt: string;
 }
 
@@ -23,7 +25,7 @@ export function getOverview(): Promise<PlatformOverview> {
   return apiFetch('/platform/finance/overview');
 }
 
-export function recordPlatformExpense(body: { category: string; description: string; amountKobo: number; incurredAt: string }) {
+export function recordPlatformExpense(body: { category: string; description: string; amountKobo: number; incurredAt: string; currency?: string }) {
   return apiFetch<PlatformExpense>('/platform/finance/expenses', { method: 'POST', body: JSON.stringify(body) });
 }
 

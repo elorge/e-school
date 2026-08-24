@@ -14,6 +14,7 @@ import type { Class, Student, Term } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import { Wallet } from 'lucide-react';
 import PasswordInput from '@/components/PasswordInput';
+import { formatMoney, majorToMinor } from '@/lib/currency';
 import { ApiError } from '@/lib/api';
 import type { User } from '@/lib/types';
 
@@ -83,12 +84,8 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
     e.preventDefault();
     setError(null);
     try {
-      const amountKobo = Math.round(Number(fundAmount) * 100);
-      const { redirectUrl } = await initializePayment(params.school, {
-        amountKobo,
-        provider: 'paystack',
-        payerEmail,
-      });
+      const amountKobo = majorToMinor(Number(fundAmount), school.currency);
+      const { redirectUrl } = await initializePayment(params.school, { amountKobo, payerEmail });
       window.location.href = redirectUrl;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not start payment');
@@ -152,13 +149,13 @@ if (isLoading) return <LoadingScreen />;
               <Wallet size={13} /> Wallet balance
             </p>
             <p className="font-display text-4xl font-semibold">
-              {balanceKobo === null ? '—' : `₦${(balanceKobo / 100).toLocaleString('en-NG')}`}
+              {balanceKobo === null ? '—' : formatMoney(balanceKobo, school.currency)}
             </p>
           </div>
         </div>
         <form onSubmit={handleFundWallet} className="relative mt-6 flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm text-white/80">
-            Amount (₦)
+            Amount ({school.currency})
             <input
               className="rounded border-0 bg-white/90 px-2 py-1.5 text-ink"
               type="number"
@@ -179,7 +176,7 @@ if (isLoading) return <LoadingScreen />;
             />
           </label>
           <button type="submit" className="btn-primary relative bg-white text-brand-blue hover:bg-white/90">
-            Fund via Paystack
+            Fund wallet
           </button>
         </form>
       </section>

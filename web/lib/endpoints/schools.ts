@@ -21,11 +21,13 @@ export function reactivateSchool(slug: string): Promise<School> {
   return apiFetch(`/schools/${slug}/reactivate`, { method: 'PATCH' });
 }
 
-/** SUPER_ADMIN only. */
+/** SUPER_ADMIN only. countryCode/currency required — see lib/currency.ts SUPPORTED_COUNTRIES for the picker. */
 export function createSchool(body: {
   slug: string;
   name: string;
   code: string;
+  countryCode: string;
+  currency: string;
   logoUrl?: string;
   adminEmail: string;
   adminName: string;
@@ -61,10 +63,13 @@ export interface SignupRequest {
   createdAt: string;
 }
 
+/** countryCode/currency required — collected via the country picker on the public signup form. */
 export function requestSignup(body: {
   schoolName: string;
   slug: string;
   code: string;
+  countryCode: string;
+  currency: string;
   adminName: string;
   adminEmail: string;
   adminPassword: string;

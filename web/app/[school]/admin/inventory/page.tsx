@@ -8,11 +8,11 @@ import { Boxes } from 'lucide-react';
 import { listItems, listLowStock, createItem, recordTransaction, listTransactions, downloadInventoryExcel, type InventoryTransaction, type InventoryItem } from '@/lib/endpoints/inventory';
 import RequireRole from '@/components/RequireRole';
 import { Download } from 'lucide-react';
-
-const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
+import { formatMoney } from '@/lib/currency';
 
 export default function InventoryPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const money = (kobo: number) => formatMoney(kobo, school.currency);
   const [isLoading, setIsLoading] = useState(true);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [lowStock, setLowStock] = useState<InventoryItem[]>([]);
@@ -120,6 +120,7 @@ if (isLoading) return <LoadingScreen />;
             <li key={i.id} className="flex items-center justify-between border-b pb-2">
               <span>
                 {i.name} — {i.quantityOnHand} {i.unit} on hand
+                <span className="ml-2 text-xs text-ink/40">({money(i.unitCostKobo)} / {i.unit})</span>
               </span>
               <div className="flex items-center gap-2">
                 <input className="w-16 rounded border px-2 py-1 text-xs" type="number" id={`qty-${i.id}`} placeholder="Qty" />

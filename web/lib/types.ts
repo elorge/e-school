@@ -9,7 +9,7 @@ export type StudentStatus = 'PENDING_ID' | 'ACTIVE' | 'WITHDRAWN';
 export type PinStatus = 'ACTIVE' | 'INVALIDATED';
 
 export type LedgerType = 'CREDIT' | 'DEBIT';
-export type LedgerSource = 'GATEWAY' | 'MANUAL_TRANSFER' | 'DVA' | 'PROMO' | 'SYSTEM' | 'REFUND';
+export type LedgerSource = 'GATEWAY' | 'MANUAL_TRANSFER' | 'DVA' | 'PROMO' | 'SYSTEM' | 'REFUND' | 'ADMIN_CREDIT';
 export type LedgerStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED';
 
 export type CalendarEventType =
@@ -41,6 +41,8 @@ export interface School {
   logoUrl: string | null;
   signatureUrl: string | null;
   info: Record<string, unknown> | null;
+  countryCode: string; // ISO 3166-1 alpha-2, e.g. "NG"
+  currency: string; // ISO 4217, e.g. "NGN" — every *Kobo field below is a minor unit of THIS currency for this school
   pricePerStudentKoboOverride: number | null;
   sessionWrapEnabled: boolean;
   status: SchoolStatus;
@@ -111,6 +113,7 @@ export interface WalletLedgerEntry {
   schoolId: string;
   type: LedgerType;
   amountKobo: number;
+  currency: string; // ISO 4217 — stamped at creation from the school's currency, so a ledger row is self-describing
   source: LedgerSource;
   status: LedgerStatus;
   reference: string;

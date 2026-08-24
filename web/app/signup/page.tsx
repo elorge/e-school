@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { requestSignup } from '@/lib/endpoints/schools';
+import { SUPPORTED_COUNTRIES, currencyForCountry } from '@/lib/currency';
 import { ApiError } from '@/lib/api';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -14,6 +15,7 @@ export default function SignupPage() {
     schoolName: '',
     slug: '',
     code: '',
+    countryCode: '',
     adminName: '',
     adminEmail: '',
     adminPassword: '',
@@ -28,6 +30,8 @@ export default function SignupPage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  const currency = form.countryCode ? currencyForCountry(form.countryCode) : null;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -35,9 +39,13 @@ export default function SignupPage() {
       setError('Passwords do not match.');
       return;
     }
+    if (!form.countryCode || !currency) {
+      setError('Please select your country.');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await requestSignup(form);
+      await requestSignup({ ...form, currency });
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
@@ -52,8 +60,8 @@ export default function SignupPage() {
       <main className="mx-auto max-w-md px-6 py-16">
         <h1 className="mb-2 font-display text-2xl font-semibold">Bring your school onto Elorge</h1>
         <p className="mb-8 text-sm text-ink/60">
-          Tell us a bit about your school. Our team reviews every request and activates your workspace, usually
-          within one business day.
+          Wherever your school is, tell us a bit about it. Our team reviews every request and activates your
+          workspace, usually within one business day.
         </p>
 
         {submitted ? (
@@ -67,6 +75,25 @@ export default function SignupPage() {
         ) : (
           <>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1 text-sm">
+              Country
+              <select
+                className="rounded border px-3 py-2"
+                value={form.countryCode}
+                onChange={(e) => update('countryCode', e.target.value)}
+                required
+              >
+                <option value="">Select your country</option>
+                {SUPPORTED_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {currency && (
+                <span className="text-xs text-ink/50">Your school will be billed in {currency}.</span>
+              )}
+            </label>
             <label className="flex flex-col gap-1 text-sm">
               School name
               <input

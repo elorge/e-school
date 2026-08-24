@@ -43,6 +43,7 @@ model School {
   students          Student[]
   terms             Term[]
   subjects          Subject[]
+  subjectCareerFields SubjectCareerField[]
   pins              Pin[]
   lessonNotes       LessonNote[]
   pinLookupAttempts PinLookupAttempt[]
@@ -193,7 +194,7 @@ model Term {
   school           School   @relation(fields: [schoolId], references: [id])
   name             String // e.g. "2025/2026 — Term 1"
   academicSession  String // e.g. "2025/2026" — groups terms 1-3 for session-level analysis
-  termNumber       Int // 1, 2, or 3
+  termNumber       Int // not fixed its global
   startDate        DateTime
   endDate          DateTime
 
@@ -778,4 +779,17 @@ model AssessmentScore {
 
   @@unique([schoolId, studentId, termId, subject, componentName])
   @@map("assessment_scores")
+}
+
+model SubjectCareerField {
+  id        String   @id @default(uuid())
+  schoolId  String?  // null = global default, visible to every school
+  school    School?  @relation(fields: [schoolId], references: [id])
+  subject   String
+  field     String
+  createdAt DateTime @default(now())
+
+  @@unique([schoolId, subject, field])
+  @@index([subject])
+  @@map("subject_career_fields")
 }

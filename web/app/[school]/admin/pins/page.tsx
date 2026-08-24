@@ -11,6 +11,7 @@ import type { Class, Term, Student } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import { KeyRound, Printer } from 'lucide-react';
 import RequireRole from '@/components/RequireRole';
+import { formatMoney } from '@/lib/currency';
 
 export default function PinGenerationPage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -171,7 +172,7 @@ export default function PinGenerationPage({ params }: { params: { school: string
             {selectedIds.size} student(s) selected — students already charged for this term (via PIN or CBT) are not
             billed again.
           </p>
-          <p className="mt-1 font-display text-2xl font-semibold">Up to ₦{(totalCost / 100).toLocaleString('en-NG')}</p>
+          <p className="mt-1 font-display text-2xl font-semibold">Up to {formatMoney(totalCost, school.currency)}</p>
           <button
             onClick={handleGenerate}
             disabled={isGenerating}

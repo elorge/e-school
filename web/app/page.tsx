@@ -3,30 +3,34 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
-import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil, Wallet, Boxes, Calculator, Upload } from 'lucide-react';
+import { SUPPORTED_COUNTRIES } from '@/lib/currency';
+import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil, Wallet, Boxes, Calculator, Globe2 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Elorge Schools — CBT, Verifiable Results & Lesson Notes for Nigerian Schools',
+  title: 'Elorge Schools — CBT, Verifiable Results & Lesson Notes for Schools Anywhere',
   description:
-    'The school management platform with computer-based testing (CBT), QR-verifiable report cards, online result checking, lesson notes with presenter mode, ID cards, fees, and offline-first design.',
+    'The school management platform with computer-based testing (CBT), QR-verifiable report cards, online result checking, lesson notes with presenter mode, ID cards, fees, and offline-first design — built for schools in Nigeria, Ghana, Kenya, and beyond.',
   alternates: { canonical: '/' },
 };
 
+// No fixed `offers.priceCurrency` here on purpose — a school in Lagos pays
+// in NGN, one in Nairobi pays in KES, one in Accra pays in GHS. A single
+// hardcoded currency in structured data would just be wrong for most
+// schools on the platform; better to omit it than assert something false.
 const softwareJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'Elorge Schools',
   applicationCategory: 'EducationalApplication',
   operatingSystem: 'Web, Android, iOS',
-  offers: { '@type': 'Offer', priceCurrency: 'NGN' },
   description:
-    'School management software for Nigerian schools with computer-based testing, verifiable results, lesson notes, ID cards, attendance, fees, and offline-first design.',
+    'School management software with computer-based testing, verifiable results, lesson notes, ID cards, attendance, fees, and offline-first design — for schools anywhere, billed in your own currency.',
   featureList: [
     'Computer-based testing (CBT)',
     'QR-verifiable result checking',
     'Lesson notes with presenter mode',
     'Digital ID cards and gate attendance',
-    'Fees, invoicing and wallet',
+    'Fees, invoicing and wallet — in your own currency',
     'Offline-first, works without internet',
   ],
 };
@@ -42,7 +46,7 @@ const CORE_FEATURES = [
   },
   {
     title: 'One wallet, not three invoices',
-    body: 'Fund once. Result PINs and computer-based tests draw from the same per-student charge — never billed twice for the same student in the same term.',
+    body: 'Fund once, in your own currency. Result PINs and computer-based tests draw from the same per-student charge — never billed twice for the same student in the same term.',
   },
   {
     title: 'A calendar every teacher can print',
@@ -57,7 +61,7 @@ const RUN_THE_SCHOOL_FEATURES = [
   },
   {
     title: 'One-click end-of-session promotion',
-    body: 'Move a whole class from JSS1 to JSS2 in a few clicks at year-end, instead of editing every student one at a time.',
+    body: 'Move a whole class up a grade in a few clicks at year-end, instead of editing every student one at a time.',
   },
   {
     title: 'Staff invites, done properly',
@@ -76,11 +80,19 @@ const FAQS = [
   },
   {
     q: 'Can teachers write and present lesson notes on Elorge?',
-    a: 'Yes. Teachers write lesson notes in the standard structured format, then turn any note into a full-screen slide deck for the projector with one click, complete with a built-in whiteboard.',
+    a: 'Yes. Teachers write lesson notes in a structured format — objectives, previous knowledge, presentation, evaluation, assignment — then turn any note into a full-screen slide deck for the projector with one click, complete with a built-in whiteboard.',
   },
   {
     q: 'Does Elorge work without internet access?',
     a: 'Yes. Elorge is installable as an app on phone or desktop and keeps working through outages — registering students, entering scores, and sitting CBT tests offline — syncing everything the moment connectivity returns.',
+  },
+  {
+    q: 'Is Elorge only for schools in Nigeria?',
+    a: `No. Elorge started in Nigeria and now onboards schools in ${SUPPORTED_COUNTRIES.length} countries, each billed in its own currency through Flutterwave — your school's academic structure (terms, semesters, or quarters) and subject list are entirely your own too, not fixed to any one country's curriculum.`,
+  },
+  {
+    q: 'What academic calendar does Elorge assume — terms, semesters, or something else?',
+    a: 'Whatever your school actually uses. A school can run 2 semesters, 3 terms, 4 quarters, or any other structure, and label periods however they normally would — nothing is hardcoded to one country\'s academic calendar.',
   },
 ];
 
@@ -116,7 +128,7 @@ export default function HomePage() {
         </h1>
         <p className="max-w-xl text-lg text-ink/70">
           Results, ID cards, attendance, fees, computer-based tests, and school finances — in one place, working the
-          way your school actually runs: sometimes with signal, sometimes without.
+          way your school actually runs: sometimes with signal, sometimes without, wherever your school is.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <Link
@@ -179,19 +191,52 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Global reach — pulled live from lib/currency.ts, so this section can never
+          drift out of sync with what's actually supported in the product. */}
+      <section id="global" className="border-t border-black/5 bg-white px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="mb-3 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-brand-green">
+            <Globe2 size={14} /> Not just Nigeria
+          </p>
+          <h2 className="mb-4 max-w-2xl font-display text-3xl font-semibold">
+            Built in Nigeria. Built to run anywhere.
+          </h2>
+          <p className="mb-8 max-w-2xl text-ink/70">
+            Your school's country, currency, academic calendar, and subject list are all your own — nothing here
+            assumes one country's system. A school anywhere sets up its own workspace and is billed in its own
+            currency through Flutterwave.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SUPPORTED_COUNTRIES.map((c) => (
+              <span key={c.code} className="rounded-full border border-black/10 px-3 py-1.5 text-xs text-ink/70">
+                {c.name} <span className="text-ink/40">· {c.currency}</span>
+              </span>
+            ))}
+          </div>
+          <p className="mt-6 text-sm text-ink/50">
+            Don't see your country?{' '}
+            <a href="mailto:hello@elorgeschools.com" className="text-brand-blue underline">
+              Talk to us
+            </a>{' '}
+            — we're adding corridors as schools ask for them.
+          </p>
+        </div>
+      </section>
+
       {/* Session Wrap — the genuine differentiator, given its own moment */}
       <section id="session-wrap" className="px-6 py-20">
         <div className="mx-auto grid max-w-5xl gap-10 sm:grid-cols-2 sm:items-center">
           <div>
             <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Session Wrap</p>
             <h2 className="mb-4 font-display text-3xl font-semibold">
-              Three terms of scores, turned into a starting point for a real conversation.
+              A session of scores, turned into a starting point for a real conversation.
             </h2>
             <p className="text-ink/70">
               At the end of an academic session, Elorge looks at what a student was consistently strong in — not one
-              lucky test, a whole session — and surfaces fields worth exploring because of it. It's not a verdict,
-              and we say so on every copy: a starting point for a parent-teacher conversation, not a replacement for
-              one.
+              lucky test, a whole session — and surfaces fields worth exploring because of it. Career-field
+              suggestions aren't fixed to one curriculum either: a school teaching subjects outside the built-in
+              defaults links its own on the way to the same suggestions. It's not a verdict, and we say so on every
+              copy: a starting point for a parent-teacher conversation, not a replacement for one.
             </p>
           </div>
           <div className="rounded-2xl bg-ink p-8 text-white torn-edge">
@@ -268,7 +313,7 @@ export default function HomePage() {
               Written once, taught on the board, read again at home.
             </h2>
             <p className="mb-6 text-ink/70">
-              Teachers write in the same structured format used for supervision — objectives, previous knowledge,
+              Teachers write in a structured format used for supervision — objectives, previous knowledge,
               presentation, evaluation, assignment. One click turns it into a full-screen slide deck for the
               projector, with a whiteboard overlay for working through a problem live. Publish it, and it's there
               for that class's students to read again at home, at their own pace — gated to their own class, not the
@@ -276,7 +321,7 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col gap-3">
               {[
-                [NotebookPen, 'A format teachers already know', 'The standard Nigerian lesson-note structure — not a blank text box.'],
+                [NotebookPen, 'A format teachers already know', 'A structured lesson-note format — not a blank text box.'],
                 [Presentation, 'One click to the projector', 'The same note becomes a clean, full-screen slide deck — no separate slides to build.'],
                 [Pencil, 'Whiteboard, built in', 'Pen, eraser, and colors, right over the slide — for working through a step live.'],
               ].map(([Icon, title, body]: any) => (
@@ -329,9 +374,9 @@ export default function HomePage() {
             Register a student, enter a score, sit a test — with no signal at all.
           </h2>
           <p className="max-w-xl text-white/70">
-            NEPA cuts the wifi mid-registration season. Elorge is installable straight from your browser, works as a
-            real app on your phone or desktop, and keeps working through the outage — syncing everything the moment
-            you're back.
+            The power goes out mid-registration season, or the campus wifi drops without warning. Elorge is
+            installable straight from your browser, works as a real app on your phone or desktop, and keeps working
+            through the outage — syncing everything the moment you're back.
           </p>
         </div>
       </section>
@@ -343,8 +388,8 @@ export default function HomePage() {
           <h2 className="mb-4 max-w-2xl font-display text-3xl font-semibold">A finance office, built in.</h2>
           <p className="mb-10 max-w-2xl text-ink/70">
             Set a term's fees once, generate invoices for every class, and record payments as they land — cash or
-            transfer. Track supplies and equipment so you know before you run out. See income against expenses for
-            any date range, exportable to Excel for your accountant.
+            transfer, in your own currency. Track supplies and equipment so you know before you run out. See income
+            against expenses for any date range, exportable to Excel for your accountant.
           </p>
           <div className="grid gap-8 sm:grid-cols-3">
             {[
@@ -440,7 +485,7 @@ export default function HomePage() {
       <section className="border-t border-black/5 px-6 py-16 text-center">
         <p className="mx-auto max-w-md text-sm text-ink/50">
           Built for schools that take their records seriously — from single-campus academies to multi-branch
-          colleges.
+          colleges, in every country we operate in.
         </p>
       </section>
 

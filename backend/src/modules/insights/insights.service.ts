@@ -5,8 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import PDFDocument from 'pdfkit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SchoolsService } from '../schools/schools.service';
+import { CareerFieldsService } from '../career-fields/career-fields.service';
 import { classifyPerformance } from '../../common/utils/performance-classification';
-import { SUBJECT_CAREER_FIELDS } from '../../common/constants';
 
 interface SessionWrapSubject {
   subject: string;
@@ -29,10 +29,11 @@ export interface SessionWrap {
 export class InsightsService {
   private readonly logger = new Logger(InsightsService.name);
 
-constructor(
+  constructor(
     private readonly prisma: PrismaService,
     private readonly http: HttpService,
     private readonly schoolsService: SchoolsService,
+    private readonly careerFieldsService: CareerFieldsService,
   ) {}
 
   private async assertEnabled(schoolId: string) {
@@ -94,10 +95,17 @@ constructor(
       .slice(0, 5)
       .map((s) => s.subject);
 
-    // Map top strengths to fields, deduped, each field shows WHICH subjects support it — never a bare label.
+    // Map top strengths to fields — pulled from CareerFieldsService, which
+    // merges platform-wide defaults with anything THIS school added on top
+    // (see career-fields module). Replaces the old hardcoded, Nigeria-only
+    // SUBJECT_CAREER_FIELDS lookup — a school teaching "Kiswahili" or
+    // "Twi" now gets suggestions for it once they add the mapping via
+    // Settings, without waiting on a platform deploy. Deduped, each field
+    // shows WHICH subjects support it — never a bare label.
+    const fieldsBySubject = await this.careerFieldsService.getFieldsBySubject(schoolId, topStrengths);
     const fieldToSubjects = new Map<string, Set<string>>();
     for (const subject of topStrengths) {
-      const fields = SUBJECT_CAREER_FIELDS[subject] ?? [];
+      const fields = fieldsBySubject.get(subject) ?? [];
       for (const field of fields) {
         if (!fieldToSubjects.has(field)) fieldToSubjects.set(field, new Set());
         fieldToSubjects.get(field)!.add(subject);

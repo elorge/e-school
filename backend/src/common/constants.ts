@@ -42,6 +42,14 @@ export const PLATFORM_DEFAULT_CURRENCY = process.env.DEFAULT_CURRENCY ?? 'NGN';
 export const PLATFORM_DEFAULT_COUNTRY_CODE = process.env.DEFAULT_COUNTRY_CODE ?? 'NG';
 
 /**
+ * SEED DATA ONLY — no longer read directly by InsightsService. This is
+ * the Nigeria-curriculum-flavored starting set, inserted as global
+ * (schoolId: null) rows into SubjectCareerField by the seed script (see
+ * seedGlobalCareerFields in prisma/seed.ts). At runtime,
+ * CareerFieldsService merges these global defaults with whatever a
+ * school added on top for its own curriculum — see
+ * career-fields.service.ts and schema-changes-career-fields.prisma.
+ *
  * Deliberately deterministic and rule-based, NOT AI-generated — this
  * touches a child's future, so every suggestion must be traceable back
  * to the specific subjects that produced it, and reproducible on

@@ -16,6 +16,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
 
   const [form, setForm] = useState({
     academicSession: '',
+    periodLabel: 'Term', // "Term", "Semester", "Quarter", "Trimester" — whatever this school's system calls it
     termNumber: 1,
     startDate: '',
     endDate: '',
@@ -40,12 +41,18 @@ export default function TermsPage({ params }: { params: { school: string } }) {
     e.preventDefault();
     setError(null);
     try {
-      const name = `${form.academicSession} — Term ${form.termNumber}`;
-      await createTerm(params.school, { name, ...form });
-      setForm({ academicSession: '', termNumber: 1, startDate: '', endDate: '' });
+      const name = `${form.academicSession} — ${form.periodLabel} ${form.termNumber}`;
+      await createTerm(params.school, {
+        name,
+        academicSession: form.academicSession,
+        termNumber: form.termNumber,
+        startDate: form.startDate,
+        endDate: form.endDate,
+      });
+      setForm((f) => ({ ...f, academicSession: '', termNumber: 1, startDate: '', endDate: '' }));
       load();
     } catch (err: any) {
-      setError(err?.message ?? 'Could not create term — check the session/term number isn\'t already used');
+      setError(err?.message ?? "Could not create term — check the session/number isn't already used");
     }
   }
 
@@ -60,7 +67,9 @@ export default function TermsPage({ params }: { params: { school: string } }) {
       <section className="card">
         <h2 className="mb-3 font-medium">Create a term</h2>
         <p className="mb-3 text-xs text-ink/50">
-          Academic session groups Term 1, 2, and 3 together — e.g. "2025/2026" — and is what powers Session Wrap.
+          Academic session groups every period together — e.g. "2025/2026" — and is what powers Session Wrap.
+          Whatever your school calls its periods (Term, Semester, Quarter, Trimester) and however many you run per
+          session, this works — the number just needs to be unique within one session.
         </p>
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -74,16 +83,26 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Term number
-            <select
-              className="rounded border px-2 py-1.5"
+            What you call a period
+            <input
+              className="w-32 rounded border px-2 py-1.5"
+              placeholder="Term"
+              value={form.periodLabel}
+              onChange={(e) => setForm((f) => ({ ...f, periodLabel: e.target.value }))}
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Number
+            <input
+              className="w-20 rounded border px-2 py-1.5"
+              type="number"
+              min={1}
+              max={6}
               value={form.termNumber}
               onChange={(e) => setForm((f) => ({ ...f, termNumber: Number(e.target.value) }))}
-            >
-              <option value={1}>Term 1</option>
-              <option value={2}>Term 2</option>
-              <option value={3}>Term 3</option>
-            </select>
+              required
+            />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Start date
@@ -106,7 +125,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-            Create term
+            Create {form.periodLabel || 'term'}
           </button>
         </form>
       </section>
