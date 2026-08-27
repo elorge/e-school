@@ -31,6 +31,14 @@ export class CreateSchoolDto {
   @IsIn(SUPPORTED_CURRENCIES, { message: `currency must be one of: ${SUPPORTED_CURRENCIES.join(', ')}` })
   currency!: string;
 
+  // Optional — defaults to the country's usual timezone (timezoneForCountry)
+  // if omitted. Only needs setting explicitly for a school whose actual
+  // campus doesn't match its country's default zone (e.g. a country
+  // spanning multiple timezones). Drives CBT access-code day validity.
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
   // NEW: the school's first SCHOOL_ADMIN. SchoolsController.create wires
   // this into both School creation (for the welcome email) and
   // AuthService.createUser (for the actual login-capable account).

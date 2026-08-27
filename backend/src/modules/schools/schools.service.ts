@@ -8,6 +8,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../../common/services/audit.service';
 import { SignupRequestStatus } from '@prisma/client';
 import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO } from '../../common/constants';
+import { timezoneForCountry } from '../../common/utils/timezone.util';
 
 @Injectable()
 export class SchoolsService {
@@ -65,6 +66,7 @@ export class SchoolsService {
     code: string;
     countryCode: string;
     currency: string;
+    timezone?: string;
     logoUrl?: string;
     adminEmail: string;
     adminName: string;
@@ -76,6 +78,7 @@ export class SchoolsService {
         code: data.code,
         countryCode: data.countryCode,
         currency: data.currency,
+        timezone: data.timezone ?? timezoneForCountry(data.countryCode),
         logoUrl: data.logoUrl,
       },
     });
@@ -113,12 +116,18 @@ export class SchoolsService {
   }
 
   /** Public entry point — creates nothing yet, just queues a request for SUPER_ADMIN review. */
+  // NOTE: SchoolSignupRequest.timezone is required in the schema — default
+  // it from countryCode here, same as create() does for School.
+  // approveSignupRequest() carries this value straight through onto the
+  // new School row rather than recomputing it, so a school whose timezone
+  // was corrected between signup and approval keeps that value.
   async createSignupRequest(data: {
     schoolName: string;
     slug: string;
     code: string;
     countryCode: string;
     currency: string;
+    timezone?: string;
     adminName: string;
     adminEmail: string;
     adminPassword: string;
@@ -138,6 +147,7 @@ export class SchoolsService {
         slug: data.slug,
         code: data.code,
         countryCode: data.countryCode,
+        timezone: data.timezone ?? timezoneForCountry(data.countryCode),
         currency: data.currency,
         adminName: data.adminName,
         adminEmail: data.adminEmail,
@@ -169,8 +179,10 @@ export class SchoolsService {
    * Approves a pending request: creates the real School + its first
    * SCHOOL_ADMIN user directly from the already-hashed password on file
    * — no second password prompt needed. Reuses `create()` below to stay
-   * consistent with the existing sales-assisted flow. countryCode/currency
-   * flow straight through from the signup request onto the new School row.
+   * consistent with the existing sales-assisted flow. countryCode/currency/
+   * timezone flow straight through from the signup request onto the new
+   * School row (timezone is passed as-is, not recomputed, in case it was
+   * corrected after signup but before approval).
    */
   async approveSignupRequest(requestId: string) {
     const request = await this.prisma.schoolSignupRequest.findUniqueOrThrow({ where: { id: requestId } });
@@ -184,6 +196,7 @@ export class SchoolsService {
       code: request.code,
       countryCode: request.countryCode,
       currency: request.currency,
+      timezone: request.timezone,
       adminEmail: request.adminEmail,
       adminName: request.adminName,
     });

@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { ResultsService } from '../results/results.service';
 import { SchoolsService } from '../schools/schools.service';
+import { calendarDayInTimezone, PLATFORM_DEFAULT_TIMEZONE } from '../../common/utils/timezone.util';
 import { CbtAttemptStatus, CbtTestStatus } from '@prisma/client';
 
 const TEMPLATE_HEADERS = ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer (A/B/C/D)', 'Points'];
@@ -186,11 +187,16 @@ createTest(
     return { deleted: true };
   }
 
-  /** Generates a blank fill-in template — same column order the parser below expects. */
+  /**
+   * Generates a blank fill-in template — same column order the parser
+   * below expects. Example row is a plain arithmetic question rather
+   * than a country-specific fact, so the template reads the same for
+   * any school regardless of where it is.
+   */
   generateQuestionTemplate(testTitle: string): Buffer {
     const worksheet = XLSX.utils.aoa_to_sheet([
       TEMPLATE_HEADERS,
-      ['What is the capital of Nigeria?', 'Lagos', 'Abuja', 'Kano', 'Ibadan', 'B', 1],
+      ['What is 7 × 8?', '54', '56', '64', '48', 'B', 1],
     ]);
     worksheet['!cols'] = [{ wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 8 }];
     const workbook = XLSX.utils.book_new();
@@ -304,7 +310,11 @@ if (students.length === 0) throw new BadRequestException('No students selected t
 
     // Same per-student-per-term charge PIN generation uses — a student
     // already charged for this term (via PIN generation) is NOT charged
-    // again here. CBT and PIN access are billed as one product.
+    // again here. CBT and PIN access are billed as one product. This is
+    // already currency-safe: getEffectivePricePerStudentKobo and the
+    // wallet debit/refund below both resolve the school's own currency
+    // internally (see SchoolsService / WalletService) — nothing here
+    // assumes NGN.
     const pricePerStudentKobo = await this.schoolsService.getEffectivePricePerStudentKobo(schoolId);
     let newlyCharged = 0;
     for (const student of students) {
@@ -341,7 +351,7 @@ async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId
     const test = await this.prisma.cbtTest.findFirst({ where: { schoolId, accessCode, status: CbtTestStatus.PUBLISHED } });
     if (!test) throw new NotFoundException('Invalid or expired access code');
 
-    this.assertWithinScheduledWindow(test);
+    await this.assertWithinScheduledWindow(schoolId, test);
 
     const student = await this.prisma.student.findFirst({ where: { schoolId, studentId: admissionId } });
     if (!student) throw new NotFoundException('Admission ID not recognized');
@@ -349,43 +359,41 @@ async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId
     return this.getAttemptForStudent(schoolId, test.id, student.id);
   }
 
- /**
-   * Nigeria is UTC+1 with no DST — a fixed offset, not a named timezone
-   * lookup, so this needs no timezone library. Deliberately does NOT
-   * rely on the server's local TZ setting — this converts explicitly,
-   * so behavior is identical whether TZ is configured on the host or not.
-   */
-  private static readonly WAT_OFFSET_MS = 60 * 60 * 1000; // UTC+1
-
-  private toWatCalendarDay(date: Date): string {
-    const watTime = new Date(date.getTime() + CbtService.WAT_OFFSET_MS);
-    return watTime.toISOString().slice(0, 10); // "YYYY-MM-DD" in WAT terms
-  }
-
   /**
-   * Valid for the ENTIRE scheduled calendar day (WAT) — 00:00 to 23:59,
-   * not a short time-slice within it. A code generated for "15th July"
-   * works any time on the 15th, and stops working entirely once the
-   * 16th begins. accessWindowMinutes is no longer used for the time-of-
-   * day cutoff (that was the bug — it anchored the window to midnight,
-   * so it expired hours before school even opened); the field stays in
-   * the schema for a future "specific start time" feature if you want
-   * one, but plays no part in this check today.
+   * Valid for the ENTIRE scheduled calendar day, IN THE SCHOOL'S OWN
+   * TIMEZONE — not a short time-slice within it, and not Nigeria's
+   * timezone regardless of where the school actually is. A code
+   * generated for "15th July" works any time on the 15th local to that
+   * school, and stops working entirely once the 16th begins there. This
+   * used to be hardcoded to WAT (UTC+1) unconditionally — correct only
+   * for Nigerian schools; a school in Nairobi (UTC+3) or Accra (UTC+0)
+   * would have the window computed against the wrong clock entirely.
+   * Now resolves School.timezone (an IANA name, e.g. "Africa/Nairobi")
+   * per school instead. accessWindowMinutes is no longer used for the
+   * time-of-day cutoff (that was the ORIGINAL bug — it anchored the
+   * window to midnight, expiring hours before school even opened); the
+   * field stays in the schema for a future "specific start time"
+   * feature, but plays no part in this check today.
    */
-  private assertWithinScheduledWindow(test: { scheduledDate: Date }) {
-    const now = new Date();
-    const todayWat = this.toWatCalendarDay(now);
-    const scheduledWat = this.toWatCalendarDay(test.scheduledDate);
+  private async assertWithinScheduledWindow(schoolId: string, test: { scheduledDate: Date }) {
+    const school = await this.schoolsService.findByIdOrThrow(schoolId);
+    const timezone = school.timezone ?? PLATFORM_DEFAULT_TIMEZONE;
 
-    if (todayWat !== scheduledWat) {
-      throw new ForbiddenException(`This test is scheduled for ${scheduledWat} (WAT) — the access code only works on that day.`);
+    const now = new Date();
+    const todayInSchoolTz = calendarDayInTimezone(now, timezone);
+    const scheduledInSchoolTz = calendarDayInTimezone(test.scheduledDate, timezone);
+
+    if (todayInSchoolTz !== scheduledInSchoolTz) {
+      throw new ForbiddenException(
+        `This test is scheduled for ${scheduledInSchoolTz} (${timezone}) — the access code only works on that day.`,
+      );
     }
   }
 
 async getAttemptForStudent(schoolId: string, testId: string, studentId: string) {
     const test = await this.findOneOrThrow(schoolId, testId);
     if (test.status !== CbtTestStatus.PUBLISHED) throw new ForbiddenException('This test is not currently open');
-    this.assertWithinScheduledWindow(test);
+    await this.assertWithinScheduledWindow(schoolId, test);
 
     let attempt = await this.prisma.cbtAttempt.findUnique({ where: { testId_studentId: { testId, studentId } } });
     if (!attempt) throw new NotFoundException('This student is not assigned to this test');

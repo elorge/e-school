@@ -4,12 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import { SUPPORTED_COUNTRIES } from '@/lib/currency';
 import { Linkedin, ShieldCheck, Wifi, Users2 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About Elorge Technologies — Nigerian School Software Company',
+  title: 'About Elorge Technologies — School Software Built in Nigeria, Serving Schools Beyond It',
   description:
-    'Meet the team behind Elorge Schools: education, engineering, security, and legal expertise building school management software for Nigeria.',
+    'Meet the team behind Elorge Schools: education, engineering, security, and legal expertise building school management software for Nigeria — and now schools in other countries too.',
   alternates: { canonical: '/about' },
 };
 
@@ -80,7 +81,7 @@ const VALUES = [
   {
     icon: Wifi,
     title: 'Built for how schools actually run',
-    body: "NEPA cuts the power mid-registration season. Signal drops at the gate. We designed for that reality first, not as an afterthought bolted on once something broke in front of a client.",
+    body: "The power goes out mid-registration season. Signal drops at the gate. We designed for that reality first, not as an afterthought bolted on once something broke in front of a client — wherever the school happens to be.",
   },
   {
     icon: Users2,
@@ -111,7 +112,7 @@ export default function AboutPage() {
           <p className="max-w-xl text-lg text-ink/70">
             Elorge Technologies Limited builds software for schools that take their records seriously — results
             parents can verify, ID cards that work at the gate, and a wallet that doesn't need a finance degree to
-            understand.
+            understand, billed in your own currency wherever your school is.
           </p>
         </section>
 
@@ -130,10 +131,12 @@ export default function AboutPage() {
                 gate, in the fees office, in a computer lab that loses signal mid-test.
               </p>
               <p className="text-ink/70">
-                We're a Nigerian software company focused on IT infrastructure and development for the education
-                sector — small enough that the people who built the platform still answer the phone when a school
-                calls, and deliberate enough that every feature earns its place because a real registrar's office
-                actually needed it.
+                We started as a Nigerian software company focused on IT infrastructure and development for the
+                education sector — and we're still headquartered there. What's changed is who we build for: schools
+                in {SUPPORTED_COUNTRIES.length} countries now run on Elorge, each billed in its own currency, each
+                keeping its own academic calendar and subject list. We're small enough that the people who built the
+                platform still answer the phone when a school calls, and deliberate enough that every feature earns
+                its place because a real registrar's office actually needed it.
               </p>
             </div>
             <div className="rounded-2xl bg-ink p-8 text-white torn-edge">
@@ -148,8 +151,8 @@ export default function AboutPage() {
                   <p className="text-sm text-white/60">signal required to register a student, enter a score, or sit a test</p>
                 </div>
                 <div>
-                  <p className="font-display text-3xl font-semibold">3</p>
-                  <p className="text-sm text-white/60">disciplines in the founding team — education, engineering, and security — not just one</p>
+                  <p className="font-display text-3xl font-semibold">{SUPPORTED_COUNTRIES.length}</p>
+                  <p className="text-sm text-white/60">countries a school can sign up from today, each billed in its own currency</p>
                 </div>
               </div>
             </div>

@@ -43,6 +43,7 @@ export interface School {
   info: Record<string, unknown> | null;
   countryCode: string; // ISO 3166-1 alpha-2, e.g. "NG"
   currency: string; // ISO 4217, e.g. "NGN" — every *Kobo field below is a minor unit of THIS currency for this school
+  timezone: string; // IANA name, e.g. "Africa/Lagos" — drives CBT access-code day validity
   pricePerStudentKoboOverride: number | null;
   sessionWrapEnabled: boolean;
   status: SchoolStatus;
