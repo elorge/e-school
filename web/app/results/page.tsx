@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Check School Result Online — Verified, QR-Stamped Report Cards',
     description: 'Every Elorge report card carries a QR stamp a parent can scan to confirm it\'s real.',
-    url: 'https://elorgeschools.com/results',
+    url: 'https://elorgeschools.org/results',
   },
 };
 
@@ -21,7 +21,7 @@ const HOW_IT_WORKS = [
   {
     icon: Search,
     title: 'Go to your school\'s Elorge page',
-    body: 'Your school gives you a web address specific to them — something like elorgeschools.com/yourschool/results.',
+    body: 'Your school gives you a web address specific to them — something like elorgeschools.org/yourschool/results.',
   },
   {
     icon: ShieldCheck,
@@ -88,7 +88,7 @@ export default function ResultsPage() {
             <Smartphone className="mt-0.5 shrink-0 text-amber" size={20} />
             <p className="text-sm text-ink/70">
               This page explains how result checking works — it isn't itself a results portal. Your specific school
-              gives you a link like <span className="font-mono text-xs">elorgeschools.com/yourschool/results</span>,
+              gives you a link like <span className="font-mono text-xs">elorgeschools.org/yourschool/results</span>,
               along with an Admission ID and PIN for your child.
             </p>
           </div>

@@ -168,7 +168,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2 rounded-full bg-brand-green/10 px-3 py-1.5 text-xs text-brand-green-dark">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-              Verified — scan to confirm at elorgeschools.com/verify
+              Verified — scan to confirm at elorgeschools.org/verify
             </div>
           </div>
         </div>

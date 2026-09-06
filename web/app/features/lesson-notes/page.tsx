@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: 'School Lesson Note Software — Write, Present & Publish Lesson Notes',
     description:
       'Written once in the format teachers already know, taught on the board with a built-in whiteboard, and read again at home.',
-    url: 'https://elorgeschools.com/features/lesson-notes',
+    url: 'https://elorgeschools.org/features/lesson-notes',
   },
 };
 

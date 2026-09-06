@@ -13,7 +13,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/auth.types';
 import { Role } from '@prisma/client';
 
-const RESET_URL_BASE = process.env.FRONTEND_RESET_PASSWORD_URL ?? 'https://app.elorgeschools.com/reset-password';
+const RESET_URL_BASE = process.env.FRONTEND_RESET_PASSWORD_URL ?? 'https://app.elorgeschools.org/reset-password';
 
 @Controller('auth')
 export class AuthController {

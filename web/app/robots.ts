@@ -21,6 +21,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: 'https://elorgeschools.com/sitemap.xml',
+    sitemap: 'https://elorgeschools.org/sitemap.xml',
   };
 }

@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const plexMono = IBM_Plex_Mono({ subsets: ['latin'], variable: '--font-plex-mono', weight: ['500', '600'] });
 
 // TODO: confirm this is your real production domain before deploying.
-const SITE_URL = 'https://elorgeschools.com';
+const SITE_URL = 'https://elorgeschools.org';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

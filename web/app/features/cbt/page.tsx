@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: 'School CBT Software — Computer-Based Testing for Nigerian Schools',
     description:
       'Scheduled tests, instant grading, and offline-safe answers — computer-based testing built into your school\'s existing records.',
-    url: 'https://elorgeschools.com/features/cbt',
+    url: 'https://elorgeschools.org/features/cbt',
   },
 };
 

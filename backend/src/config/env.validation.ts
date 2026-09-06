@@ -22,7 +22,7 @@ export const envValidationSchema = Joi.object({
   BREVO_API_KEY: Joi.string().allow('').optional(),
   BREVO_SENDER_EMAIL: Joi.string().email().default('hello@elorgeschools.com'),
   BREVO_SENDER_NAME: Joi.string().default('Elorge Schools'),
-  FRONTEND_RESET_PASSWORD_URL: Joi.string().uri().default('https://app.elorgeschools.com/reset-password'),
+  FRONTEND_RESET_PASSWORD_URL: Joi.string().uri().default('https://app.elorgeschools.org/reset-password'),
 
   // Wallet
   DEFAULT_PRICE_PER_STUDENT_KOBO: Joi.number().integer().min(0).default(20_000),

@@ -2,7 +2,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://elorgeschools.com';
+  const base = 'https://elorgeschools.org';
   const routes: { path: string; priority: number }[] = [
     { path: '', priority: 1 },
     { path: '/features/cbt', priority: 0.9 },

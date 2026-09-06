@@ -238,7 +238,7 @@ export class ReportsService {
     const trendTerms = uniqueTermIds.length > 0 ? await this.prisma.term.findMany({ where: { id: { in: uniqueTermIds } } }) : [];
     const termNameById = new Map(trendTerms.map((t) => [t.id, t.name]));
 
-    const verificationPrefix = template?.verificationQrPrefix ?? 'https://elorgeschools.com/verify';
+    const verificationPrefix = template?.verificationQrPrefix ?? 'https://elorgeschools.org/verify';
     const [logoBuffer, signatureBuffer, photoBuffer, qrDataUrl] = await Promise.all([
       school.logoUrl ? this.fetchLogoBuffer(school.logoUrl) : Promise.resolve(null),
       school.signatureUrl ? this.fetchLogoBuffer(school.signatureUrl) : Promise.resolve(null),
