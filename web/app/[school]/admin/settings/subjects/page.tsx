@@ -10,12 +10,14 @@ import {
   removeCareerFieldMapping,
   type CareerFieldMapping,
 } from '@/lib/endpoints/career-fields';
+import { subjectsLabelsFor } from '@/lib/i18n/subjects-labels';
 import RequireRole from '@/components/RequireRole';
 import LoadingScreen from '@/components/LoadingScreen';
 import { BookOpen, Compass, Trash2 } from 'lucide-react';
 
 export default function SubjectsSettingsPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = subjectsLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [fields, setFields] = useState<CareerFieldMapping[]>([]);
@@ -30,7 +32,7 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
       setSubjects(s);
       setFields(f);
     } catch {
-      setError('Failed to load subjects and career fields');
+      setError(t.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -47,11 +49,12 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
     setNotice(null);
     try {
       await createInCatalog(params.school, newSubject.trim());
+      const added = newSubject.trim();
       setNewSubject('');
-      setNotice(`"${newSubject.trim()}" added to your subject catalog.`);
+      setNotice(t.subjectAddedNotice(added));
       load();
     } catch (err: any) {
-      setError(err?.message ?? 'Could not add subject — it may already exist.');
+      setError(t.couldNotAddSubject);
     }
   }
 
@@ -59,10 +62,10 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
     setError(null);
     try {
       await removeFromCatalog(params.school, subjectId);
-      setNotice(`Removed "${name}" and its class assignments.`);
+      setNotice(t.subjectRemovedNotice(name));
       load();
     } catch {
-      setError('Could not remove subject');
+      setError(t.couldNotRemoveSubject);
     }
   }
 
@@ -72,11 +75,11 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
     setNotice(null);
     try {
       await addCareerFieldMapping(params.school, mappingForm.subject, mappingForm.field.trim());
-      setNotice(`Linked "${mappingForm.subject}" → "${mappingForm.field.trim()}" for Session Wrap suggestions.`);
+      setNotice(t.mappingLinkedNotice(mappingForm.subject, mappingForm.field.trim()));
       setMappingForm((f) => ({ ...f, field: '' }));
       load();
     } catch {
-      setError('Could not add career field mapping');
+      setError(t.couldNotAddMapping);
     }
   }
 
@@ -86,7 +89,7 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
       await removeCareerFieldMapping(params.school, id);
       load();
     } catch {
-      setError('Could not remove mapping');
+      setError(t.couldNotRemoveMapping);
     }
   }
 
@@ -100,23 +103,20 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
     <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-8">
         <h1 className="flex items-center gap-2 text-xl font-semibold">
-          <BookOpen size={20} /> {school.name} — Subjects
+          <BookOpen size={20} /> {school.name} — {t.pageTitle}
         </h1>
         {error && <p className="text-sm text-red-600">{error}</p>}
         {notice && <p className="text-sm text-green-700">{notice}</p>}
 
         <section className="card">
-          <h2 className="mb-2 font-medium">Subject catalog</h2>
-          <p className="mb-3 text-xs text-ink/50">
-            Your school's own list — not shared with any other school. Add whatever your curriculum uses; there's no
-            fixed set.
-          </p>
+          <h2 className="mb-2 font-medium">{t.subjectCatalogHeading}</h2>
+          <p className="mb-3 text-xs text-ink/50">{t.subjectCatalogHelp}</p>
           <ul className="mb-4 flex flex-wrap gap-2">
             {subjects.map((s) => (
               <li key={s.id} className="flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1 text-sm">
                 {s.name}
                 <button
-                  title="Remove subject"
+                  title={t.removeSubjectTitle}
                   onClick={() => handleRemoveSubject(s.id, s.name)}
                   className="text-ink/40 hover:text-red-600"
                 >
@@ -124,31 +124,27 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
                 </button>
               </li>
             ))}
-            {subjects.length === 0 && <p className="text-sm text-ink/40">No subjects added yet.</p>}
+            {subjects.length === 0 && <p className="text-sm text-ink/40">{t.noSubjectsYet}</p>}
           </ul>
           <form onSubmit={handleAddSubject} className="flex items-end gap-2">
             <input
               className="rounded border px-2 py-1.5 text-sm"
-              placeholder="e.g. Kiswahili, Twi, Further Maths"
+              placeholder={t.addSubjectPlaceholder}
               value={newSubject}
               onChange={(e) => setNewSubject(e.target.value)}
               required
             />
             <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-              Add subject
+              {t.addSubjectBtn}
             </button>
           </form>
         </section>
 
         <section className="card">
           <h2 className="mb-2 flex items-center gap-2 font-medium">
-            <Compass size={16} /> Career field suggestions
+            <Compass size={16} /> {t.careerFieldsHeading}
           </h2>
-          <p className="mb-3 text-xs text-ink/50">
-            Powers the "suggested fields" section of Session Wrap. The defaults below cover a Nigeria-flavored
-            curriculum — link any subject your school teaches (like the ones you just added above) to the career
-            fields it supports, and Session Wrap will start suggesting them too.
-          </p>
+          <p className="mb-3 text-xs text-ink/50">{t.careerFieldsHelp}</p>
 
           <form onSubmit={handleAddMapping} className="mb-4 flex flex-wrap items-end gap-2">
             <select
@@ -157,7 +153,7 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
               onChange={(e) => setMappingForm((f) => ({ ...f, subject: e.target.value }))}
               required
             >
-              <option value="">Subject</option>
+              <option value="">{t.subjectSelectLabel}</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.name}>
                   {s.name}
@@ -167,19 +163,19 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
             <span className="text-sm text-ink/40">→</span>
             <input
               className="rounded border px-2 py-1.5 text-sm"
-              placeholder="Career field e.g. Linguistics"
+              placeholder={t.careerFieldPlaceholder}
               value={mappingForm.field}
               onChange={(e) => setMappingForm((f) => ({ ...f, field: e.target.value }))}
               required
             />
             <button type="submit" className="rounded bg-brand-green px-3 py-1.5 text-sm text-white">
-              Link
+              {t.linkBtn}
             </button>
           </form>
 
           {customFields.length > 0 && (
             <div className="mb-4">
-              <p className="mb-1 text-xs font-medium text-ink/50">Your school's mappings</p>
+              <p className="mb-1 text-xs font-medium text-ink/50">{t.yourMappingsHeading}</p>
               <ul className="flex flex-col gap-1">
                 {customFields.map((f) => (
                   <li key={f.id} className="flex items-center justify-between rounded bg-black/5 px-3 py-1.5 text-sm">
@@ -196,7 +192,7 @@ export default function SubjectsSettingsPage({ params }: { params: { school: str
           )}
 
           <details className="text-sm">
-            <summary className="cursor-pointer text-ink/50">Platform defaults ({globalFields.length})</summary>
+            <summary className="cursor-pointer text-ink/50">{t.platformDefaults(globalFields.length)}</summary>
             <ul className="mt-2 flex flex-col gap-1 text-ink/60">
               {globalFields.map((f) => (
                 <li key={f.id}>

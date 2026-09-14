@@ -1,6 +1,7 @@
 // backend/src/modules/schools/dto/create-school.dto.ts
 import { IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { SUPPORTED_CURRENCIES } from '../../../common/utils/currency.util';
+import { SUPPORTED_LOCALES } from '../../../common/utils/locale.util';
 
 export class CreateSchoolDto {
   @IsString()
@@ -38,6 +39,15 @@ export class CreateSchoolDto {
   @IsOptional()
   @IsString()
   timezone?: string;
+
+  // Optional — defaults to the country's usual language (localeForCountry)
+  // if omitted. Set explicitly for a school that wants a different
+  // language than its country's default (e.g. an anglophone school in a
+  // Francophone country, or vice versa). Drives report card labels, CBT
+  // UI copy, and system emails sent about this school.
+  @IsOptional()
+  @IsIn(SUPPORTED_LOCALES, { message: `locale must be one of: ${SUPPORTED_LOCALES.join(', ')}` })
+  locale?: string;
 
   // NEW: the school's first SCHOOL_ADMIN. SchoolsController.create wires
   // this into both School creation (for the welcome email) and

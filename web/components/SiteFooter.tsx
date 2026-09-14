@@ -1,36 +1,15 @@
 // web/components/SiteFooter.tsx
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Mail, MessageCircle } from 'lucide-react';
 import { XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, YouTubeIcon } from './icons/SocialIcons';
 import TikTokIcon from './icons/TikTokIcon';
+import { useMarketingLocale } from '@/lib/marketing-locale';
+import { siteFooterLabelsFor } from '@/lib/i18n/site-footer-labels';
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-
-// Links to dedicated pages where one exists (better for SEO than a
-// same-page anchor — these pages target specific searches like
-// "school CBT software" or "check school result online"). Sections
-// without their own page still point back to the homepage anchor.
-const PRODUCT_LINKS = [
-  { href: '/#features', label: 'Features' },
-  { href: '/#session-wrap', label: 'Session Wrap' },
-  { href: '/features/cbt', label: 'Computer-Based Testing' },
-  { href: '/#finance', label: 'Fees, Inventory & Accounting' },
-  { href: '/features/lesson-notes', label: 'Lesson Notes' },
-  { href: '/results', label: 'Check a Result' },
-  { href: '/#offline', label: 'Offline-first' },
-];
-
-const COMPANY_LINKS = [
-  { href: '/about', label: 'About' },
-  { href: '/careers', label: 'Careers' },
-  { href: '/contact', label: 'Contact' },
-];
-
-const LEGAL_LINKS = [
-  { href: '/terms', label: 'Terms of Service' },
-  { href: '/privacy', label: 'Privacy Policy' },
-];
 
 const SOCIAL_LINKS: { label: string; href: string | undefined; Icon: React.ComponentType<{ size?: number }> }[] = [
   { label: 'X', href: process.env.NEXT_PUBLIC_X_URL, Icon: XIcon },
@@ -42,6 +21,34 @@ const SOCIAL_LINKS: { label: string; href: string | undefined; Icon: React.Compo
 ];
 
 export default function SiteFooter() {
+  const { locale } = useMarketingLocale();
+  const t = siteFooterLabelsFor(locale);
+
+  // Links to dedicated pages where one exists (better for SEO than a
+  // same-page anchor — these pages target specific searches like
+  // "school CBT software" or "check school result online"). Sections
+  // without their own page still point back to the homepage anchor.
+  const PRODUCT_LINKS = [
+    { href: '/#features', label: t.linkFeatures },
+    { href: '/#session-wrap', label: t.linkSessionWrap },
+    { href: '/features/cbt', label: t.linkCbt },
+    { href: '/#finance', label: t.linkFinance },
+    { href: '/features/lesson-notes', label: t.linkLessonNotes },
+    { href: '/results', label: t.linkCheckResult },
+    { href: '/#offline', label: t.linkOffline },
+  ];
+
+  const COMPANY_LINKS = [
+    { href: '/about', label: t.linkAbout },
+    { href: '/careers', label: t.linkCareers },
+    { href: '/contact', label: t.linkContact },
+  ];
+
+  const LEGAL_LINKS = [
+    { href: '/terms', label: t.linkTerms },
+    { href: '/privacy', label: t.linkPrivacy },
+  ];
+
   return (
     <footer className="border-t border-black/5 bg-white">
       <div className="mx-auto max-w-5xl px-6 py-14">
@@ -52,10 +59,7 @@ export default function SiteFooter() {
               <Image src="/logo.png" alt="" width={32} height={32} aria-hidden />
               <span className="font-display text-lg font-semibold">Elorge Schools</span>
             </Link>
-            <p className="mb-4 max-w-xs text-sm text-ink/60">
-              School management built for Nigerian schools — records, results, and finances that work even when
-              the internet doesn't.
-            </p>
+            <p className="mb-4 max-w-xs text-sm text-ink/60">{t.tagline}</p>
             <div className="flex gap-3">
               {SOCIAL_LINKS.map(({ href, label, Icon }) =>
                 href ? (
@@ -75,7 +79,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">Product</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">{t.productHeading}</p>
             <ul className="flex flex-col gap-2">
               {PRODUCT_LINKS.map((l) => (
                 <li key={l.href}>
@@ -94,7 +98,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">Company</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">{t.companyHeading}</p>
             <ul className="flex flex-col gap-2">
               {COMPANY_LINKS.map((l) => (
                 <li key={l.href}>
@@ -107,7 +111,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">Get in touch</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">{t.getInTouchHeading}</p>
             <ul className="flex flex-col gap-2">
               <li>
                 <a href="mailto:hello@elorgeschools.com" className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink">
@@ -122,13 +126,13 @@ export default function SiteFooter() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink"
                   >
-                    <MessageCircle size={14} /> Chat on WhatsApp
+                    <MessageCircle size={14} /> {t.chatOnWhatsApp}
                   </a>
                 </li>
               )}
               <li>
                 <Link href="/signup" className="text-sm text-brand-blue underline">
-                  Get started →
+                  {t.getStarted}
                 </Link>
               </li>
             </ul>
@@ -136,7 +140,7 @@ export default function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-black/5 pt-6 text-xs text-ink/40 sm:flex-row sm:items-center">
-          <span>© {new Date().getFullYear()} Elorge Technologies Limited — Software Development &amp; IT Infrastructure</span>
+          <span>© {new Date().getFullYear()} {t.copyright}</span>
           <div className="flex gap-4">
             {LEGAL_LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-ink/70">

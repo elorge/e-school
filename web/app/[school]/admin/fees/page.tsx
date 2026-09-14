@@ -18,15 +18,23 @@ import {
   type FeeStructure,
   type FeeInvoice,
 } from '@/lib/endpoints/fees';
+import { feesLabelsFor } from '@/lib/i18n/fees-labels';
 import type { Term, Class } from '@/lib/types';
 import RequireRole from '@/components/RequireRole';
 import { Download } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { formatMoney, majorToMinor } from '@/lib/currency';
 
+function statusLabel(status: FeeInvoice['status'], t: ReturnType<typeof feesLabelsFor>): string {
+  if (status === 'PAID') return t.statusPaid;
+  if (status === 'PARTIALLY_PAID') return t.statusPartiallyPaid;
+  return t.statusPending;
+}
+
 export default function FeesPage({ params }: { params: { school: string } }) {
   const school = useSchool();
-  const money = (kobo: number) => formatMoney(kobo, school.currency);
+  const t = feesLabelsFor(school.locale);
+  const money = (kobo: number) => formatMoney(kobo, school.currency, school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [terms, setTerms] = useState<Term[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -52,8 +60,8 @@ export default function FeesPage({ params }: { params: { school: string } }) {
   }
 
   useEffect(() => {
-    Promise.all([listTerms(params.school), listClasses(params.school)]).then(([t, c]) => {
-      setTerms(t);
+    Promise.all([listTerms(params.school), listClasses(params.school)]).then(([terms, c]) => {
+      setTerms(terms);
       setClasses(c);
     }).finally(() => setIsLoading(false));
   }, [params.school]);
@@ -79,7 +87,7 @@ export default function FeesPage({ params }: { params: { school: string } }) {
       setStructures(await listFeeStructures(params.school, termId));
       setStructureForm({ classId: '', name: '', amountKobo: 0 });
     } catch {
-      setError('Could not add fee item');
+      setError(t.couldNotAddFeeItem);
     }
   }
 
@@ -88,10 +96,10 @@ export default function FeesPage({ params }: { params: { school: string } }) {
     setNotice(null);
     try {
       const result = await generateInvoices(params.school, termId);
-      setNotice(`Generated ${result.created} new invoice(s).`);
+      setNotice(t.invoicesGeneratedNotice(result.created));
       refresh();
     } catch {
-      setError('Could not generate invoices');
+      setError(t.couldNotGenerateInvoices);
     }
   }
 
@@ -102,22 +110,22 @@ export default function FeesPage({ params }: { params: { school: string } }) {
     refresh();
   }
 
-if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
-      <h1 className="flex items-center gap-2 text-xl font-semibold"><Wallet size={20} /> {school.name} — Fees</h1>
+      <h1 className="flex items-center gap-2 text-xl font-semibold"><Wallet size={20} /> {school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 
       <label className="flex w-fit flex-col gap-1 text-sm">
-        Term
+        {t.termLabel}
         <select className="rounded border px-2 py-1.5" value={termId} onChange={(e) => setTermId(e.target.value)}>
-          <option value="">Select a term</option>
-          {terms.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          <option value="">{t.selectTerm}</option>
+          {terms.map((term) => (
+            <option key={term.id} value={term.id}>
+              {term.name}
             </option>
           ))}
         </select>
@@ -126,18 +134,18 @@ if (isLoading) return <LoadingScreen />;
       {termId && (
         <>
           <section className="card">
-            <h2 className="mb-3 font-medium">Fee structure for this term</h2>
+            <h2 className="mb-3 font-medium">{t.feeStructureHeadingGeneric}</h2>
             <ul className="mb-3 flex flex-col gap-1 text-sm">
               {structures.map((s) => (
                 <li key={s.id}>
-                  {s.name} {s.classId ? `(one class)` : '(all classes)'} — {money(s.amountKobo)}
+                  {s.name} {s.classId ? t.oneClass : t.allClasses} — {money(s.amountKobo)}
                 </li>
               ))}
             </ul>
             <form onSubmit={handleAddStructure} className="flex flex-wrap items-end gap-2">
               <input
                 className="rounded border px-2 py-1.5 text-sm"
-                placeholder="Fee name e.g. Tuition"
+                placeholder={t.feeNamePlaceholder}
                 value={structureForm.name}
                 onChange={(e) => setStructureForm((f) => ({ ...f, name: e.target.value }))}
                 required
@@ -147,7 +155,7 @@ if (isLoading) return <LoadingScreen />;
                 value={structureForm.classId}
                 onChange={(e) => setStructureForm((f) => ({ ...f, classId: e.target.value }))}
               >
-                <option value="">All classes</option>
+                <option value="">{t.allClasses}</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -157,22 +165,22 @@ if (isLoading) return <LoadingScreen />;
               <input
                 className="w-32 rounded border px-2 py-1.5 text-sm"
                 type="number"
-                placeholder={`Amount (${school.currency})`}
+                placeholder={t.amountPlaceholder(school.currency)}
                 onChange={(e) => setStructureForm((f) => ({ ...f, amountKobo: majorToMinor(Number(e.target.value), school.currency) }))}
                 required
               />
               <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-                Add
+                {t.addBtn}
               </button>
             </form>
             <button onClick={handleGenerate} className="mt-4 rounded bg-brand-green px-3 py-1.5 text-sm text-white">
-              Generate invoices for all active students this term
+              {t.generateInvoicesBtn}
             </button>
           </section>
 
           <section className="card">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-medium">Invoices ({invoices.length})</h2>
+              <h2 className="font-medium">{t.invoicesHeading(invoices.length)}</h2>
               <button
                 onClick={async () => {
                   const blob = await downloadInvoicesExcel(params.school, termId);
@@ -184,7 +192,7 @@ if (isLoading) return <LoadingScreen />;
                 }}
                 className="btn-secondary flex items-center gap-1.5 text-xs"
               >
-                <Download size={14} /> Export to Excel
+                <Download size={14} /> {t.exportToExcelBtn}
               </button>
             </div>
             <ul className="flex flex-col gap-2 text-sm">
@@ -195,7 +203,7 @@ if (isLoading) return <LoadingScreen />;
                     <span
                       className={`badge ${inv.status === 'PAID' ? 'badge-green' : inv.status === 'PARTIALLY_PAID' ? 'badge-amber' : 'badge-red'}`}
                     >
-                      {inv.status.replace('_', ' ')}
+                      {statusLabel(inv.status, t)}
                     </span>
                   </span>
                   {inv.status !== 'PAID' && (
@@ -203,7 +211,7 @@ if (isLoading) return <LoadingScreen />;
                       <input
                         className="w-24 rounded border px-2 py-1 text-xs"
                         type="number"
-                        placeholder={`${school.currency} amount`}
+                        placeholder={t.cashAmountPlaceholder(school.currency)}
                         id={`pay-${inv.id}`}
                       />
                       <button
@@ -214,7 +222,7 @@ if (isLoading) return <LoadingScreen />;
                           if (input) input.value = '';
                         }}
                       >
-                        Record cash
+                        {t.recordCashBtn}
                       </button>
                       <button
                         className="text-xs text-brand-blue underline"
@@ -224,7 +232,7 @@ if (isLoading) return <LoadingScreen />;
                           if (input) input.value = '';
                         }}
                       >
-                        Record transfer
+                        {t.recordTransferBtn}
                       </button>
                     </div>
                   )}
@@ -232,34 +240,34 @@ if (isLoading) return <LoadingScreen />;
               ))}
             </ul>
           </section>
-          
+
           <section className="card">
-            <h2 className="mb-3 font-medium">Match a bank transfer</h2>
-            <p className="mb-3 text-xs text-ink/50">Paste the narration from your bank alert — we'll suggest which invoice it likely pays.</p>
+            <h2 className="mb-3 font-medium">{t.matchTransferHeading}</h2>
+            <p className="mb-3 text-xs text-ink/50">{t.matchTransferHelp}</p>
             <div className="flex flex-wrap gap-2">
-              <input className="flex-1 rounded border px-2 py-1.5 text-sm" placeholder="e.g. Transfer from Chioma Balogun" value={narration} onChange={(e) => setNarration(e.target.value)} />
-              <input className="w-32 rounded border px-2 py-1.5 text-sm" type="number" placeholder={`Amount (${school.currency})`} value={matchAmount} onChange={(e) => setMatchAmount(e.target.value)} />
-              <button onClick={handleMatch} className="btn-primary text-sm">Find matches</button>
+              <input className="flex-1 rounded border px-2 py-1.5 text-sm" placeholder={t.narrationPlaceholder} value={narration} onChange={(e) => setNarration(e.target.value)} />
+              <input className="w-32 rounded border px-2 py-1.5 text-sm" type="number" placeholder={t.amountPlaceholder(school.currency)} value={matchAmount} onChange={(e) => setMatchAmount(e.target.value)} />
+              <button onClick={handleMatch} className="btn-primary text-sm">{t.findMatchesBtn}</button>
             </div>
             {matches.length > 0 && (
               <ul className="mt-3 flex flex-col gap-1">
                 {matches.map((m) => (
                   <li key={m.invoiceId} className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-sm">
-                    <span>{m.studentName} — owes {money(m.outstandingKobo)}</span>
-                    <span className="badge badge-blue">{m.confidence}% match</span>
+                    <span>{m.studentName} — {t.owes(money(m.outstandingKobo))}</span>
+                    <span className="badge badge-blue">{t.matchPercent(m.confidence)}</span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
-          
+
           <section className="card">
-            <h2 className="mb-3 font-medium">Debtors</h2>
-            {debtors.length === 0 && <p className="text-sm text-ink/50">No outstanding balances.</p>}
+            <h2 className="mb-3 font-medium">{t.debtorsHeading}</h2>
+            {debtors.length === 0 && <p className="text-sm text-ink/50">{t.noOutstandingBalances}</p>}
             <ul className="flex flex-col gap-1 text-sm">
               {debtors.map((d, i) => (
                 <li key={i}>
-                  {d.student.firstName} {d.student.lastName} — owes {money(d.outstandingKobo)}
+                  {d.student.firstName} {d.student.lastName} — {t.owes(money(d.outstandingKobo))}
                 </li>
               ))}
             </ul>

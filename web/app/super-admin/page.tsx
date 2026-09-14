@@ -17,6 +17,7 @@ import {
 import { manualCredit } from '@/lib/endpoints/wallet-admin';
 import { getSessionUser } from '@/lib/session';
 import { SUPPORTED_COUNTRIES, currencyForCountry, formatMoney, majorToMinor, minorToMajor } from '@/lib/currency';
+import { SUPPORTED_LOCALES, LOCALE_LABELS, localeForCountry } from '@/lib/locale';
 import LoadingScreen from '@/components/LoadingScreen';
 import PlatformNav from '@/components/PlatformNav';
 import { ApiError } from '@/lib/api';
@@ -41,6 +42,7 @@ export default function SuperAdminPage() {
     name: '',
     code: '',
     countryCode: '',
+    locale: '' as string,
     adminEmail: '',
     adminName: '',
     adminPassword: '',
@@ -100,7 +102,7 @@ export default function SuperAdminPage() {
     try {
       await createSchool({ ...newSchool, currency: newSchoolCurrency });
       setNotice(`${newSchool.name} created and live.`);
-      setNewSchool({ slug: '', name: '', code: '', countryCode: '', adminEmail: '', adminName: '', adminPassword: '' });
+      setNewSchool({ slug: '', name: '', code: '', countryCode: '', locale: '', adminEmail: '', adminName: '', adminPassword: '' });
       loadAll();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create school');
@@ -193,13 +195,29 @@ export default function SuperAdminPage() {
             <select
               className="rounded border px-2 py-1.5 text-sm"
               value={newSchool.countryCode}
-              onChange={(e) => setNewSchool((f) => ({ ...f, countryCode: e.target.value }))}
+              onChange={(e) => {
+                const countryCode = e.target.value;
+                setNewSchool((f) => ({ ...f, countryCode, locale: countryCode ? localeForCountry(countryCode) : '' }));
+              }}
               required
             >
               <option value="">Country</option>
               {SUPPORTED_COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.name} ({c.currency})
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded border px-2 py-1.5 text-sm"
+              value={newSchool.locale}
+              onChange={(e) => setNewSchool((f) => ({ ...f, locale: e.target.value }))}
+              required
+            >
+              <option value="">Language</option>
+              {SUPPORTED_LOCALES.map((l) => (
+                <option key={l} value={l}>
+                  {LOCALE_LABELS[l]}
                 </option>
               ))}
             </select>

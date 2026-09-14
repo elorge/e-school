@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
 import { Role } from '@prisma/client';
+import { ERROR_CODES } from '../../common/i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { JwtPayload } from '../../common/types/auth.types';
@@ -20,10 +21,10 @@ export class AuthService {
 
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) throw new UnauthorizedException({ message: 'Invalid credentials', code: ERROR_CODES.LOGIN_INVALID_CREDENTIALS });
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) throw new UnauthorizedException({ message: 'Invalid credentials', code: ERROR_CODES.LOGIN_INVALID_CREDENTIALS });
 
     return user;
   }
@@ -66,6 +67,7 @@ async createUser(email: string, password: string, fullName: string, role: Role, 
         fullName: user.fullName,
         schoolName: school.name,
         role: user.role,
+        locale: school.locale,
       });
     }
     // Platform-wide SUPER_ADMIN/FINANCE_OPS accounts (no schoolId) skip the
@@ -94,10 +96,16 @@ async createUser(email: string, password: string, fullName: string, role: Role, 
 
     const rawToken = await this.issueResetToken(user.id, RESET_TOKEN_TTL_MS);
 
+    // Platform-wide accounts (SUPER_ADMIN/FINANCE_OPS) have no schoolId, so
+    // there's no school language to defer to — the email falls back to
+    // English for them via templates.ts's resolveLocale default.
+    const school = user.schoolId ? await this.prisma.school.findUnique({ where: { id: user.schoolId } }) : null;
+
     await this.emailService.sendPasswordReset({
       toEmail: user.email,
       fullName: user.fullName,
       resetUrl: `${resetUrlBase}?token=${rawToken}`,
+      locale: school?.locale,
     });
   }
 
@@ -125,6 +133,7 @@ async createUser(email: string, password: string, fullName: string, role: Role, 
       fullName: user.fullName,
       schoolName: school.name,
       activateUrl: `${resetUrlBase}?token=${rawToken}`,
+      locale: school.locale,
     });
 
     return user;
@@ -136,7 +145,7 @@ async createUser(email: string, password: string, fullName: string, role: Role, 
     const record = await this.prisma.passwordResetToken.findUnique({ where: { tokenHash } });
 
     if (!record || record.usedAt || record.expiresAt < new Date()) {
-      throw new BadRequestException('This password reset link is invalid or has expired');
+      throw new BadRequestException({ message: 'This password reset link is invalid or has expired', code: ERROR_CODES.PASSWORD_RESET_LINK_INVALID });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);

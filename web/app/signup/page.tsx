@@ -5,17 +5,28 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { requestSignup } from '@/lib/endpoints/schools';
 import { SUPPORTED_COUNTRIES, currencyForCountry } from '@/lib/currency';
-import { ApiError } from '@/lib/api';
+import { SUPPORTED_LOCALES, LOCALE_LABELS, localeForCountry } from '@/lib/locale';
+import { useMarketingLocale } from '@/lib/marketing-locale';
+import { signupLabelsFor } from '@/lib/i18n/signup-labels';
+import { apiErrorMessage } from '@/lib/i18n/error-messages';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PasswordInput from '@/components/PasswordInput';
 
 export default function SignupPage() {
+  // The VISITOR's own browser language (drives this form's own UI) is a
+  // separate concept from form.locale (the language the SCHOOL BEING
+  // CREATED will use going forward) — a French-speaking admin signing up
+  // a school that will run in English is a perfectly normal case.
+  const { locale: pageLocale } = useMarketingLocale();
+  const t = signupLabelsFor(pageLocale);
+
   const [form, setForm] = useState({
     schoolName: '',
     slug: '',
     code: '',
     countryCode: '',
+    locale: '' as string,
     adminName: '',
     adminEmail: '',
     adminPassword: '',
@@ -36,11 +47,15 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     if (form.adminPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t.passwordsDoNotMatch);
       return;
     }
     if (!form.countryCode || !currency) {
-      setError('Please select your country.');
+      setError(t.selectCountryError);
+      return;
+    }
+    if (!form.locale) {
+      setError(t.selectLanguageError);
       return;
     }
     setIsSubmitting(true);
@@ -48,7 +63,9 @@ export default function SignupPage() {
       await requestSignup({ ...form, currency });
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      // Known codes (workspace name / school code already taken) get a
+      // real translation; anything else falls back to the generic message.
+      setError(apiErrorMessage(err, pageLocale, t.genericError));
     } finally {
       setIsSubmitting(false);
     }
@@ -58,44 +75,59 @@ export default function SignupPage() {
     <>
       <SiteHeader />
       <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="mb-2 font-display text-2xl font-semibold">Bring your school onto Elorge</h1>
-        <p className="mb-8 text-sm text-ink/60">
-          Wherever your school is, tell us a bit about it. Our team reviews every request and activates your
-          workspace, usually within one business day.
-        </p>
+        <h1 className="mb-2 font-display text-2xl font-semibold">{t.heading}</h1>
+        <p className="mb-8 text-sm text-ink/60">{t.subheading}</p>
 
         {submitted ? (
           <div className="rounded-xl bg-brand-green/10 p-6 text-brand-green-dark">
-            <p className="font-medium">Request received.</p>
-            <p className="mt-1 text-sm">We'll email {form.adminEmail} once your workspace is ready.</p>
+            <p className="font-medium">{t.requestReceivedTitle}</p>
+            <p className="mt-1 text-sm">{t.requestReceivedBody(form.adminEmail)}</p>
             <Link href="/" className="mt-4 inline-block text-sm underline">
-              Back to home
+              {t.backToHome}
             </Link>
           </div>
         ) : (
           <>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
-              Country
+              {t.countryLabel}
               <select
                 className="rounded border px-3 py-2"
                 value={form.countryCode}
-                onChange={(e) => update('countryCode', e.target.value)}
+                onChange={(e) => {
+                  const countryCode = e.target.value;
+                  setForm((f) => ({ ...f, countryCode, locale: countryCode ? localeForCountry(countryCode) : '' }));
+                }}
                 required
               >
-                <option value="">Select your country</option>
+                <option value="">{t.selectYourCountry}</option>
                 {SUPPORTED_COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.name}
                   </option>
                 ))}
               </select>
-              {currency && (
-                <span className="text-xs text-ink/50">Your school will be billed in {currency}.</span>
-              )}
+              {currency && <span className="text-xs text-ink/50">{t.billedInCurrency(currency)}</span>}
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              School name
+              {t.languageLabel}
+              <select
+                className="rounded border px-3 py-2"
+                value={form.locale}
+                onChange={(e) => update('locale', e.target.value)}
+                required
+              >
+                {!form.countryCode && <option value="">{t.selectCountryFirst}</option>}
+                {SUPPORTED_LOCALES.map((l) => (
+                  <option key={l} value={l}>
+                    {LOCALE_LABELS[l]}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-ink/50">{t.languageHelp}</span>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              {t.schoolNameLabel}
               <input
                 className="rounded border px-3 py-2"
                 value={form.schoolName}
@@ -104,7 +136,7 @@ export default function SignupPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Workspace name (used in your web address)
+              {t.workspaceNameLabel}
               <input
                 className="rounded border px-3 py-2"
                 placeholder="greenwood-college"
@@ -115,7 +147,7 @@ export default function SignupPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              School code (2-10 letters/numbers, used on Admission IDs)
+              {t.schoolCodeLabel}
               <input
                 className="rounded border px-3 py-2 uppercase"
                 placeholder="GRW"
@@ -125,7 +157,7 @@ export default function SignupPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Your name (School Admin)
+              {t.yourNameLabel}
               <input
                 className="rounded border px-3 py-2"
                 value={form.adminName}
@@ -134,7 +166,7 @@ export default function SignupPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Your email
+              {t.yourEmailLabel}
               <input
                 className="rounded border px-3 py-2"
                 type="email"
@@ -144,36 +176,36 @@ export default function SignupPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Choose a password
+              {t.choosePasswordLabel}
               <PasswordInput value={form.adminPassword} onChange={(v) => update('adminPassword', v)} minLength={8} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Confirm password
+              {t.confirmPasswordLabel}
               <PasswordInput value={confirmPassword} onChange={setConfirmPassword} minLength={8} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Phone (optional)
+              {t.phoneLabel}
               <input className="rounded border px-3 py-2" value={form.phone} onChange={(e) => update('phone', e.target.value)} />
             </label>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <label className="flex items-start gap-2 text-xs text-ink/60">
               <input type="checkbox" required className="mt-0.5" />
-              I confirm my school has lawful consent to submit student data, and agree to the{' '}
-              <Link href="/terms" className="text-brand-blue underline">Terms</Link> and{' '}
-              <Link href="/privacy" className="text-brand-blue underline">Privacy Policy</Link>.
+              {t.consentPrefix}{' '}
+              <Link href="/terms" className="text-brand-blue underline">{t.termsLink}</Link> {t.andText}{' '}
+              <Link href="/privacy" className="text-brand-blue underline">{t.privacyLink}</Link>.
             </label>
             <button
               type="submit"
               disabled={isSubmitting}
               className="mt-2 rounded-full bg-brand-blue px-6 py-3 font-medium text-white disabled:opacity-50"
             >
-              {isSubmitting ? 'Submitting…' : 'Request access'}
+              {isSubmitting ? t.submitting : t.requestAccess}
             </button>
           </form>
           <p className="mt-4 text-sm">
-            Already have an account?{' '}
+            {t.alreadyHaveAccount}{' '}
             <Link href="/login" className="text-brand-blue underline">
-              Sign in
+              {t.signIn}
             </Link>
           </p>
           </>

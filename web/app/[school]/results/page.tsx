@@ -6,6 +6,9 @@ import { lookupResult } from '@/lib/endpoints/pins';
 import { fetchPublicReportCardPdf } from '@/lib/endpoints/documents';
 import { ApiError } from '@/lib/api';
 import { Download, Printer, ArrowLeft } from 'lucide-react';
+import { useSchool } from '@/lib/school-context';
+import { resultsLabelsFor } from '@/lib/i18n/results-labels';
+import { apiErrorMessage } from '@/lib/i18n/error-messages';
 
 interface LookupResult {
   id: string;
@@ -26,6 +29,8 @@ function scoreColor(score: number) {
  * this route @Public(), so no login token is needed or sent here.
  */
 export default function ResultsPage({ params }: { params: { school: string } }) {
+  const school = useSchool();
+  const t = resultsLabelsFor(school.locale);
   const [admissionId, setAdmissionId] = useState('');
   const [pin, setPin] = useState('');
   const [result, setResult] = useState<LookupResult | null>(null);
@@ -44,7 +49,7 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
       setResult(data);
       await loadPdf(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setError(apiErrorMessage(err, school.locale, t.genericError));
     } finally {
       setIsSubmitting(false);
     }
@@ -57,11 +62,12 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
       const blob = await fetchPublicReportCardPdf(params.school, data.studentId, data.termId, pin, admissionId);
       setPdfBlobUrl(URL.createObjectURL(blob));
     } catch (err) {
-      // Surface the REAL reason instead of a generic message — a wrong
-      // studentId/termId mismatch, an expired PIN, or a genuine server
-      // error all need to be distinguishable to actually debug this.
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Could not load the printable report card: ${message}`);
+      // Try a real localized translation first; if this hit an
+      // unexpected/internal error with no code, fall back to the raw
+      // reason (still useful for debugging a PIN/term mismatch) rather
+      // than a message so generic it hides what actually went wrong.
+      const message = apiErrorMessage(err, school.locale, err instanceof Error ? err.message : 'Unknown error');
+      setError(t.couldNotLoadPrintable(message));
       console.error('Report card PDF fetch failed:', err);
     } finally {
       setIsPdfLoading(false);
@@ -94,7 +100,7 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
       <main className="mx-auto max-w-2xl px-4 py-8">
         <div className="mb-4 flex items-center justify-between">
           <button onClick={handleBack} className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink">
-            <ArrowLeft size={15} /> Check another result
+            <ArrowLeft size={15} /> {t.checkAnotherResult}
           </button>
           <div className="flex gap-2">
             <button
@@ -102,14 +108,14 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
               disabled={!pdfBlobUrl}
               className="btn-secondary flex items-center gap-1.5 text-sm disabled:opacity-40"
             >
-              <Printer size={15} /> Print
+              <Printer size={15} /> {t.print}
             </button>
             <button
               onClick={handleDownload}
               disabled={!pdfBlobUrl}
               className="btn-primary flex items-center gap-1.5 text-sm disabled:opacity-40"
             >
-              <Download size={15} /> Download PDF
+              <Download size={15} /> {t.downloadPdf}
             </button>
           </div>
         </div>
@@ -118,7 +124,7 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
 
         {/* On-screen report layout — same information as the PDF, readable without a download */}
         <div className="card mb-4">
-          <h1 className="mb-4 font-display text-xl font-semibold">Subject Scores</h1>
+          <h1 className="mb-4 font-display text-xl font-semibold">{t.subjectScores}</h1>
           <div className="flex flex-col gap-2">
             {Object.entries(result.subjectScores).map(([subject, score]) => (
               <div key={subject} className="flex items-center gap-3 text-sm">
@@ -136,7 +142,7 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
         </div>
 
         {/* Embedded PDF preview — the actual document that prints/downloads */}
-        {isPdfLoading && <p className="text-center text-sm text-ink/40">Loading printable report card…</p>}
+        {isPdfLoading && <p className="text-center text-sm text-ink/40">{t.loadingPrintable}</p>}
         {pdfBlobUrl && (
           <div className="overflow-hidden rounded-xl border border-black/10 shadow-sm">
             <iframe src={pdfBlobUrl} className="h-[70vh] w-full" title="Report card" />
@@ -149,19 +155,19 @@ export default function ResultsPage({ params }: { params: { school: string } }) 
   // ── Lookup form ──────────────────────────────────────────────────────────
   return (
     <main className="mx-auto max-w-md px-4 py-10">
-      <h1 className="mb-4 font-display text-xl font-semibold">Check your result</h1>
+      <h1 className="mb-4 font-display text-xl font-semibold">{t.checkYourResult}</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          Admission ID
+          {t.admissionIdLabel}
           <input className="rounded border px-3 py-2" value={admissionId} onChange={(e) => setAdmissionId(e.target.value)} required />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          PIN
+          {t.pinLabel}
           <input className="rounded border px-3 py-2" value={pin} onChange={(e) => setPin(e.target.value)} type="password" required />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={isSubmitting} className="btn-primary w-full disabled:opacity-50">
-          {isSubmitting ? 'Checking…' : 'View result'}
+          {isSubmitting ? t.checking : t.viewResult}
         </button>
       </form>
     </main>

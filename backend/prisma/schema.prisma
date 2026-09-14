@@ -33,6 +33,7 @@ model School {
   countryCode                 String       // ISO 3166-1 alpha-2, e.g. "NG", "GH", "KE" — drives which local payment rails (see DVA_SUPPORTED_COUNTRIES) are offered
   timezone                    String
   currency                    String       // ISO 4217, e.g. "NGN", "GHS", "KES" — see currency.util.ts. Every Kobo-named field below is actually "minor unit of THIS currency".
+  locale                      String       @default("en") // ISO 639-1, e.g. "en", "fr" — see locale.util.ts. Defaults from countryCode at creation (localeForCountry), overridable per school. Drives report card labels, CBT UI copy, and system emails sent about this school.
   pricePerStudentKoboOverride Int? // null = use platform default; minor unit of `currency` above, not literally kobo
   sessionWrapEnabled          Boolean      @default(false) // per-school flag — off by default, turned on per pilot school
   status                      SchoolStatus @default(ACTIVE)
@@ -144,6 +145,7 @@ model SchoolSignupRequest {
   countryCode   String              // ISO 3166-1 alpha-2 — carried through to the real School row on approval
   timezone      String
   currency      String              // ISO 4217 — carried through to the real School row on approval
+  locale        String              @default("en") // ISO 639-1 — carried through to the real School row on approval, see locale.util.ts
   adminName     String
   adminEmail    String
   adminPassword String // hashed immediately on submit — never stored plaintext, see service

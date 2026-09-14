@@ -4,12 +4,14 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { listTerms, createTerm } from '@/lib/endpoints/terms';
+import { termsLabelsFor } from '@/lib/i18n/terms-labels';
 import type { Term } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
 
 export default function TermsPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = termsLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [terms, setTerms] = useState<Term[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
     try {
       setTerms(await listTerms(params.school));
     } catch {
-      setError('Failed to load terms');
+      setError(t.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +54,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
       setForm((f) => ({ ...f, academicSession: '', termNumber: 1, startDate: '', endDate: '' }));
       load();
     } catch (err: any) {
-      setError(err?.message ?? "Could not create term — check the session/number isn't already used");
+      setError(t.createError);
     }
   }
 
@@ -61,19 +63,15 @@ export default function TermsPage({ params }: { params: { school: string } }) {
   return (
     <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Terms</h1>
+      <h1 className="text-xl font-semibold">{school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <section className="card">
-        <h2 className="mb-3 font-medium">Create a term</h2>
-        <p className="mb-3 text-xs text-ink/50">
-          Academic session groups every period together — e.g. "2025/2026" — and is what powers Session Wrap.
-          Whatever your school calls its periods (Term, Semester, Quarter, Trimester) and however many you run per
-          session, this works — the number just needs to be unique within one session.
-        </p>
+        <h2 className="mb-3 font-medium">{t.createHeading}</h2>
+        <p className="mb-3 text-xs text-ink/50">{t.createHelp}</p>
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
-            Academic session
+            {t.academicSessionLabel}
             <input
               className="rounded border px-2 py-1.5"
               placeholder="2025/2026"
@@ -83,7 +81,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            What you call a period
+            {t.periodLabelLabel}
             <input
               className="w-32 rounded border px-2 py-1.5"
               placeholder="Term"
@@ -93,7 +91,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Number
+            {t.numberLabel}
             <input
               className="w-20 rounded border px-2 py-1.5"
               type="number"
@@ -105,7 +103,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Start date
+            {t.startDateLabel}
             <input
               className="rounded border px-2 py-1.5"
               type="date"
@@ -115,7 +113,7 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            End date
+            {t.endDateLabel}
             <input
               className="rounded border px-2 py-1.5"
               type="date"
@@ -125,17 +123,17 @@ export default function TermsPage({ params }: { params: { school: string } }) {
             />
           </label>
           <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-            Create {form.periodLabel || 'term'}
+            {t.createBtn(form.periodLabel)}
           </button>
         </form>
       </section>
 
       <section className="card">
-        <h2 className="mb-3 font-medium">All terms</h2>
+        <h2 className="mb-3 font-medium">{t.allTermsHeading}</h2>
         <ul className="flex flex-col gap-1 text-sm">
-          {terms.map((t) => (
-            <li key={t.id}>
-              {t.name} — {t.startDate.slice(0, 10)} to {t.endDate.slice(0, 10)}
+          {terms.map((term) => (
+            <li key={term.id}>
+              {term.name} — {term.startDate.slice(0, 10)} to {term.endDate.slice(0, 10)}
             </li>
           ))}
         </ul>

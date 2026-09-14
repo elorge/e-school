@@ -8,6 +8,8 @@ import { getSessionUser, clearSessionUser, type SessionUser } from '@/lib/sessio
 import { clearToken } from '@/lib/api';
 import PendingSyncBadge from './PendingSyncBadge';
 import NotificationBell from './NotificationBell';
+import { useSchool } from '@/lib/school-context';
+import { navLabelsFor } from '@/lib/i18n/nav-labels';
 import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings, History } from 'lucide-react';
 
 function DropdownMenu({
@@ -60,6 +62,8 @@ export default function SchoolNav({
   sessionWrapEnabled: boolean;
 }) {
   const [user, setUser] = useState<SessionUser | null>(null);
+  const school = useSchool();
+  const t = navLabelsFor(school.locale);
 
   useEffect(() => {
     setUser(getSessionUser());
@@ -78,18 +82,18 @@ export default function SchoolNav({
   // Terms, Calendar creation, and PIN generation are SCHOOL_ADMIN-only
   // on the backend, so they never belonged in a shared list.
   const staffAcademicItems = [
-    { href: `/${slug}/staff`, text: 'Students' },
-    { href: `/${slug}/staff/lessons`, text: 'Lesson Notes' },
-    { href: `/${slug}/staff/cbt`, text: 'CBT' },
-    ...(sessionWrapEnabled ? [{ href: `/${slug}/staff/session-wrap`, text: 'Session Wrap' }] : []),
+    { href: `/${slug}/staff`, text: t.students },
+    { href: `/${slug}/staff/lessons`, text: t.lessonNotes },
+    { href: `/${slug}/staff/cbt`, text: t.cbt },
+    ...(sessionWrapEnabled ? [{ href: `/${slug}/staff/session-wrap`, text: t.sessionWrap }] : []),
   ];
   const adminAcademicItems = [
-    { href: `/${slug}/admin/academic/classes`, text: 'Classes' },
+    { href: `/${slug}/admin/academic/classes`, text: t.classes },
     ...staffAcademicItems,
-    { href: `/${slug}/admin/academic/promotion`, text: 'Promote Students' },
-    { href: `/${slug}/admin/academic/terms`, text: 'Terms' },
-    { href: `/${slug}/admin/academic/calendar`, text: 'Calendar' },
-    { href: `/${slug}/admin/academic/grading`, text: 'Grading Weights' },
+    { href: `/${slug}/admin/academic/promotion`, text: t.promoteStudents },
+    { href: `/${slug}/admin/academic/terms`, text: t.terms },
+    { href: `/${slug}/admin/academic/calendar`, text: t.calendar },
+    { href: `/${slug}/admin/academic/grading`, text: t.gradingWeights },
   ];
   const academicItems = isSchoolAdmin ? adminAcademicItems : staffAcademicItems;
 
@@ -109,7 +113,7 @@ export default function SchoolNav({
           {user && (
             <button onClick={handleLogout} className="flex items-center gap-1.5 whitespace-nowrap text-sm text-ink/50">
               <LogOut size={15} />
-              Log out
+              {t.logOut}
             </button>
           )}
         </div>
@@ -120,47 +124,47 @@ export default function SchoolNav({
         {isSchoolAdmin && (
           <Link href={`/${slug}/admin`} className="flex items-center gap-1.5 whitespace-nowrap">
             <LayoutDashboard size={15} />
-            Admin
+            {t.admin}
           </Link>
         )}
         {isSchoolAdmin && (
           <Link href={`/${slug}/admin/settings`} className="flex items-center gap-1.5 whitespace-nowrap">
             <Settings size={15} />
-            Settings
+            {t.settings}
           </Link>
         )}
         {isSchoolAdmin && (
           <Link href={`/${slug}/admin/audit-log`} className="flex items-center gap-1.5 whitespace-nowrap">
             <History size={15} />
-            Audit Log
+            {t.auditLog}
           </Link>
         )}
-        {isStaffOrAdmin && <DropdownMenu label="Academic" icon={GraduationCap} items={academicItems} />}
+        {isStaffOrAdmin && <DropdownMenu label={t.academic} icon={GraduationCap} items={academicItems} />}
         {isSchoolAdmin && (
           <Link href={`/${slug}/admin/documents`} className="flex items-center gap-1.5 whitespace-nowrap">
             <FileText size={15} />
-            Documents
+            {t.documents}
           </Link>
         )}
         {isSchoolAdmin && (
           <DropdownMenu
-            label="Finance"
+            label={t.finance}
             icon={Wallet}
             items={[
-              { href: `/${slug}/admin/pins`, text: 'Generate PINs' },
-              { href: `/${slug}/admin/fees`, text: 'Fees' },
-              { href: `/${slug}/admin/inventory`, text: 'Inventory' },
-              { href: `/${slug}/admin/accounting`, text: 'Accounting' },
+              { href: `/${slug}/admin/pins`, text: t.generatePins },
+              { href: `/${slug}/admin/fees`, text: t.fees },
+              { href: `/${slug}/admin/inventory`, text: t.inventory },
+              { href: `/${slug}/admin/accounting`, text: t.accounting },
             ]}
           />
         )}
         <Link href={`/${slug}/results`} className="flex items-center gap-1.5 whitespace-nowrap">
           <Search size={15} />
-          Check Result
+          {t.checkResult}
         </Link>
         <Link href={`/${slug}/lessons`} className="flex items-center gap-1.5 whitespace-nowrap">
           <BookOpen size={15} />
-          Lessons
+          {t.lessons}
         </Link>
       </div>
     </nav>

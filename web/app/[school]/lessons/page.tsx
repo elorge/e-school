@@ -7,10 +7,15 @@ import Link from 'next/link';
 import { listPublicLessonNotes, type LessonNote } from '@/lib/endpoints/lesson-notes';
 import { BookOpen } from 'lucide-react';
 import { ApiError } from '@/lib/api';
+import { useSchool } from '@/lib/school-context';
+import { lessonLabelsFor } from '@/lib/i18n/lesson-labels';
+import { apiErrorMessage } from '@/lib/i18n/error-messages';
 
 const STORAGE_KEY = 'eschools_lesson_notes_admission_id';
 
 export default function PublicLessonsPage({ params }: { params: { school: string } }) {
+  const school = useSchool();
+  const t = lessonLabelsFor(school.locale);
   const [admissionId, setAdmissionId] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [notes, setNotes] = useState<LessonNote[]>([]);
@@ -34,7 +39,7 @@ export default function PublicLessonsPage({ params }: { params: { school: string
         localStorage.setItem(STORAGE_KEY, admissionId); // remembered locally, so this only has to be typed once per device
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? err.message : 'Could not verify that Admission ID');
+        setError(apiErrorMessage(err, school.locale, t.couldNotVerifyAdmissionId));
         localStorage.removeItem(STORAGE_KEY);
       });
   }, [admissionId, params.school]);
@@ -48,20 +53,20 @@ export default function PublicLessonsPage({ params }: { params: { school: string
     return (
       <main className="mx-auto max-w-sm px-4 py-16">
         <h1 className="mb-2 flex items-center gap-2 text-xl font-semibold">
-          <BookOpen size={20} /> Lesson notes
+          <BookOpen size={20} /> {t.lessonNotes}
         </h1>
-        <p className="mb-6 text-sm text-ink/60">Enter your Admission ID to see notes shared with your class.</p>
+        <p className="mb-6 text-sm text-ink/60">{t.enterAdmissionId}</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
             className="rounded border px-3 py-2"
-            placeholder="Admission ID"
+            placeholder={t.admissionIdPlaceholder}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             required
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" className="rounded bg-brand-blue px-4 py-2 text-white">
-            Continue
+            {t.continueBtn}
           </button>
         </form>
       </main>
@@ -74,13 +79,13 @@ export default function PublicLessonsPage({ params }: { params: { school: string
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="mb-2 flex items-center gap-2 text-xl font-semibold">
-        <BookOpen size={20} /> Lesson notes
+        <BookOpen size={20} /> {t.lessonNotes}
       </h1>
-      <p className="mb-6 text-sm text-ink/60">Browse notes your teachers have shared — read anytime, at your own pace.</p>
+      <p className="mb-6 text-sm text-ink/60">{t.browseNotes}</p>
 
       {subjects.length > 0 && (
         <select className="mb-4 rounded border px-3 py-2 text-sm" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
-          <option value="">All subjects</option>
+          <option value="">{t.allSubjects}</option>
           {subjects.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -89,7 +94,7 @@ export default function PublicLessonsPage({ params }: { params: { school: string
         </select>
       )}
 
-      {filtered.length === 0 && <p className="text-sm text-ink/40">No lesson notes have been shared yet.</p>}
+      {filtered.length === 0 && <p className="text-sm text-ink/40">{t.noNotesShared}</p>}
 
       <ul className="flex flex-col gap-2">
         {filtered.map((note) => (

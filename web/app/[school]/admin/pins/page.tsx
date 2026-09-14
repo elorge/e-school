@@ -7,6 +7,7 @@ import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import { getPricing, generatePins } from '@/lib/endpoints/pin-generation';
+import { pinsLabelsFor } from '@/lib/i18n/pins-labels';
 import type { Class, Term, Student } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import { KeyRound, Printer } from 'lucide-react';
@@ -15,6 +16,7 @@ import { formatMoney } from '@/lib/currency';
 
 export default function PinGenerationPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = pinsLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
@@ -29,9 +31,9 @@ export default function PinGenerationPage({ params }: { params: { school: string
 
   useEffect(() => {
     Promise.all([listClasses(params.school), listTerms(params.school), getPricing(params.school)])
-      .then(([c, t, p]) => {
+      .then(([c, terms, p]) => {
         setClasses(c);
-        setTerms(t);
+        setTerms(terms);
         setPricePerStudentKobo(p.pricePerStudentKobo);
       })
       .finally(() => setIsLoading(false));
@@ -66,7 +68,7 @@ export default function PinGenerationPage({ params }: { params: { school: string
       });
       setGenerated(result);
     } catch (err: any) {
-      setError(err?.message ?? 'Could not generate PINs — check wallet balance');
+      setError(t.couldNotGeneratePins);
     } finally {
       setIsGenerating(false);
     }
@@ -86,20 +88,18 @@ export default function PinGenerationPage({ params }: { params: { school: string
       <main className="flex flex-col gap-4">
         <div className="flex items-center justify-between print:hidden">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <KeyRound size={20} /> PINs generated
+            <KeyRound size={20} /> {t.pinsGeneratedHeading}
           </h1>
           <button onClick={() => window.print()} className="btn-primary flex items-center gap-1.5">
-            <Printer size={15} /> Print sheet
+            <Printer size={15} /> {t.printSheetBtn}
           </button>
         </div>
-        <p className="text-sm text-amber print:hidden">
-          These PINs are shown once and never stored in plaintext or emailed — write them down or print this page now.
-        </p>
+        <p className="text-sm text-amber print:hidden">{t.oneTimeWarning}</p>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left">
-              <th className="py-2">Student</th>
-              <th className="py-2">Admission ID / PIN</th>
+              <th className="py-2">{t.colStudent}</th>
+              <th className="py-2">{t.colAdmissionIdPin}</th>
             </tr>
           </thead>
           <tbody>
@@ -112,7 +112,7 @@ export default function PinGenerationPage({ params }: { params: { school: string
           </tbody>
         </table>
         <button onClick={() => setGenerated([])} className="btn-secondary w-fit print:hidden">
-          Generate another batch
+          {t.generateAnotherBatchBtn}
         </button>
       </main>
       </RequireRole>
@@ -123,21 +123,21 @@ export default function PinGenerationPage({ params }: { params: { school: string
     <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-6">
       <h1 className="flex items-center gap-2 text-xl font-semibold">
-        <KeyRound size={20} /> {school.name} — Generate Result PINs
+        <KeyRound size={20} /> {school.name} — {t.pageTitle}
       </h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="card flex flex-wrap items-end gap-3">
         <select className="rounded border px-2 py-1.5 text-sm" value={termId} onChange={(e) => setTermId(e.target.value)}>
-          <option value="">Term</option>
-          {terms.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          <option value="">{t.termLabel}</option>
+          {terms.map((term) => (
+            <option key={term.id} value={term.id}>
+              {term.name}
             </option>
           ))}
         </select>
         <select className="rounded border px-2 py-1.5 text-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
-          <option value="">Class</option>
+          <option value="">{t.classLabel}</option>
           {classes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -146,7 +146,7 @@ export default function PinGenerationPage({ params }: { params: { school: string
         </select>
         {students.length > 0 && (
           <button onClick={selectAll} className="btn-secondary text-xs">
-            Select all ({students.length})
+            {t.selectAllBtn(students.length)}
           </button>
         )}
       </div>
@@ -158,7 +158,7 @@ export default function PinGenerationPage({ params }: { params: { school: string
               <li key={s.id}>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={selectedIds.has(s.id)} onChange={() => toggle(s.id)} />
-                  {s.firstName} {s.lastName} — {s.studentId ?? 'pending ID'}
+                  {s.firstName} {s.lastName} — {s.studentId ?? t.pendingId}
                 </label>
               </li>
             ))}
@@ -168,17 +168,14 @@ export default function PinGenerationPage({ params }: { params: { school: string
 
       {selectedIds.size > 0 && termId && (
         <div className="stat-hero">
-          <p className="text-sm text-white/70">
-            {selectedIds.size} student(s) selected — students already charged for this term (via PIN or CBT) are not
-            billed again.
-          </p>
-          <p className="mt-1 font-display text-2xl font-semibold">Up to {formatMoney(totalCost, school.currency)}</p>
+          <p className="text-sm text-white/70">{t.selectedSummary(selectedIds.size)}</p>
+          <p className="mt-1 font-display text-2xl font-semibold">{t.upTo(formatMoney(totalCost, school.currency, school.locale))}</p>
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
             className="btn-primary relative mt-4 bg-white text-brand-blue hover:bg-white/90 disabled:opacity-50"
           >
-            {isGenerating ? 'Generating…' : 'Generate PINs'}
+            {isGenerating ? t.generating : t.generatePinsBtn}
           </button>
         </div>
       )}

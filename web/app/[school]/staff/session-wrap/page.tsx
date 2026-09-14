@@ -9,10 +9,12 @@ import { listSessions } from '@/lib/endpoints/terms';
 import { getSessionWrap, fetchSessionWrapPdf, type SessionWrap } from '@/lib/endpoints/insights';
 import { openPdfBlob } from '@/lib/endpoints/documents';
 import SessionWrapCard from '@/components/SessionWrapCard';
+import { sessionWrapLabelsFor } from '@/lib/i18n/session-wrap-labels';
 import type { Student } from '@/lib/types';
 
 export default function StaffSessionWrapPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = sessionWrapLabelsFor(school.locale);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<string[]>([]);
@@ -22,14 +24,15 @@ export default function StaffSessionWrapPage({ params }: { params: { school: str
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     Promise.all([listStudents(params.school), listSessions(params.school)])
       .then(([s, sess]) => {
         setStudents(s);
         setSessions(sess);
       })
-      .catch(() => setError('Failed to load students/sessions'))
+      .catch(() => setError(t.loadFailed))
       .finally(() => setIsPageLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.school]);
 
   async function handleGenerate() {
@@ -40,7 +43,7 @@ useEffect(() => {
       const data = await getSessionWrap(params.school, studentId, academicSession);
       setWrap(data);
     } catch {
-      setError('No results found for this student in that session yet.');
+      setError(t.noResultsFound);
     } finally {
       setIsLoading(false);
     }
@@ -51,18 +54,18 @@ useEffect(() => {
     openPdfBlob(blob);
   }
 
-if (isPageLoading) return <LoadingScreen />;
+  if (isPageLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">{school.name} — Session Wrap</h1>
+      <h1 className="text-xl font-semibold">{school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          Student
+          {t.studentLabel}
           <select className="min-w-[200px] rounded border px-2 py-1.5" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            <option value="">Select a student</option>
+            <option value="">{t.selectStudent}</option>
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.firstName} {s.lastName}
@@ -71,9 +74,9 @@ if (isPageLoading) return <LoadingScreen />;
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Academic session
+          {t.academicSessionLabel}
           <select className="rounded border px-2 py-1.5" value={academicSession} onChange={(e) => setAcademicSession(e.target.value)}>
-            <option value="">Select a session</option>
+            <option value="">{t.selectSession}</option>
             {sessions.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -86,7 +89,7 @@ if (isPageLoading) return <LoadingScreen />;
           onClick={handleGenerate}
           className="rounded bg-brand-blue px-4 py-2 text-sm text-white disabled:opacity-50"
         >
-          {isLoading ? 'Generating…' : 'Generate'}
+          {isLoading ? t.generating : t.generate}
         </button>
       </div>
 
@@ -94,7 +97,7 @@ if (isPageLoading) return <LoadingScreen />;
         <div className="flex flex-col items-center gap-4">
           <SessionWrapCard wrap={wrap} />
           <button onClick={handleDownloadPdf} className="text-sm text-brand-blue underline">
-            Download as PDF
+            {t.downloadAsPdf}
           </button>
         </div>
       )}

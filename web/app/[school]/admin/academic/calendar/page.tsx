@@ -11,6 +11,7 @@ import {
   deleteCalendarEvent,
   generateTermSchedule,
 } from '@/lib/endpoints/calendar';
+import { calendarLabelsFor } from '@/lib/i18n/calendar-labels';
 import type { Term, CalendarEvent, CalendarEventType } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
@@ -28,6 +29,7 @@ const EVENT_TYPES: CalendarEventType[] = [
 
 export default function CalendarPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = calendarLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [terms, setTerms] = useState<Term[]>([]);
   const [termId, setTermId] = useState('');
@@ -73,7 +75,7 @@ export default function CalendarPage({ params }: { params: { school: string } })
       setForm({ type: 'CUSTOM', title: '', startDate: '', endDate: '', description: '' });
       setEvents(await listCalendarEvents(params.school, termId));
     } catch {
-      setError(editingId ? 'Could not save changes' : 'Could not add event');
+      setError(editingId ? t.couldNotSaveChanges : t.couldNotAddEvent);
     }
   }
 
@@ -104,9 +106,9 @@ export default function CalendarPage({ params }: { params: { school: string } })
     try {
       const result = await generateTermSchedule(params.school, { termId, ...genForm });
       setDraft(result);
-      setNotice('Draft generated below — review it, then save the ones you want to keep.');
+      setNotice(t.draftGeneratedNotice);
     } catch {
-      setError('Could not generate a draft — check the start date and week counts');
+      setError(t.couldNotGenerateDraft);
     }
   }
 
@@ -164,17 +166,17 @@ export default function CalendarPage({ params }: { params: { school: string } })
   return (
     <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Academic Calendar</h1>
+      <h1 className="text-xl font-semibold">{school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 
       <label className="flex w-fit flex-col gap-1 text-sm">
-        Term
+        {t.termLabel}
         <select className="rounded border px-2 py-1.5" value={termId} onChange={(e) => setTermId(e.target.value)}>
-          <option value="">Select a term</option>
-          {terms.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          <option value="">{t.selectTerm}</option>
+          {terms.map((term) => (
+            <option key={term.id} value={term.id}>
+              {term.name}
             </option>
           ))}
         </select>
@@ -183,14 +185,11 @@ export default function CalendarPage({ params }: { params: { school: string } })
       {termId && (
         <>
           <section className="card">
-            <h2 className="mb-3 font-medium">Generate a draft term schedule</h2>
-            <p className="mb-3 text-xs text-ink/50">
-              Nothing is saved yet — review the draft below, edit or remove entries as needed, then save only the events
-              you want to keep.
-            </p>
+            <h2 className="mb-3 font-medium">{t.generateDraftHeading}</h2>
+            <p className="mb-3 text-xs text-ink/50">{t.generateDraftHelp}</p>
             <div className="flex flex-wrap items-end gap-2">
               <label className="flex flex-col gap-1 text-xs">
-                Resumption date
+                {t.resumptionDateLabel}
                 <input
                   className="rounded border px-2 py-1.5 text-sm"
                   type="date"
@@ -199,7 +198,7 @@ export default function CalendarPage({ params }: { params: { school: string } })
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs">
-                Weeks in term
+                {t.weeksInTermLabel}
                 <input
                   className="w-20 rounded border px-2 py-1.5 text-sm"
                   type="number"
@@ -208,7 +207,7 @@ export default function CalendarPage({ params }: { params: { school: string } })
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs">
-                Midterm break (week #)
+                {t.midtermBreakLabel}
                 <input
                   className="w-24 rounded border px-2 py-1.5 text-sm"
                   type="number"
@@ -217,7 +216,7 @@ export default function CalendarPage({ params }: { params: { school: string } })
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs">
-                Exam weeks (at end)
+                {t.examWeeksLabel}
                 <input
                   className="w-20 rounded border px-2 py-1.5 text-sm"
                   type="number"
@@ -226,7 +225,7 @@ export default function CalendarPage({ params }: { params: { school: string } })
                 />
               </label>
               <button onClick={handleGenerateDraft} className="rounded bg-brand-green px-3 py-1.5 text-sm text-white">
-                Generate draft
+                {t.generateDraftBtn}
               </button>
             </div>
 
@@ -243,15 +242,15 @@ export default function CalendarPage({ params }: { params: { school: string } })
                         value={draftEditForm.type}
                         onChange={(ev) => setDraftEditForm((f) => ({ ...f, type: ev.target.value as CalendarEventType }))}
                       >
-                        {EVENT_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {t.replace(/_/g, ' ')}
+                        {EVENT_TYPES.map((et) => (
+                          <option key={et} value={et}>
+                            {t.eventTypeLabels[et]}
                           </option>
                         ))}
                       </select>
                       <input
                         className="rounded border px-2 py-1 text-xs"
-                        placeholder="Title"
+                        placeholder={t.titlePlaceholder}
                         value={draftEditForm.title}
                         onChange={(ev) => setDraftEditForm((f) => ({ ...f, title: ev.target.value }))}
                       />
@@ -268,27 +267,27 @@ export default function CalendarPage({ params }: { params: { school: string } })
                         onChange={(ev) => setDraftEditForm((f) => ({ ...f, endDate: ev.target.value }))}
                       />
                       <button onClick={() => saveDraftEdit(i)} className="rounded bg-brand-blue px-2 py-1 text-xs text-white">
-                        Apply
+                        {t.applyBtn}
                       </button>
                       <button onClick={cancelEditingDraft} className="rounded border px-2 py-1 text-xs">
-                        Cancel
+                        {t.cancelBtn}
                       </button>
                     </li>
                   ) : (
                     <li key={i} className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-sm">
                       <span>
                         {e.title} — {e.startDate.slice(0, 10)}
-                        {e.endDate ? ` to ${e.endDate.slice(0, 10)}` : ''}
+                        {e.endDate ? t.toDate(e.endDate.slice(0, 10)) : ''}
                       </span>
                       <div className="flex gap-3">
                         <button onClick={() => startEditingDraft(i)} className="text-xs text-brand-blue underline">
-                          Edit
+                          {t.editBtn}
                         </button>
                         <button onClick={() => deleteDraftEvent(i)} className="text-xs text-red-600 underline">
-                          Delete
+                          {t.deleteBtn}
                         </button>
                         <button onClick={() => handleSaveDraftEvent(e)} className="text-brand-blue underline">
-                          Save
+                          {t.saveBtn}
                         </button>
                       </div>
                     </li>
@@ -299,22 +298,22 @@ export default function CalendarPage({ params }: { params: { school: string } })
           </section>
 
           <section className="card">
-            <h2 className="mb-3 font-medium">{editingId ? 'Edit event' : 'Add an event manually'}</h2>
+            <h2 className="mb-3 font-medium">{editingId ? t.editEventHeading : t.addEventManuallyHeading}</h2>
             <form onSubmit={handleSubmitEvent} className="flex flex-wrap items-end gap-2">
               <select
                 className="rounded border px-2 py-1.5 text-sm"
                 value={form.type}
                 onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as CalendarEventType }))}
               >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.replace(/_/g, ' ')}
+                {EVENT_TYPES.map((et) => (
+                  <option key={et} value={et}>
+                    {t.eventTypeLabels[et]}
                   </option>
                 ))}
               </select>
               <input
                 className="rounded border px-2 py-1.5 text-sm"
-                placeholder="Title"
+                placeholder={t.titlePlaceholder}
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 required
@@ -333,31 +332,31 @@ export default function CalendarPage({ params }: { params: { school: string } })
                 onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
               />
               <button type="submit" className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white">
-                {editingId ? 'Save changes' : 'Add'}
+                {editingId ? t.saveChangesBtn : t.addBtn}
               </button>
               {editingId && (
                 <button type="button" onClick={cancelEditing} className="rounded border px-3 py-1.5 text-sm">
-                  Cancel
+                  {t.cancelBtn}
                 </button>
               )}
             </form>
           </section>
 
           <section className="card">
-            <h2 className="mb-3 font-medium">This term's events</h2>
+            <h2 className="mb-3 font-medium">{t.thisTermsEventsHeading}</h2>
             <ul className="flex flex-col gap-1 text-sm">
               {events.map((e) => (
                 <li key={e.id} className="flex items-center justify-between">
                   <span>
                     {e.title} — {e.startDate.slice(0, 10)}
-                    {e.endDate ? ` to ${e.endDate.slice(0, 10)}` : ''}
+                    {e.endDate ? t.toDate(e.endDate.slice(0, 10)) : ''}
                   </span>
                   <div className="flex gap-3">
                     <button onClick={() => startEditing(e)} className="text-xs text-brand-blue underline">
-                      Edit
+                      {t.editBtn}
                     </button>
                     <button onClick={() => handleDelete(e.id)} className="text-xs text-red-600 underline">
-                      Delete
+                      {t.deleteBtn}
                     </button>
                   </div>
                 </li>

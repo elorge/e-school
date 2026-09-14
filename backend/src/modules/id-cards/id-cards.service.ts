@@ -6,6 +6,7 @@ import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ATTENDANCE_MAX_BACKDATE_HOURS, ATTENDANCE_MAX_FUTURE_MINUTES } from '../../common/constants';
+import { reportLabelsFor } from '../../common/i18n/report-labels';
 
 @Injectable()
 export class IdCardsService {
@@ -98,6 +99,7 @@ export class IdCardsService {
     // CR80 card size in points: 86mm x 54mm ≈ 243.8 x 153.4pt
     const CARD_WIDTH = 243.8;
     const CARD_HEIGHT = 153.4;
+    const labels = reportLabelsFor(school.locale);
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: [CARD_WIDTH, CARD_HEIGHT], margin: 10 });
@@ -134,13 +136,13 @@ export class IdCardsService {
       } else {
         doc.rect(10, 44, 60, 70).fillColor('#F5F7FA').fill();
         doc.rect(10, 44, 60, 70).strokeColor('#0B3D91').lineWidth(1).stroke();
-        doc.fontSize(6).fillColor('#999').text('No photo', 10, 75, { width: 60, align: 'center' });
+        doc.fontSize(6).fillColor('#999').text(labels.noPhoto, 10, 75, { width: 60, align: 'center' });
       }
 
       doc.fontSize(10).font('Helvetica-Bold').fillColor('#000').text(`${student.firstName} ${student.lastName}`, 80, 48, {
         width: CARD_WIDTH - 90,
       });
-      doc.fontSize(7).font('Helvetica').fillColor('#1F9D55').text(`ID: ${student.studentId ?? '—'}`, 80, 62, {
+      doc.fontSize(7).font('Helvetica').fillColor('#1F9D55').text(labels.idCardIdPrefix(student.studentId ?? '—'), 80, 62, {
         width: CARD_WIDTH - 90,
       });
       // A thin rule under the name/ID block, echoing the report card's
@@ -150,7 +152,7 @@ export class IdCardsService {
       doc.fillColor('#000');
 
       doc.image(qrImageBuffer, CARD_WIDTH - 55, CARD_HEIGHT - 55, { width: 45 });
-      doc.fontSize(5).fillColor('#999').text('Scan for attendance', CARD_WIDTH - 65, CARD_HEIGHT - 12, { width: 65, align: 'center' });
+      doc.fontSize(5).fillColor('#999').text(labels.scanForAttendance, CARD_WIDTH - 65, CARD_HEIGHT - 12, { width: 65, align: 'center' });
 
       // Thin colored footer strip — bookends the header strip, gives the card a finished, deliberate edge.
       doc.rect(0, CARD_HEIGHT - 4, CARD_WIDTH, 4).fill('#1F9D55');

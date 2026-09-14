@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { randomInt } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { ERROR_CODES } from '../../common/i18n/error-codes';
 import { EmailService } from '../email/email.service';
 import { PinStatus, Role } from '@prisma/client';
 import { MAX_PIN_LOOKUP_ATTEMPTS } from '../../common/constants';
@@ -86,6 +87,7 @@ export class PinsService {
           studentCount: studentIds.length,
           totalCostKobo,
           currency: school.currency,
+          locale: school.locale,
         }),
       ),
     );
@@ -110,7 +112,11 @@ export class PinsService {
 
     const now = new Date();
     if (attempt.lockedUntil && attempt.lockedUntil > now) {
-      throw new ForbiddenException(`Too many failed attempts. Try again after ${attempt.lockedUntil.toISOString()}.`);
+      throw new ForbiddenException({
+        message: `Too many failed attempts. Try again after ${attempt.lockedUntil.toISOString()}.`,
+        code: ERROR_CODES.PIN_TOO_MANY_ATTEMPTS,
+        params: { lockedUntil: attempt.lockedUntil.toISOString() },
+      });
     }
     if (attempt.lockedUntil && attempt.lockedUntil <= now) {
       await this.prisma.pinLookupAttempt.update({
@@ -136,7 +142,7 @@ export class PinsService {
     const student = await this.prisma.student.findFirst({ where: { schoolId, studentId: admissionId } });
     if (!student) {
       await fail();
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ message: 'Invalid credentials', code: ERROR_CODES.PIN_INVALID_CREDENTIALS });
     }
 
     const pin = await this.prisma.pin.findFirst({
@@ -144,13 +150,13 @@ export class PinsService {
     });
     if (!pin) {
       await fail();
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ message: 'Invalid credentials', code: ERROR_CODES.PIN_INVALID_CREDENTIALS });
     }
 
     const valid = await bcrypt.compare(plaintextPin, pin.pinHash);
     if (!valid) {
       await fail();
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ message: 'Invalid credentials', code: ERROR_CODES.PIN_INVALID_CREDENTIALS });
     }
 
     await this.prisma.pinLookupAttempt.update({

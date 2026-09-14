@@ -1,6 +1,7 @@
 // backend/src/modules/schools/dto/create-signup-request.dto.ts
 import { IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { SUPPORTED_CURRENCIES } from '../../../common/utils/currency.util';
+import { SUPPORTED_LOCALES } from '../../../common/utils/locale.util';
 
 export class CreateSignupRequestDto {
   @IsString()
@@ -24,6 +25,13 @@ export class CreateSignupRequestDto {
 
   @IsIn(SUPPORTED_CURRENCIES, { message: `currency must be one of: ${SUPPORTED_CURRENCIES.join(', ')}` })
   currency!: string;
+
+  // NEW: collected on the same country-picker step of the signup form —
+  // defaults to the country's usual language (localeForCountry) when
+  // omitted, same pattern as currency defaulting from countryCode.
+  @IsOptional()
+  @IsIn(SUPPORTED_LOCALES, { message: `locale must be one of: ${SUPPORTED_LOCALES.join(', ')}` })
+  locale?: string;
 
   @IsString()
   @MinLength(1)

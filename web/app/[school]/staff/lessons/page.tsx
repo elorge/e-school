@@ -21,6 +21,7 @@ import {
 import type { Class, Term } from '@/lib/types';
 import LoadingScreen from '@/components/LoadingScreen';
 import { NotebookPen, Presentation as PresentationIcon, Link as LinkIcon } from 'lucide-react';
+import { lessonLabelsFor } from '@/lib/i18n/lesson-labels';
 
 const BLANK: LessonNoteInput = {
   classId: '',
@@ -39,6 +40,7 @@ const BLANK: LessonNoteInput = {
 
 export default function LessonNotesPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = lessonLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
@@ -57,7 +59,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
       setTerms(t);
       setNotes(n);
     } catch {
-      setError('Failed to load lesson notes');
+      setError(t.failedToLoad);
     } finally {
       setIsLoading(false);
     }
@@ -74,16 +76,16 @@ export default function LessonNotesPage({ params }: { params: { school: string }
     try {
       if (editingId) {
         await updateLessonNote(params.school, editingId, form);
-        setNotice('Saved.');
+        setNotice(t.savedNotice);
       } else {
         await createLessonNote(params.school, form);
-        setNotice('Draft created.');
+        setNotice(t.draftCreatedNotice);
       }
       setForm(BLANK);
       setEditingId(null);
       load();
     } catch {
-      setError('Could not save this lesson note');
+      setError(t.couldNotSaveNote);
     }
   }
 
@@ -126,7 +128,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
       await uploadMaterial(params.school, editingId, file, anchor);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not upload material');
+      setError(t.couldNotUploadMaterial);
     } finally {
       setIsUploadingMaterial(false);
       e.target.value = '';
@@ -142,7 +144,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
   function copyStudentLink(id: string) {
     const url = `${window.location.origin}/${params.school}/lessons/${id}`;
     navigator.clipboard.writeText(url);
-    setNotice('Student link copied — share it in your class group.');
+    setNotice(t.studentLinkCopiedNotice);
   }
 
   if (isLoading) return <LoadingScreen />;
@@ -150,13 +152,13 @@ export default function LessonNotesPage({ params }: { params: { school: string }
   return (
     <main className="flex flex-col gap-8">
       <h1 className="flex items-center gap-2 text-xl font-semibold">
-        <NotebookPen size={20} /> {school.name} — Lesson Notes
+        <NotebookPen size={20} /> {school.name} — {t.pageTitle}
       </h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 
       <section className="card">
-        <h2 className="mb-3 font-medium">{editingId ? 'Edit lesson note' : 'New lesson note'}</h2>
+        <h2 className="mb-3 font-medium">{editingId ? t.editNote : t.newNote}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <select
@@ -165,7 +167,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
               onChange={(e) => setForm((f) => ({ ...f, classId: e.target.value }))}
               required
             >
-              <option value="">Class</option>
+              <option value="">{t.classLabel}</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -178,23 +180,23 @@ export default function LessonNotesPage({ params }: { params: { school: string }
               onChange={(e) => setForm((f) => ({ ...f, termId: e.target.value }))}
               required
             >
-              <option value="">Term</option>
-              {terms.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="">{t.termLabel}</option>
+              {terms.map((term) => (
+                <option key={term.id} value={term.id}>
+                  {term.name}
                 </option>
               ))}
             </select>
             <input
               className="rounded border px-2 py-1.5 text-sm"
-              placeholder="Subject"
+              placeholder={t.subjectPlaceholder}
               value={form.subject}
               onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
               required
             />
             <input
               className="rounded border px-2 py-1.5 text-sm"
-              placeholder="Topic"
+              placeholder={t.topicPlaceholder}
               value={form.topic}
               onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
               required
@@ -202,14 +204,14 @@ export default function LessonNotesPage({ params }: { params: { school: string }
             <input
               className="rounded border px-2 py-1.5 text-sm"
               type="number"
-              placeholder="Duration (minutes)"
+              placeholder={t.durationPlaceholder}
               value={form.durationMinutes ?? ''}
               onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
             />
           </div>
 
           <label className="flex flex-col gap-1 text-sm">
-            Instructional objectives (one per line — "By the end of this lesson, students should be able to...")
+            {t.objectivesFieldLabel}
             <textarea
               className="min-h-[60px] rounded border px-2 py-1.5 text-sm"
               value={form.objectives}
@@ -218,7 +220,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Instructional materials
+            {t.instructionalMaterialsLabel}
             <input
               className="rounded border px-2 py-1.5 text-sm"
               value={form.instructionalMaterials ?? ''}
@@ -226,7 +228,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Previous knowledge (what students already know coming into this)
+            {t.previousKnowledgeFieldLabel}
             <textarea
               className="min-h-[50px] rounded border px-2 py-1.5 text-sm"
               value={form.previousKnowledge ?? ''}
@@ -234,17 +236,17 @@ export default function LessonNotesPage({ params }: { params: { school: string }
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Presentation / content — separate each projector slide with a line containing only <code>---</code>
+            {t.presentationFieldLabel}
             <textarea
               className="min-h-[160px] rounded border px-2 py-1.5 font-mono text-sm"
               value={form.presentation}
               onChange={(e) => setForm((f) => ({ ...f, presentation: e.target.value }))}
-              placeholder={'Step 1: introduce the topic...\n---\nStep 2: work through an example...\n---\nStep 3: class practice...'}
+              placeholder={t.presentationPlaceholderExample}
               required
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Evaluation (questions to check understanding)
+            {t.evaluationFieldLabel}
             <textarea
               className="min-h-[60px] rounded border px-2 py-1.5 text-sm"
               value={form.evaluation ?? ''}
@@ -252,7 +254,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Assignment
+            {t.assignmentFieldLabel}
             <textarea
               className="min-h-[50px] rounded border px-2 py-1.5 text-sm"
               value={form.assignment ?? ''}
@@ -260,7 +262,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Summary
+            {t.summaryFieldLabel}
             <textarea
               className="min-h-[50px] rounded border px-2 py-1.5 text-sm"
               value={form.summary ?? ''}
@@ -270,7 +272,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
 
           <div className="flex gap-2">
             <button type="submit" className="w-fit rounded bg-brand-blue px-4 py-2 text-sm text-white">
-              {editingId ? 'Save changes' : 'Save as draft'}
+              {editingId ? t.saveChanges : t.saveAsDraft}
             </button>
             {editingId && (
               <button
@@ -281,7 +283,7 @@ export default function LessonNotesPage({ params }: { params: { school: string }
                 }}
                 className="rounded border px-4 py-2 text-sm"
               >
-                Cancel
+                {t.cancel}
               </button>
             )}
           </div>
@@ -290,23 +292,20 @@ export default function LessonNotesPage({ params }: { params: { school: string }
 
       {editingId && (
         <section className="card">
-          <h2 className="mb-3 font-medium">Materials</h2>
-          <p className="mb-2 text-xs text-ink/50">
-            Upload diagrams, scanned pages, PDFs, or PowerPoint slides. Each becomes its own slide in Presenter Mode —
-            pick where it should appear.
-          </p>
+          <h2 className="mb-3 font-medium">{t.materialsHeading}</h2>
+          <p className="mb-2 text-xs text-ink/50">{t.materialsHelp}</p>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <select id="material-anchor" className="rounded border px-2 py-1.5 text-xs">
-              <option value="start">At the start</option>
-              <option value="objectives">After Objectives</option>
-              <option value="previousKnowledge">After Previous Knowledge</option>
-              <option value="evaluation">After Evaluation</option>
-              <option value="assignment">After Assignment</option>
-              <option value="summary">After Summary</option>
-              <option value="end">At the end</option>
+              <option value="start">{t.anchorStart}</option>
+              <option value="objectives">{t.anchorAfterObjectives}</option>
+              <option value="previousKnowledge">{t.anchorAfterPreviousKnowledge}</option>
+              <option value="evaluation">{t.anchorAfterEvaluation}</option>
+              <option value="assignment">{t.anchorAfterAssignment}</option>
+              <option value="summary">{t.anchorAfterSummary}</option>
+              <option value="end">{t.anchorEnd}</option>
             </select>
             <label className="cursor-pointer rounded bg-brand-green px-3 py-1.5 text-xs text-white">
-              {isUploadingMaterial ? 'Uploading…' : 'Upload file'}
+              {isUploadingMaterial ? t.uploading : t.uploadFile}
               <input
                 type="file"
                 accept="image/*,.pdf,.pptx"
@@ -323,17 +322,17 @@ export default function LessonNotesPage({ params }: { params: { school: string }
                   {m.originalFilename ?? m.type} — {m.insertAfter}
                 </span>
                 <button onClick={() => handleDeleteMaterial(m.id)} className="text-red-600 underline">
-                  Remove
+                  {t.remove}
                 </button>
               </li>
             ))}
-            {currentNoteMaterials.length === 0 && <li className="text-ink/40">No materials uploaded yet.</li>}
+            {currentNoteMaterials.length === 0 && <li className="text-ink/40">{t.noMaterialsYet}</li>}
           </ul>
         </section>
       )}
 
       <section className="card">
-        <h2 className="mb-3 font-medium">All lesson notes</h2>
+        <h2 className="mb-3 font-medium">{t.allNotesHeading}</h2>
         <ul className="flex flex-col gap-2">
           {notes.map((note) => (
             <li key={note.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-b-0">
@@ -343,21 +342,21 @@ export default function LessonNotesPage({ params }: { params: { school: string }
               </span>
               <div className="flex items-center gap-3">
                 <button onClick={() => startEditing(note)} className="text-brand-blue underline">
-                  Edit
+                  {t.edit}
                 </button>
                 <Link href={`/${params.school}/staff/lessons/${note.id}/present`} target="_blank" className="flex items-center gap-1 text-brand-blue underline">
-                  <PresentationIcon size={13} /> Present
+                  <PresentationIcon size={13} /> {t.present}
                 </Link>
                 {note.status === 'PUBLISHED' && (
                   <button onClick={() => copyStudentLink(note.id)} className="flex items-center gap-1 text-brand-green underline">
-                    <LinkIcon size={13} /> Copy student link
+                    <LinkIcon size={13} /> {t.copyStudentLink}
                   </button>
                 )}
                 <button onClick={() => handlePublishToggle(note)} className="text-xs underline">
-                  {note.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
+                  {note.status === 'PUBLISHED' ? t.unpublish : t.publish}
                 </button>
                 <button onClick={() => handleDelete(note.id)} className="text-xs text-red-600 underline">
-                  Delete
+                  {t.deleteBtn}
                 </button>
               </div>
             </li>

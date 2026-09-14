@@ -1,13 +1,18 @@
 // web/components/SessionWrapCard.tsx
 import type { SessionWrap } from '@/lib/endpoints/insights';
+import { useSchool } from '@/lib/school-context';
+import { sessionWrapLabelsFor } from '@/lib/i18n/session-wrap-labels';
 
 export default function SessionWrapCard({ wrap }: { wrap: SessionWrap }) {
+  const school = useSchool();
+  const t = sessionWrapLabelsFor(school.locale);
+
   return (
     <div className="mx-auto max-w-lg rounded-2xl bg-ink p-8 text-white torn-edge">
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand-green">Session Wrap</p>
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand-green">{t.sessionWrap}</p>
       <h2 className="mt-1 font-display text-2xl font-semibold">{wrap.academicSession}</h2>
       <p className="mt-1 text-sm text-white/60">
-        {wrap.studentName} — {wrap.termsCovered} term(s) on file
+        {wrap.studentName} — {t.termsOnFile(wrap.termsCovered)}
       </p>
 
       <div className="mt-6 flex flex-col gap-2">
@@ -27,7 +32,7 @@ export default function SessionWrapCard({ wrap }: { wrap: SessionWrap }) {
 
       {wrap.suggestedFields.length > 0 && (
         <div className="mt-6">
-          <p className="mb-2 text-xs uppercase tracking-wide text-white/50">Fields worth exploring</p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-white/50">{t.fieldsWorthExploring}</p>
           <div className="flex flex-wrap gap-2">
             {wrap.suggestedFields.map((f) => (
               <span key={f.field} className="rounded-full bg-white/10 px-3 py-1 text-xs" title={f.supportingSubjects.join(', ')}>

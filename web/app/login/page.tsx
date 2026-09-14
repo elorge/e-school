@@ -5,11 +5,16 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { login } from '@/lib/endpoints/auth';
 import { ApiError } from '@/lib/api';
+import { useMarketingLocale } from '@/lib/marketing-locale';
+import { loginLabelsFor } from '@/lib/i18n/login-labels';
+import { apiErrorMessage } from '@/lib/i18n/error-messages';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PasswordInput from '@/components/PasswordInput';
 
 export default function LoginPage() {
+  const { locale } = useMarketingLocale();
+  const t = loginLabelsFor(locale);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,16 +40,20 @@ export default function LoginPage() {
         return;
       }
       if (!data.user.schoolSlug) {
-        setError('Your account is not linked to a school workspace yet. Contact your school administrator.');
+        setError(t.noSchoolLinked);
         return;
       }
+      // From here on, every page the user sees is under [school]/ and
+      // renders in THAT school's own configured language — this login
+      // page's language (the visitor's browser language) was only ever
+      // a best guess for the few seconds before we knew who they were.
       const destination = data.user.role === 'SCHOOL_ADMIN' ? 'admin' : 'staff';
       window.location.href = `/${data.user.schoolSlug}/${destination}`;
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        setError(apiErrorMessage(err, locale, err.message));
       } else {
-        setError('Could not reach the server. Check that the backend is running and reachable, and that CORS allows this origin.');
+        setError(t.serverUnreachable);
       }
     } finally {
       setIsSubmitting(false);
@@ -55,10 +64,10 @@ export default function LoginPage() {
     <>
       <SiteHeader />
       <main className="mx-auto max-w-sm px-4 py-16">
-        <h1 className="mb-6 font-display text-2xl font-semibold">Sign in</h1>
+        <h1 className="mb-6 font-display text-2xl font-semibold">{t.signIn}</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            Email
+            {t.emailLabel}
             <input
               className="rounded border px-3 py-2"
               type="email"
@@ -68,23 +77,23 @@ export default function LoginPage() {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Password
+            {t.passwordLabel}
             <PasswordInput value={password} onChange={setPassword} required />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" disabled={isSubmitting} className="btn-primary mt-2 w-full">
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
+            {isSubmitting ? t.signingIn : t.signIn}
           </button>
         </form>
         <p className="mt-4 text-sm">
           <Link href="/forgot-password" className="underline">
-            Forgot your password?
+            {t.forgotPassword}
           </Link>
         </p>
         <p className="mt-2 text-sm text-ink/60">
-          New school?{' '}
+          {t.newSchool}{' '}
           <Link href="/signup" className="text-brand-blue underline">
-            Get started
+            {t.getStarted}
           </Link>
         </p>
       </main>

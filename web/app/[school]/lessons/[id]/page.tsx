@@ -4,6 +4,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getPublicLessonNote, type LessonNote } from '@/lib/endpoints/lesson-notes';
+import { useSchool } from '@/lib/school-context';
+import { lessonLabelsFor } from '@/lib/i18n/lesson-labels';
 import MathText from '@/components/MathText';
 
 function Section({ title, body }: { title: string; body: string | null | undefined }) {
@@ -19,6 +21,8 @@ function Section({ title, body }: { title: string; body: string | null | undefin
 }
 
 export default function PublicLessonNotePage({ params }: { params: { school: string; id: string } }) {
+  const school = useSchool();
+  const t = lessonLabelsFor(school.locale);
   const searchParams = useSearchParams();
   const admissionId = searchParams.get('admissionId');
   const [note, setNote] = useState<LessonNote | null>(null);
@@ -34,7 +38,7 @@ export default function PublicLessonNotePage({ params }: { params: { school: str
       .catch(() => setError(true));
   }, [params.school, params.id, admissionId]);
 
-  if (error) return <p className="mx-auto max-w-2xl px-4 py-10 text-sm text-red-600">This lesson note isn't available.</p>;
+  if (error) return <p className="mx-auto max-w-2xl px-4 py-10 text-sm text-red-600">{t.noteUnavailable}</p>;
   if (!note) return null;
 
   return (
@@ -44,12 +48,12 @@ export default function PublicLessonNotePage({ params }: { params: { school: str
       </p>
       <h1 className="mb-6 font-display text-2xl font-semibold">{note.topic}</h1>
 
-      <Section title="Objectives" body={note.objectives} />
-      <Section title="Previous Knowledge" body={note.previousKnowledge} />
-      <Section title="Presentation" body={note.presentation.replace(/\n\s*---\s*\n/g, '\n\n')} />
-      <Section title="Evaluation" body={note.evaluation} />
-      <Section title="Assignment" body={note.assignment} />
-      <Section title="Summary" body={note.summary} />
+      <Section title={t.objectives} body={note.objectives} />
+      <Section title={t.previousKnowledge} body={note.previousKnowledge} />
+      <Section title={t.presentation} body={note.presentation.replace(/\n\s*---\s*\n/g, '\n\n')} />
+      <Section title={t.evaluation} body={note.evaluation} />
+      <Section title={t.assignment} body={note.assignment} />
+      <Section title={t.summary} body={note.summary} />
     </main>
   );
 }

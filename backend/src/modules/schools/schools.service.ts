@@ -9,6 +9,8 @@ import { AuditService } from '../../common/services/audit.service';
 import { SignupRequestStatus } from '@prisma/client';
 import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO } from '../../common/constants';
 import { timezoneForCountry } from '../../common/utils/timezone.util';
+import { localeForCountry } from '../../common/utils/locale.util';
+import { ERROR_CODES } from '../../common/i18n/error-codes';
 
 @Injectable()
 export class SchoolsService {
@@ -67,6 +69,7 @@ export class SchoolsService {
     countryCode: string;
     currency: string;
     timezone?: string;
+    locale?: string;
     logoUrl?: string;
     adminEmail: string;
     adminName: string;
@@ -79,6 +82,7 @@ export class SchoolsService {
         countryCode: data.countryCode,
         currency: data.currency,
         timezone: data.timezone ?? timezoneForCountry(data.countryCode),
+        locale: data.locale ?? localeForCountry(data.countryCode),
         logoUrl: data.logoUrl,
       },
     });
@@ -91,6 +95,7 @@ export class SchoolsService {
       slug: school.slug,
       welcomeBonusKobo: WELCOME_BONUS_KOBO,
       currency: school.currency,
+      locale: school.locale,
     });
 
     return school;
@@ -101,6 +106,20 @@ export class SchoolsService {
       where: { slug },
       data: { pricePerStudentKoboOverride: koboAmount ?? null },
     });
+  }
+
+  /** SUPER_ADMIN path — change any school's language by slug. */
+  async setLocale(slug: string, locale: string) {
+    const school = await this.prisma.school.update({ where: { slug }, data: { locale } });
+    await this.audit.log({ schoolId: school.id, action: 'school.locale_changed', entityType: 'School', entityId: school.id });
+    return school;
+  }
+
+  /** SCHOOL_ADMIN self-service path — change your own school's language, scoped by req.schoolId. */
+  async setLocaleForSchool(schoolId: string, locale: string) {
+    const school = await this.prisma.school.update({ where: { id: schoolId }, data: { locale } });
+    await this.audit.log({ schoolId: school.id, action: 'school.locale_changed', entityType: 'School', entityId: school.id });
+    return school;
   }
 
   async setSessionWrapEnabled(slug: string, enabled: boolean) {
@@ -128,6 +147,7 @@ export class SchoolsService {
     countryCode: string;
     currency: string;
     timezone?: string;
+    locale?: string;
     adminName: string;
     adminEmail: string;
     adminPassword: string;
@@ -137,8 +157,8 @@ export class SchoolsService {
       this.prisma.school.findUnique({ where: { slug: data.slug } }),
       this.prisma.school.findUnique({ where: { code: data.code } }),
     ]);
-    if (slugTaken) throw new ConflictException('That workspace name is already taken');
-    if (codeTaken) throw new ConflictException('That school code is already taken');
+    if (slugTaken) throw new ConflictException({ message: 'That workspace name is already taken', code: ERROR_CODES.SIGNUP_WORKSPACE_NAME_TAKEN });
+    if (codeTaken) throw new ConflictException({ message: 'That school code is already taken', code: ERROR_CODES.SIGNUP_SCHOOL_CODE_TAKEN });
 
     const adminPasswordHash = await bcrypt.hash(data.adminPassword, 10);
     const result = await this.prisma.schoolSignupRequest.create({
@@ -149,6 +169,7 @@ export class SchoolsService {
         countryCode: data.countryCode,
         timezone: data.timezone ?? timezoneForCountry(data.countryCode),
         currency: data.currency,
+        locale: data.locale ?? localeForCountry(data.countryCode),
         adminName: data.adminName,
         adminEmail: data.adminEmail,
         adminPassword: adminPasswordHash,
@@ -197,6 +218,7 @@ export class SchoolsService {
       countryCode: request.countryCode,
       currency: request.currency,
       timezone: request.timezone,
+      locale: request.locale,
       adminEmail: request.adminEmail,
       adminName: request.adminName,
     });

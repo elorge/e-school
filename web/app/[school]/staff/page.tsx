@@ -21,11 +21,12 @@ import CameraCapture from '@/components/CameraCapture';
 import ResultEntryModal from '@/components/ResultEntryModal';
 import { FileEdit, ImagePlus, Camera, UserMinus, RefreshCw, CheckCircle2 } from 'lucide-react';
 import LoadingScreen from '@/components/LoadingScreen';
-import { ApiError } from '@/lib/api';
+import { staffRosterLabelsFor } from '@/lib/i18n/staff-roster-labels';
 import type { Class, Student, Term } from '@/lib/types';
 
 export default function StaffPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = staffRosterLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -61,10 +62,10 @@ export default function StaffPage({ params }: { params: { school: string } }) {
     setUploadingPhotoFor(studentId);
     try {
       await uploadStudentPhoto(params.school, studentId, file);
-      setNotice(`Photo updated for ${firstName} ${lastName}.`);
+      setNotice(t.photoUpdatedNotice(`${firstName} ${lastName}`));
       loadStudents(selectedClassId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Photo upload failed');
+      setError(t.photoUploadFailed);
     } finally {
       setUploadingPhotoFor(null);
     }
@@ -80,7 +81,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       setClasses(classList);
       setTerms(termList);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load classes/terms');
+      setError(t.loadClassesTermsFailed);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +92,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       const list = await listStudents(params.school, classId || undefined);
       setStudents(list);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load students');
+      setError(t.loadStudentsFailed);
     }
   }
 
@@ -111,7 +112,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
     setError(null);
     setNotice(null);
     if (!selectedClassId) {
-      setError('Choose a class first');
+      setError(t.chooseClassFirstError);
       return;
     }
     const outcome = await registerStudent(params.school, {
@@ -121,9 +122,9 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       admissionYear,
     });
     if (outcome.queued) {
-      setNotice('No internet right now — student saved on this device and will sync automatically.');
+      setNotice(t.registeredOfflineNotice);
     } else {
-      setNotice(`Registered — Admission ID: ${outcome.student?.studentId}`);
+      setNotice(t.registeredNotice(String(outcome.student?.studentId)));
       loadStudents(selectedClassId);
     }
     setFirstName('');
@@ -139,7 +140,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       loadStudents(selectedClassId);
       setWithdrawTarget(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not remove student');
+      setError(t.couldNotRemoveStudent);
       setWithdrawTarget(null);
     } finally {
       setIsWithdrawing(false);
@@ -156,12 +157,12 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       loadStudents(selectedClassId);
       const failed = studentResult.failed + resultResult.failed;
       if (failed > 0) {
-        setNotice(`Synced what we could — ${failed} item(s) still couldn't reach the server and will retry later.`);
+        setNotice(t.syncedSomeNotice(failed));
       } else {
-        setNotice('All offline changes have been synced.');
+        setNotice(t.allSyncedNotice);
       }
     } catch {
-      setError('Sync failed — check your connection and try again.');
+      setError(t.syncFailedError);
     } finally {
       setIsSyncing(false);
     }
@@ -173,18 +174,18 @@ export default function StaffPage({ params }: { params: { school: string } }) {
 
   return (
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Staff</h1>
+      <h1 className="text-xl font-semibold">{school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-green-700">{notice}</p>}
 
       <section className="card">
-        <h2 className="mb-2 font-medium">Classes &amp; Students</h2>
+        <h2 className="mb-2 font-medium">{t.classesAndStudentsHeading}</h2>
         <select
           className="mb-3 rounded border px-2 py-1"
           value={selectedClassId}
           onChange={(e) => setSelectedClassId(e.target.value)}
         >
-          <option value="">All classes</option>
+          <option value="">{t.allClasses}</option>
           {classes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -211,7 +212,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
                     {s.firstName} {s.lastName}
                   </p>
                   <p className="flex items-center gap-2 text-xs text-ink/50">
-                    <span className="font-mono">{s.studentId ?? 'pending ID'}</span>
+                    <span className="font-mono">{s.studentId ?? t.pendingId}</span>
                     <span
                       className={`badge ${
                         s.status === 'ACTIVE' ? 'badge-green' : s.status === 'WITHDRAWN' ? 'badge-red' : 'badge-amber'
@@ -225,14 +226,14 @@ export default function StaffPage({ params }: { params: { school: string } }) {
 
               <div className="flex items-center gap-1 rounded-full bg-black/5 p-1">
                 <button
-                  title="Enter results"
+                  title={t.enterResultsTitle}
                   className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue"
                   onClick={() => setResultModalStudent(s)}
                 >
                   <FileEdit size={15} />
                 </button>
                 <label
-                  title="Upload photo"
+                  title={t.uploadPhotoTitle}
                   className="cursor-pointer rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue"
                 >
                   {uploadingPhotoFor === s.id ? (
@@ -254,7 +255,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
                   />
                 </label>
                 <button
-                  title="Use camera"
+                  title={t.useCameraTitle}
                   className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-brand-blue"
                   onClick={() => setCameraForStudent(s.id)}
                 >
@@ -262,7 +263,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
                 </button>
                 {s.status !== 'WITHDRAWN' && (
                   <button
-                    title="Remove from class"
+                    title={t.removeFromClassTitle}
                     className="rounded-full p-2 text-ink/60 hover:bg-white hover:text-red-600"
                     onClick={() => setWithdrawTarget(s)}
                   >
@@ -276,8 +277,8 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       </section>
 
       <section className="card">
-        <h2 className="mb-3 font-medium">Bulk import students</h2>
-        <p className="mb-3 text-xs text-ink/50">For onboarding many existing students at once — class names must match exactly.</p>
+        <h2 className="mb-3 font-medium">{t.bulkImportHeading}</h2>
+        <p className="mb-3 text-xs text-ink/50">{t.bulkImportHelp}</p>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <button
             onClick={async () => {
@@ -290,10 +291,10 @@ export default function StaffPage({ params }: { params: { school: string } }) {
             }}
             className="btn-secondary"
           >
-            Download template
+            {t.downloadTemplateBtn}
           </button>
           <label className="btn-primary cursor-pointer">
-            {isImporting ? 'Importing…' : 'Upload filled template'}
+            {isImporting ? t.importingBtn : t.uploadFilledTemplateBtn}
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -307,14 +308,17 @@ export default function StaffPage({ params }: { params: { school: string } }) {
                   const result = await bulkImportStudents(params.school, file);
                   setNotice(
                     result.errors.length > 0
-                      ? `Added ${result.addedCount}. ${result.errors.length} row(s) had issues: ${result.errors
-                          .map((er) => `row ${er.row} — ${er.reason}`)
-                          .join('; ')}`
-                      : `Added ${result.addedCount} student(s).`,
+                      ? t.importAddedNotice(
+                          result.addedCount,
+                          `${result.errors.length} row(s) had issues: ${result.errors
+                            .map((er) => `row ${er.row} — ${er.reason}`)
+                            .join('; ')}`,
+                        )
+                      : t.importAddedSimpleNotice(result.addedCount),
                   );
                   loadStudents(selectedClassId);
                 } catch {
-                  setError('Import failed — check the file format');
+                  setError(t.importFailed);
                 } finally {
                   setIsImporting(false);
                   e.target.value = '';
@@ -326,18 +330,18 @@ export default function StaffPage({ params }: { params: { school: string } }) {
       </section>
 
       <section className="card">
-        <h2 className="mb-2 font-medium">Register a student</h2>
+        <h2 className="mb-2 font-medium">{t.registerStudentHeading}</h2>
         <form onSubmit={handleRegister} className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
-            First name
+            {t.firstNameLabel}
             <input className="rounded border px-2 py-1" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Last name
+            {t.lastNameLabel}
             <input className="rounded border px-2 py-1" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Admission year
+            {t.admissionYearLabel}
             <input
               className="rounded border px-2 py-1"
               type="number"
@@ -347,7 +351,7 @@ export default function StaffPage({ params }: { params: { school: string } }) {
             />
           </label>
           <button type="submit" className="rounded bg-blue-700 px-3 py-1.5 text-white">
-            Register
+            {t.registerBtn}
           </button>
         </form>
       </section>
@@ -361,42 +365,23 @@ export default function StaffPage({ params }: { params: { school: string } }) {
         to sync from this device.
       */}
       <section className="card">
-        <h2 className="mb-1 font-medium">Results &amp; offline sync</h2>
+        <h2 className="mb-1 font-medium">{t.resultsAndSyncHeading}</h2>
         <p className="mb-3 text-xs text-ink/50">
-          Use the <FileEdit size={12} className="inline align-text-bottom" /> icon next to a student above to enter or edit
-          their results for a term.
+          <FileEdit size={12} className="inline align-text-bottom" /> {t.useIconToEnterResults}
         </p>
         {hasPendingSync ? (
           <div className="flex flex-col gap-3">
             {(stuckStudents > 0 || stuckResults > 0) && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                <p className="font-medium">Some offline changes keep failing — this may need a look, not just time.</p>
-                {stuckStudents > 0 && (
-                  <p>
-                    {stuckStudents} student registration{stuckStudents === 1 ? '' : 's'} reached the server and{' '}
-                    {stuckStudents === 1 ? 'was' : 'were'} rejected repeatedly.
-                  </p>
-                )}
-                {stuckResults > 0 && (
-                  <p>
-                    {stuckResults} result submission{stuckResults === 1 ? '' : 's'} reached the server and{' '}
-                    {stuckResults === 1 ? 'was' : 'were'} rejected repeatedly.
-                  </p>
-                )}
+                <p className="font-medium">{t.stuckChangesHeading}</p>
+                {stuckStudents > 0 && <p>{t.stuckStudentsMessage(stuckStudents)}</p>}
+                {stuckResults > 0 && <p>{t.stuckResultsMessage(stuckResults)}</p>}
               </div>
             )}
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
               <div className="text-sm text-amber-900">
-                {pendingStudents > 0 && (
-                  <p>
-                    {pendingStudents} student{pendingStudents === 1 ? '' : 's'} saved offline, waiting to sync.
-                  </p>
-                )}
-                {pendingResults > 0 && (
-                  <p>
-                    {pendingResults} result{pendingResults === 1 ? '' : 's'} saved offline, waiting to sync.
-                  </p>
-                )}
+                {pendingStudents > 0 && <p>{t.pendingStudentsMessage(pendingStudents)}</p>}
+                {pendingResults > 0 && <p>{t.pendingResultsMessage(pendingResults)}</p>}
               </div>
               <button
                 onClick={handleSyncNow}
@@ -404,14 +389,14 @@ export default function StaffPage({ params }: { params: { school: string } }) {
                 className="flex items-center gap-1.5 rounded bg-blue-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
               >
                 <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                {isSyncing ? 'Syncing…' : 'Sync now'}
+                {isSyncing ? t.syncingBtn : t.syncNowBtn}
               </button>
             </div>
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
             <CheckCircle2 size={16} />
-            Everything is synced — no offline changes pending.
+            {t.everythingSynced}
           </div>
         )}
       </section>
@@ -431,13 +416,13 @@ export default function StaffPage({ params }: { params: { school: string } }) {
           onClick={() => !isWithdrawing && setWithdrawTarget(null)}
         >
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-lg font-semibold">Remove student?</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t.removeStudentTitle}</h2>
             <p className="mb-5 text-sm text-ink/60">
-              This will mark{' '}
+              {t.removeStudentConfirmPrefix}
               <span className="font-medium text-ink">
                 {withdrawTarget.firstName} {withdrawTarget.lastName}
-              </span>{' '}
-              as withdrawn.
+              </span>
+              {t.removeStudentConfirmSuffix}
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -445,14 +430,14 @@ export default function StaffPage({ params }: { params: { school: string } }) {
                 disabled={isWithdrawing}
                 className="btn-secondary disabled:opacity-50"
               >
-                No, cancel
+                {t.noCancel}
               </button>
               <button
                 onClick={() => handleWithdraw(withdrawTarget.id)}
                 disabled={isWithdrawing}
                 className="rounded bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
               >
-                {isWithdrawing ? 'Removing…' : 'Yes, remove'}
+                {isWithdrawing ? t.removingBtn : t.yesRemove}
               </button>
             </div>
           </div>

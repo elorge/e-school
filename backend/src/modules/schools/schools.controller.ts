@@ -4,10 +4,13 @@ import { SchoolsService } from './schools.service';
 import { AuthService } from '../auth/auth.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { SetPriceOverrideDto } from './dto/set-price-override.dto';
+import { SetLocaleDto } from './dto/set-locale.dto';
 import { CreateSignupRequestDto } from './dto/create-signup-request.dto';
 import { SignupRequestStatus } from '@prisma/client';
 import { Public, Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../../common/types/auth.types';
 import { Role } from '@prisma/client';
 
 @Controller('schools')
@@ -65,6 +68,18 @@ export class SchoolsController {
     return this.schoolsService.rejectSignupRequest(id);
   }
 
+  // Self-service — a SCHOOL_ADMIN changing their own school's language.
+  // "me" is a static segment, not a slug, so it belongs up here. This
+  // controller has no :school route param (unlike FeesController etc.),
+  // so there's no TenantGuard to populate req.schoolId — the user's own
+  // schoolId comes straight off their JWT via @CurrentUser() instead.
+  @UseGuards(RolesGuard)
+  @Roles(Role.SCHOOL_ADMIN)
+  @Patch('me/locale')
+  setMyLocale(@CurrentUser() user: AuthenticatedUser, @Body() body: SetLocaleDto) {
+    return this.schoolsService.setLocaleForSchool(user.schoolId!, body.locale);
+  }
+
   @UseGuards(RolesGuard)
   @Roles(Role.SUPER_ADMIN)
   @Post()
@@ -75,6 +90,7 @@ export class SchoolsController {
       code: body.code,
       countryCode: body.countryCode,
       currency: body.currency,
+      locale: body.locale,
       logoUrl: body.logoUrl,
       adminEmail: body.adminEmail,
       adminName: body.adminName,
@@ -91,6 +107,13 @@ export class SchoolsController {
   @Patch(':slug/price-override')
   setPriceOverride(@Param('slug') slug: string, @Body() body: SetPriceOverrideDto) {
     return this.schoolsService.setPriceOverride(slug, body.pricePerStudentKobo);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Patch(':slug/locale')
+  setLocale(@Param('slug') slug: string, @Body() body: SetLocaleDto) {
+    return this.schoolsService.setLocale(slug, body.locale);
   }
 
   @UseGuards(RolesGuard)

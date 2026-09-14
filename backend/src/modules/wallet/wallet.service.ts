@@ -51,11 +51,11 @@ export class WalletService {
 
   private async notifyAdmins(
     schoolId: string,
-    send: (admin: { email: string; fullName: string }, schoolName: string, currency: string) => Promise<unknown>,
+    send: (admin: { email: string; fullName: string }, schoolName: string, currency: string, locale: string) => Promise<unknown>,
     inApp?: { title: string; body: string; link?: string },
   ) {
     const { school, admins } = await this.getSchoolAndAdmins(schoolId);
-    await Promise.all(admins.map((admin) => send({ email: admin.email, fullName: admin.fullName }, school.name, school.currency)));
+    await Promise.all(admins.map((admin) => send({ email: admin.email, fullName: admin.fullName }, school.name, school.currency, school.locale)));
     if (inApp) {
       await this.notificationsService.notifyUsers(admins.map((a) => a.id), inApp.title, inApp.body, inApp.link);
     }
@@ -90,7 +90,7 @@ export class WalletService {
     });
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
-    await this.notifyAdmins(schoolId, (admin, schoolName, currency) =>
+    await this.notifyAdmins(schoolId, (admin, schoolName, currency, locale) =>
       this.emailService.sendWalletCreditConfirmed({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -99,6 +99,7 @@ export class WalletService {
         newBalanceKobo,
         source: 'card/bank payment',
         currency,
+        locale,
       }),
     );
 
@@ -129,7 +130,7 @@ export class WalletService {
     });
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
-    await this.notifyAdmins(schoolId, (admin, schoolName, currency) =>
+    await this.notifyAdmins(schoolId, (admin, schoolName, currency, locale) =>
       this.emailService.sendWalletCreditConfirmed({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -138,6 +139,7 @@ export class WalletService {
         newBalanceKobo,
         source: reason || 'Platform credit',
         currency,
+        locale,
       }),
     );
 
@@ -204,7 +206,7 @@ export class WalletService {
       },
     });
 
-    await this.notifyAdmins(schoolId, (admin, schoolName, currency) =>
+    await this.notifyAdmins(schoolId, (admin, schoolName, currency, locale) =>
       this.emailService.sendManualTransferSubmitted({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -212,6 +214,7 @@ export class WalletService {
         amountKobo,
         reference,
         currency,
+        locale,
       }),
     );
 
@@ -242,7 +245,7 @@ export class WalletService {
       },
     });
 
-    await this.notifyAdmins(entry.schoolId, (admin, schoolName, currency) =>
+    await this.notifyAdmins(entry.schoolId, (admin, schoolName, currency, locale) =>
       this.emailService.sendManualTransferResolved({
         toEmail: admin.email,
         toName: admin.fullName,
@@ -251,12 +254,13 @@ export class WalletService {
         approved: approve,
         reference: entry.reference,
         currency,
+        locale,
       }),
     );
 
     if (approve) {
       const newBalanceKobo = await this.getBalanceKobo(entry.schoolId);
-      await this.notifyAdmins(entry.schoolId, (admin, schoolName, currency) =>
+      await this.notifyAdmins(entry.schoolId, (admin, schoolName, currency, locale) =>
         this.emailService.sendWalletCreditConfirmed({
           toEmail: admin.email,
           toName: admin.fullName,
@@ -265,6 +269,7 @@ export class WalletService {
           newBalanceKobo,
           source: 'bank transfer',
           currency,
+          locale,
         }),
       );
     }
@@ -298,8 +303,8 @@ export class WalletService {
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
       await this.notifyAdmins(
         schoolId,
-        (admin, schoolName, currency) =>
-          this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo, currency }),
+        (admin, schoolName, currency, locale) =>
+          this.emailService.sendLowBalanceWarning({ toEmail: admin.email, toName: admin.fullName, schoolName, balanceKobo: newBalanceKobo, currency, locale }),
         { title: 'Low wallet balance', body: `Balance is now ${formatMoney(newBalanceKobo, currency)}`, link: '/admin' },
       );
     }
@@ -350,13 +355,14 @@ export class WalletService {
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
       await this.notifyAdmins(
         schoolId,
-        (admin, schoolName, currency) =>
+        (admin, schoolName, currency, locale) =>
           this.emailService.sendLowBalanceWarning({
             toEmail: admin.email,
             toName: admin.fullName,
             schoolName,
             balanceKobo: newBalanceKobo,
             currency,
+            locale,
           }),
       );
     }

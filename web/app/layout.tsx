@@ -7,6 +7,7 @@ import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import InstallPrompt from '@/components/InstallPrompt';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import MustChangePasswordGate from '@/components/MustChangePasswordGate';
+import { MarketingLocaleProvider } from '@/lib/marketing-locale';
 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', weight: ['500', '600', '700'] });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -99,11 +100,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        {children}
-        <ServiceWorkerRegistration />
-        <InstallPrompt />
-        <WhatsAppButton />
-        <MustChangePasswordGate />
+        <MarketingLocaleProvider>
+          {children}
+          <ServiceWorkerRegistration />
+          <InstallPrompt />
+          <WhatsAppButton />
+          <MustChangePasswordGate />
+        </MarketingLocaleProvider>
       </body>
     </html>
   );

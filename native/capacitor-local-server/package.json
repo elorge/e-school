@@ -1,0 +1,25 @@
+{
+  "name": "elorge-capacitor-local-server",
+  "version": "0.1.0",
+  "description": "Runs a tiny local HTTP server on the teacher's device so students can follow a projected lesson note over WiFi with zero internet.",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "dist/",
+    "ios/Plugin/",
+    "ElorgeCapacitorLocalServer.podspec"
+  ],
+  "scripts": {
+    "build": "tsc && rollup -c rollup.config.js"
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/core": "^6.0.0",
+    "typescript": "^5.5.0"
+  }
+}

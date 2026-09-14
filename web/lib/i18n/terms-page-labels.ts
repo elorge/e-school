@@ -1,0 +1,88 @@
+// web/lib/i18n/terms-page-labels.ts
+import { PLATFORM_DEFAULT_LOCALE, SupportedLocale } from '../locale';
+
+export interface TermsPageLabels {
+  title: string;
+  lastUpdated: string;
+  sections: { heading: string; body: string }[];
+}
+
+const EN_SECTIONS = [
+  {
+    heading: '1. The service',
+    body: 'Elorge Schools ("the Platform") is a school-management service provided by Elorge Technologies Limited ("Elorge", "we") to registered schools ("you", "the School"). By creating a school workspace, you agree to these terms on behalf of your institution.',
+  },
+  {
+    heading: '2. Your responsibilities',
+    body: 'You are responsible for obtaining lawful consent from parents/guardians before submitting student data to the Platform, for the accuracy of results and records entered by your staff, and for keeping staff login credentials secure. Elorge is not responsible for data entered incorrectly by your staff.',
+  },
+  {
+    heading: '3. The wallet & billing',
+    body: "Certain features (result PIN generation, computer-based testing) draw from a prepaid wallet balance, charged per student per term at the platform's published rate. Wallet funds are non-refundable except where a charge failed to deliver the corresponding service (see Refunds).",
+  },
+  {
+    heading: '4. Suspension',
+    body: "Elorge may suspend a School's staff/admin access for non-payment or breach of these terms. Suspension does not delete data, and does not block a parent's access to their child's already-generated results via a valid PIN.",
+  },
+  {
+    heading: '5. Availability',
+    body: 'The Platform is provided "as is." We aim for high availability but do not guarantee uninterrupted service. Offline features are designed to reduce, not eliminate, the impact of connectivity issues.',
+  },
+  {
+    heading: '6. Data ownership',
+    body: "You retain ownership of all data you submit. On account termination, you may request an export of your school's data within a reasonable period before deletion.",
+  },
+  {
+    heading: '7. Changes',
+    body: 'We may update these terms; continued use after a change constitutes acceptance. Material changes will be communicated to School Admins.',
+  },
+];
+
+const FR_SECTIONS = [
+  {
+    heading: '1. Le service',
+    body: "Elorge Schools (« la Plateforme ») est un service de gestion scolaire fourni par Elorge Technologies Limited (« Elorge », « nous ») aux écoles inscrites (« vous », « l'École »). En créant un espace de travail pour votre école, vous acceptez ces conditions au nom de votre établissement.",
+  },
+  {
+    heading: '2. Vos responsabilités',
+    body: "Vous êtes responsable d'obtenir le consentement légal des parents/tuteurs avant de soumettre des données d'élèves à la Plateforme, de l'exactitude des résultats et dossiers saisis par votre personnel, et de la sécurité des identifiants de connexion du personnel. Elorge n'est pas responsable des données saisies incorrectement par votre personnel.",
+  },
+  {
+    heading: '3. Le portefeuille et la facturation',
+    body: "Certaines fonctionnalités (génération de codes PIN de résultat, épreuves sur ordinateur) puisent dans un solde de portefeuille prépayé, facturé par élève et par trimestre au tarif publié de la plateforme. Les fonds du portefeuille ne sont pas remboursables, sauf lorsqu'un prélèvement n'a pas permis de fournir le service correspondant (voir Remboursements).",
+  },
+  {
+    heading: '4. Suspension',
+    body: "Elorge peut suspendre l'accès du personnel/administrateur d'une École en cas de non-paiement ou de violation de ces conditions. La suspension ne supprime pas les données et ne bloque pas l'accès d'un parent aux résultats déjà générés de son enfant via un code PIN valide.",
+  },
+  {
+    heading: '5. Disponibilité',
+    body: "La Plateforme est fournie « telle quelle ». Nous visons une haute disponibilité mais ne garantissons pas un service ininterrompu. Les fonctionnalités hors ligne sont conçues pour réduire, et non éliminer, l'impact des problèmes de connectivité.",
+  },
+  {
+    heading: '6. Propriété des données',
+    body: "Vous conservez la propriété de toutes les données que vous soumettez. À la résiliation du compte, vous pouvez demander une exportation des données de votre école dans un délai raisonnable avant leur suppression.",
+  },
+  {
+    heading: '7. Modifications',
+    body: "Nous pouvons mettre à jour ces conditions ; la poursuite de l'utilisation après une modification constitue une acceptation. Les modifications substantielles seront communiquées aux administrateurs d'école.",
+  },
+];
+
+const EN: TermsPageLabels = {
+  title: 'Terms of Service',
+  lastUpdated: 'Last updated: [DATE] — Elorge Technologies Limited',
+  sections: EN_SECTIONS,
+};
+
+const FR: TermsPageLabels = {
+  title: "Conditions d'utilisation",
+  lastUpdated: 'Dernière mise à jour : [DATE] — Elorge Technologies Limited',
+  sections: FR_SECTIONS,
+};
+
+const TERMS_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, TermsPageLabels> = { en: EN, fr: FR };
+
+export function termsPageLabelsFor(locale: string): TermsPageLabels {
+  return TERMS_PAGE_LABELS_BY_LOCALE[locale as SupportedLocale] ?? TERMS_PAGE_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];
+}

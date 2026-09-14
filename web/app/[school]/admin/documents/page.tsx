@@ -8,6 +8,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTerms } from '@/lib/endpoints/terms';
 import { fetchReportCardPdf, fetchIdCardPdf, fetchCalendarPdf, issueIdCard, openPdfBlob } from '@/lib/endpoints/documents';
+import { documentsLabelsFor } from '@/lib/i18n/documents-labels';
 import type { Student, Term } from '@/lib/types';
 import RequireRole from '@/components/RequireRole';
 
@@ -18,6 +19,7 @@ import RequireRole from '@/components/RequireRole';
  */
 export default function DocumentsPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = documentsLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
@@ -26,14 +28,15 @@ export default function DocumentsPage({ params }: { params: { school: string } }
   const [error, setError] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-useEffect(() => {
+  useEffect(() => {
     Promise.all([listStudents(params.school), listTerms(params.school)])
-      .then(([s, t]) => {
+      .then(([s, terms]) => {
         setStudents(s);
-        setTerms(t);
+        setTerms(terms);
       })
-      .catch(() => setError('Failed to load students/terms'))
+      .catch(() => setError(t.loadFailed))
       .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.school]);
 
   async function handleDownload(action: string, fetcher: () => Promise<Blob>) {
@@ -43,45 +46,45 @@ useEffect(() => {
       const blob = await fetcher();
       openPdfBlob(blob);
     } catch {
-      setError('Could not generate that document. Check your selection and try again.');
+      setError(t.genericDownloadError);
     } finally {
       setLoadingAction(null);
     }
   }
 
-if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <RequireRole allow={['SCHOOL_ADMIN']}>
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold"><FileText size={20} />{school.name} — Documents</h1>
+      <h1 className="text-xl font-semibold"><FileText size={20} />{school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <section className="card">
-        <h2 className="mb-3 font-medium">Student documents</h2>
+        <h2 className="mb-3 font-medium">{t.studentDocumentsHeading}</h2>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            Student
+            {t.studentLabel}
             <select
               className="min-w-[220px] rounded border px-2 py-1.5"
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
             >
-              <option value="">Select a student</option>
+              <option value="">{t.selectStudent}</option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.firstName} {s.lastName} — {s.studentId ?? 'pending ID'}
+                  {s.firstName} {s.lastName} — {s.studentId ?? t.pendingId}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Term
+            {t.termLabel}
             <select className="rounded border px-2 py-1.5" value={selectedTermId} onChange={(e) => setSelectedTermId(e.target.value)}>
-              <option value="">Select a term</option>
-              {terms.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="">{t.selectTerm}</option>
+              {terms.map((term) => (
+                <option key={term.id} value={term.id}>
+                  {term.name}
                 </option>
               ))}
             </select>
@@ -93,44 +96,44 @@ if (isLoading) return <LoadingScreen />;
               try {
                 await issueIdCard(params.school, selectedStudentId);
               } catch {
-                setError('Could not issue ID card');
+                setError(t.couldNotIssueIdCard);
               }
             }}
             className="btn-secondary"
           >
-            Issue ID card
+            {t.issueIdCardBtn}
           </button>
           <button
             disabled={!selectedStudentId || loadingAction === 'idcard'}
             onClick={() =>
               handleDownload('idcard', () => fetchIdCardPdf(params.school, selectedStudentId)).catch(() =>
-                setError('No ID card on file yet for this student — click "Issue ID card" first.'),
+                setError(t.noIdCardYetError),
               )
             }
             className="rounded bg-brand-green px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {loadingAction === 'idcard' ? 'Generating…' : 'ID card PDF'}
+            {loadingAction === 'idcard' ? t.generating : t.idCardPdfBtn}
           </button>
           <button
             disabled={!selectedStudentId || !selectedTermId || loadingAction === 'reportcard'}
             onClick={() => handleDownload('reportcard', () => fetchReportCardPdf(params.school, selectedStudentId, selectedTermId))}
             className="rounded bg-brand-blue px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {loadingAction === 'reportcard' ? 'Generating…' : 'Report card PDF'}
+            {loadingAction === 'reportcard' ? t.generating : t.reportCardPdfBtn}
           </button>
         </div>
       </section>
 
       <section className="card">
-        <h2 className="mb-3 font-medium">Term documents</h2>
+        <h2 className="mb-3 font-medium">{t.termDocumentsHeading}</h2>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            Term
+            {t.termLabel}
             <select className="min-w-[220px] rounded border px-2 py-1.5" value={selectedTermId} onChange={(e) => setSelectedTermId(e.target.value)}>
-              <option value="">Select a term</option>
-              {terms.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="">{t.selectTerm}</option>
+              {terms.map((term) => (
+                <option key={term.id} value={term.id}>
+                  {term.name}
                 </option>
               ))}
             </select>
@@ -140,7 +143,7 @@ if (isLoading) return <LoadingScreen />;
             onClick={() => handleDownload('calendar', () => fetchCalendarPdf(params.school, selectedTermId))}
             className="rounded bg-brand-blue px-3 py-2 text-sm text-white disabled:opacity-50"
           >
-            {loadingAction === 'calendar' ? 'Generating…' : 'Term calendar PDF'}
+            {loadingAction === 'calendar' ? t.generating : t.termCalendarPdfBtn}
           </button>
         </div>
       </section>

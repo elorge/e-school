@@ -6,6 +6,9 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { resetPassword } from '@/lib/endpoints/auth';
 import { ApiError } from '@/lib/api';
+import { useMarketingLocale } from '@/lib/marketing-locale';
+import { passwordFlowLabelsFor } from '@/lib/i18n/password-flow-labels';
+import { apiErrorMessage } from '@/lib/i18n/error-messages';
 import PasswordInput from '@/components/PasswordInput';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -18,12 +21,14 @@ import SiteFooter from '@/components/SiteFooter';
  * AuthService.inviteStaff) — same page, same token mechanism.
  */
 export default function ResetPasswordPage() {
+  const { locale } = useMarketingLocale();
+  const t = passwordFlowLabelsFor(locale);
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,15 +36,18 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t.passwordsDoNotMatch);
       return;
     }
     setIsSubmitting(true);
     try {
-      const data = await resetPassword(token, newPassword);
-      setMessage(data.message);
+      await resetPassword(token, newPassword);
+      // Backend's success message is a fixed, non-parameterized string —
+      // shown as our own localized copy instead of the (always-English)
+      // response text.
+      setSubmitted(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'This reset link is invalid or has expired.');
+      setError(err instanceof ApiError ? apiErrorMessage(err, locale, t.invalidLinkError) : t.invalidLinkError);
     } finally {
       setIsSubmitting(false);
     }
@@ -50,9 +58,9 @@ export default function ResetPasswordPage() {
       <>
         <SiteHeader />
         <main className="mx-auto max-w-sm px-4 py-16">
-          <p className="text-sm text-red-600">This link is missing a reset token. Please request a new one.</p>
+          <p className="text-sm text-red-600">{t.missingTokenError}</p>
           <Link href="/forgot-password" className="mt-4 inline-block underline">
-            Request a new link
+            {t.requestNewLink}
           </Link>
         </main>
         <SiteFooter />
@@ -64,27 +72,27 @@ export default function ResetPasswordPage() {
     <>
       <SiteHeader />
       <main className="mx-auto max-w-sm px-4 py-16">
-        <h1 className="mb-6 font-display text-2xl font-semibold">Choose a new password</h1>
-        {message ? (
+        <h1 className="mb-6 font-display text-2xl font-semibold">{t.chooseNewPasswordHeading}</h1>
+        {submitted ? (
           <div>
-            <p className="text-sm text-green-700">{message}</p>
+            <p className="text-sm text-green-700">{t.newPasswordSetNotice}</p>
             <Link href="/login" className="mt-4 inline-block underline">
-              Sign in
+              {t.signIn}
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
-              New password
+              {t.newPasswordLabel}
               <PasswordInput value={newPassword} onChange={setNewPassword} minLength={8} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Confirm password
+              {t.confirmNewPasswordLabel}
               <PasswordInput value={confirmPassword} onChange={setConfirmPassword} minLength={8} required />
             </label>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button type="submit" disabled={isSubmitting} className="btn-primary mt-2 w-full">
-              {isSubmitting ? 'Saving…' : 'Set new password'}
+              {isSubmitting ? t.saving : t.setNewPasswordBtn}
             </button>
           </form>
         )}

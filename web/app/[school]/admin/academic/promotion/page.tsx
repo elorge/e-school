@@ -6,6 +6,7 @@ import { useSchool } from '@/lib/school-context';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { apiFetch } from '@/lib/api';
+import { promotionLabelsFor } from '@/lib/i18n/promotion-labels';
 import type { Class, Student } from '@/lib/types';
 import RequireRole from '@/components/RequireRole';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -13,6 +14,7 @@ import { ArrowRight } from 'lucide-react';
 
 export default function PromotionPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = promotionLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [fromClassId, setFromClassId] = useState('');
@@ -48,7 +50,7 @@ export default function PromotionPage({ params }: { params: { school: string } }
     setError(null);
     setNotice(null);
     if (!toClassId || selected.size === 0) {
-      setError('Choose a target class and at least one student.');
+      setError(t.chooseTargetError);
       return;
     }
     try {
@@ -56,10 +58,10 @@ export default function PromotionPage({ params }: { params: { school: string } }
         method: 'POST',
         body: JSON.stringify({ toClassId, studentIds: Array.from(selected) }),
       });
-      setNotice(`Promoted ${result.promoted} student(s).`);
+      setNotice(t.promotedNotice(result.promoted));
       listStudents(params.school, fromClassId).then((s) => setStudents(s.filter((x) => x.status === 'ACTIVE')));
     } catch {
-      setError('Could not promote students');
+      setError(t.couldNotPromote);
     }
   }
 
@@ -68,20 +70,20 @@ export default function PromotionPage({ params }: { params: { school: string } }
   return (
     <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold">{school.name} — End-of-Session Promotion</h1>
+        <h1 className="text-xl font-semibold">{school.name} — {t.pageTitle}</h1>
         {error && <p className="text-sm text-red-600">{error}</p>}
         {notice && <p className="text-sm text-green-700">{notice}</p>}
 
         <div className="card flex flex-wrap items-center gap-3">
           <select className="rounded border px-2 py-1.5 text-sm" value={fromClassId} onChange={(e) => setFromClassId(e.target.value)}>
-            <option value="">From class</option>
+            <option value="">{t.fromClass}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
           <ArrowRight size={16} className="text-ink/40" />
           <select className="rounded border px-2 py-1.5 text-sm" value={toClassId} onChange={(e) => setToClassId(e.target.value)}>
-            <option value="">To class</option>
+            <option value="">{t.toClass}</option>
             {classes.filter((c) => c.id !== fromClassId).map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -101,7 +103,7 @@ export default function PromotionPage({ params }: { params: { school: string } }
               ))}
             </ul>
             <button onClick={handlePromote} className="btn-primary">
-              Promote {selected.size} student(s)
+              {t.promoteBtn(selected.size)}
             </button>
           </div>
         )}

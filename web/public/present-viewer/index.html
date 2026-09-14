@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--
+  web/public/present-viewer/index.html
+
+  This is the page a student's phone opens when the teacher is
+  Projecting (see lib/projecting/contract.ts for the full picture).
+  It's the whole reason this file has ZERO external requests: no CDN
+  script, no web font, no analytics ping — every byte the student's
+  browser needs is inline, right here, because there is no internet on
+  that hotspot for it to reach out to.
+
+  A native local-server implementation should serve this exact file at
+  its root path, and implement two endpoints alongside it:
+    GET /api/slides  -> SlideData[]            (fetched once, on load)
+    GET /api/state   -> { slideIndex, updatedAt }  (polled every 1.5s)
+  Both are plain JSON — see contract.ts for the exact shapes.
+
+  Deliberately NOT included in this first version: LaTeX/math rendering
+  (KaTeX would need its ~300KB of CSS/JS bundled locally too — a real
+  but separate follow-up), and live video/whiteboard mirroring (out of
+  scope for "follow the slides on your own screen").
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Elorge — Following along</title>
+<style>
+  :root {
+    --ink: #ffffff;
+    --ink-dim: rgba(255,255,255,0.55);
+    --bg: #1a2332;
+    --accent: #1f9d55;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  #app { display: flex; flex-direction: column; height: 100%; padding: 20px; }
+  #status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-dim); margin-bottom: 24px;
+  }
+  #dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 6px; }
+  #dot.lost { background: #d64545; }
+  #slide { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  #heading { font-size: 22px; font-weight: 600; margin-bottom: 16px; line-height: 1.3; }
+  #body { font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.85); white-space: pre-wrap; }
+  #material { max-width: 100%; max-height: 55vh; border-radius: 8px; margin-top: 16px; object-fit: contain; }
+  #footer { text-align: center; font-size: 12px; color: var(--ink-dim); padding-top: 16px; }
+  #waiting { text-align: center; color: var(--ink-dim); margin-top: 40vh; font-size: 15px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="status-bar">
+    <span><span id="dot"></span><span id="connection-label">Connected</span></span>
+    <span id="slide-counter"></span>
+  </div>
+  <div id="slide" style="display:none;">
+    <h1 id="heading"></h1>
+    <img id="material" style="display:none;" alt="" />
+    <p id="body"></p>
+  </div>
+  <div id="waiting">Waiting for the teacher to start…</div>
+  <div id="footer">Following along on Elorge — this updates automatically</div>
+</div>
+
+<script>
+(function () {
+  var POLL_MS = 1500;
+  var slides = [];
+  var currentIndex = -1;
+  var consecutiveFailures = 0;
+
+  var elHeading = document.getElementById('heading');
+  var elBody = document.getElementById('body');
+  var elMaterial = document.getElementById('material');
+  var elSlideBlock = document.getElementById('slide');
+  var elWaiting = document.getElementById('waiting');
+  var elCounter = document.getElementById('slide-counter');
+  var elDot = document.getElementById('dot');
+  var elConnLabel = document.getElementById('connection-label');
+
+  function renderSlide(index) {
+    var slide = slides[index];
+    if (!slide) return;
+    elHeading.textContent = slide.heading || '';
+    elBody.textContent = slide.body || '';
+    if (slide.materialUrl) {
+      elMaterial.src = slide.materialUrl;
+      elMaterial.style.display = 'block';
+    } else {
+      elMaterial.style.display = 'none';
+      elMaterial.removeAttribute('src');
+    }
+    elCounter.textContent = (index + 1) + ' / ' + slides.length;
+    elSlideBlock.style.display = 'flex';
+    elWaiting.style.display = 'none';
+  }
+
+  function setConnectionOk(ok) {
+    elDot.className = ok ? '' : 'lost';
+    elConnLabel.textContent = ok ? 'Connected' : 'Reconnecting…';
+  }
+
+  function loadSlidesOnce() {
+    fetch('/api/slides')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        slides = data || [];
+      })
+      .catch(function () {
+        // The state poll loop below will keep retrying; a slide-list
+        // failure on first load just means renderSlide has nothing to
+        // show yet, not a fatal error.
+      });
+  }
+
+  function pollState() {
+    fetch('/api/state', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('bad status');
+        return r.json();
+      })
+      .then(function (state) {
+        consecutiveFailures = 0;
+        setConnectionOk(true);
+        if (!slides.length) loadSlidesOnce();
+        if (typeof state.slideIndex === 'number' && state.slideIndex !== currentIndex) {
+          currentIndex = state.slideIndex;
+          renderSlide(currentIndex);
+        }
+      })
+      .catch(function () {
+        consecutiveFailures++;
+        // A blip is normal on WiFi; only show "reconnecting" once it's
+        // persisted for a few polls, so one dropped packet doesn't flash it.
+        if (consecutiveFailures >= 3) setConnectionOk(false);
+      })
+      .finally(function () {
+        setTimeout(pollState, POLL_MS);
+      });
+  }
+
+  loadSlidesOnce();
+  pollState();
+})();
+</script>
+</body>
+</html>

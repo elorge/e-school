@@ -2,14 +2,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSchool } from '@/lib/school-context';
 import { listClasses } from '@/lib/endpoints/classes';
 import { listStudents } from '@/lib/endpoints/students';
 import { listTests, startAttempt, type CbtTest } from '@/lib/endpoints/cbt';
 import { initLocalAttempt, getLocalAttempt, clearLocalAttempt, retryQueuedSubmit } from '@/lib/cbt-offline';
 import CbtSessionRunner from '@/components/CbtSessionRunner';
+import { cbtLabelsFor } from '@/lib/i18n/cbt-labels';
 import type { Class, Student } from '@/lib/types';
 
 export default function TakeCbtPage({ params }: { params: { school: string } }) {
+  const school = useSchool();
+  const t = cbtLabelsFor(school.locale);
   const [step, setStep] = useState<'setup' | 'in-progress' | 'done'>('setup');
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -22,9 +26,9 @@ export default function TakeCbtPage({ params }: { params: { school: string } }) 
   const [attemptId, setAttemptId] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([listClasses(params.school), listTests(params.school)]).then(([c, t]) => {
+    Promise.all([listClasses(params.school), listTests(params.school)]).then(([c, ts]) => {
       setClasses(c);
-      setTests(t.filter((test) => test.status === 'PUBLISHED'));
+      setTests(ts.filter((test) => test.status === 'PUBLISHED'));
     });
   }, [params.school]);
 
@@ -50,18 +54,18 @@ export default function TakeCbtPage({ params }: { params: { school: string } }) 
       setAttemptId(local.attemptId);
       setStep('in-progress');
     } catch {
-      setError('Could not start this test — check the test is published and this student is assigned to it.');
+      setError(t.couldNotStartTest);
     }
   }
 
   if (step === 'setup') {
     return (
       <main className="mx-auto max-w-md">
-        <h1 className="mb-4 text-xl font-semibold">Start a CBT session</h1>
+        <h1 className="mb-4 text-xl font-semibold">{t.startCbtSessionHeading}</h1>
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
         <div className="flex flex-col gap-3">
           <select className="rounded border px-3 py-2" value={classId} onChange={(e) => setClassId(e.target.value)}>
-            <option value="">Select class</option>
+            <option value="">{t.selectClassOption}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -69,7 +73,7 @@ export default function TakeCbtPage({ params }: { params: { school: string } }) 
             ))}
           </select>
           <select className="rounded border px-3 py-2" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            <option value="">Select student</option>
+            <option value="">{t.selectStudentOption}</option>
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.firstName} {s.lastName}
@@ -77,10 +81,10 @@ export default function TakeCbtPage({ params }: { params: { school: string } }) 
             ))}
           </select>
           <select className="rounded border px-3 py-2" value={testId} onChange={(e) => setTestId(e.target.value)}>
-            <option value="">Select test</option>
-            {tests.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title} — {t.subject}
+            <option value="">{t.selectTestOption}</option>
+            {tests.map((test) => (
+              <option key={test.id} value={test.id}>
+                {test.title} — {test.subject}
               </option>
             ))}
           </select>
@@ -89,7 +93,7 @@ export default function TakeCbtPage({ params }: { params: { school: string } }) 
             onClick={handleStart}
             className="rounded bg-brand-blue px-4 py-2 text-white disabled:opacity-50"
           >
-            Begin test
+            {t.beginTest}
           </button>
         </div>
       </main>
@@ -104,10 +108,10 @@ export default function TakeCbtPage({ params }: { params: { school: string } }) 
 
   return (
     <main className="mx-auto max-w-md text-center">
-      <h1 className="mb-2 text-xl font-semibold">Session ended</h1>
+      <h1 className="mb-2 text-xl font-semibold">{t.sessionEndedHeading}</h1>
       {attemptId && (
         <button onClick={() => clearLocalAttempt(attemptId)} className="mt-6 text-sm text-ink/50 underline">
-          Start another session
+          {t.startAnotherSessionBtn}
         </button>
       )}
     </main>

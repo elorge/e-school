@@ -6,6 +6,7 @@ import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
 import { PrismaService } from '../../prisma/prisma.service';
 import { classifyPerformance, PerformanceClassification } from '../../common/utils/performance-classification';
+import { reportLabelsFor, ReportLabels } from '../../common/i18n/report-labels';
 
 interface SubjectScores {
   [subject: string]: number;
@@ -36,20 +37,25 @@ export class ReportsService {
     });
   }
 
-  /** Deterministic, template-based — no AI/ML, so the wording is always predictable and explainable. */
-  private buildRecommendationText(classification: PerformanceClassification): string {
+  /**
+   * Deterministic, template-based — no AI/ML, so the wording is always
+   * predictable and explainable. `labels` carries the school's locale
+   * (see ReportLabels) — subject names themselves are never translated,
+   * only the sentence template they're dropped into.
+   */
+  private buildRecommendationText(classification: PerformanceClassification, labels: ReportLabels): string {
     const parts: string[] = [];
     if (classification.strengths.length > 0) {
-      parts.push(`Strong performance in ${classification.strengths.join(', ')}.`);
+      parts.push(labels.strongPerformanceIn(classification.strengths.join(', ')));
     }
     if (classification.needsImprovement.length > 0) {
-      parts.push(`Could improve with more practice in ${classification.needsImprovement.join(', ')}.`);
+      parts.push(labels.couldImproveIn(classification.needsImprovement.join(', ')));
     }
     if (classification.atRisk.length > 0) {
-      parts.push(`Needs focused support and possibly extra lessons in ${classification.atRisk.join(', ')}.`);
+      parts.push(labels.needsSupportIn(classification.atRisk.join(', ')));
     }
     if (parts.length === 0) {
-      parts.push('No subject scores recorded for this term.');
+      parts.push(labels.noScoresRecorded);
     }
     return parts.join(' ');
   }
@@ -273,6 +279,7 @@ export class ReportsService {
       const subjectEntries = Object.entries(scores);
       const n = subjectEntries.length;
       const classification = classifyPerformance(scores);
+      const labels = reportLabelsFor(school.locale);
 
       // ── Header band ──────────────────────────────────────────────────
       const HEADER_HEIGHT = 76;
@@ -287,7 +294,7 @@ export class ReportsService {
         }
       }
       doc.fontSize(16).font('Helvetica-Bold').text(school.name, MARGIN + 58, 18, { width: contentWidth - 58 - 90 });
-      doc.fontSize(9).font('Helvetica').text(`Report Card — ${term.name}`, MARGIN + 58, 40, { width: contentWidth - 58 - 90 });
+      doc.fontSize(9).font('Helvetica').text(labels.reportCardTitle(term.name), MARGIN + 58, 40, { width: contentWidth - 58 - 90 });
       doc.fillColor('#000');
 
       if (photoBuffer) {
@@ -303,7 +310,7 @@ export class ReportsService {
 
       // ── Student info row ─────────────────────────────────────────────
       doc.fontSize(13).font('Helvetica-Bold').fillColor('#000').text(`${student.firstName} ${student.lastName}`, MARGIN, y, { width: contentWidth - 100 });
-      doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Admission ID: ${student.studentId ?? '—'}`, MARGIN, y + 17, { width: contentWidth - 100 });
+      doc.fontSize(9).font('Helvetica').fillColor('#555').text(labels.admissionId(student.studentId ?? '—'), MARGIN, y + 17, { width: contentWidth - 100 });
       doc.fillColor('#000');
       y += 40;
 
@@ -317,7 +324,7 @@ export class ReportsService {
       // be sized against what's actually left — rather than guessing
       // with fixed thresholds that don't account for comment length or
       // how many subject names land in the recommendation sentence. ────
-      const recommendationText = this.buildRecommendationText(classification);
+      const recommendationText = this.buildRecommendationText(classification, labels);
       doc.fontSize(8.5).font('Helvetica');
       const recommendationTextHeight = doc.heightOfString(recommendationText, { width: contentWidth });
 
@@ -377,7 +384,7 @@ export class ReportsService {
       }
 
       // ── Subject score table ──────────────────────────────────────────
-      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text('Subject Scores', MARGIN, y, { width: contentWidth });
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text(labels.subjectScores, MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
       y += TABLE_TITLE_H;
 
@@ -396,7 +403,7 @@ export class ReportsService {
       y += TABLE_GAP;
 
       // ── Compact strength/weakness bar chart ──────────────────────────
-      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text('Areas of Strength & Weakness', MARGIN, y, { width: contentWidth });
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#0B3D91').text(labels.strengthWeakness, MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
       y += BARS_TITLE_H;
 
@@ -417,12 +424,12 @@ export class ReportsService {
         doc.fillColor('#000').fontSize(barFontSize).text(String(score), MARGIN + barLabelWidth + barMaxWidth + 6, y, { width: 24 });
         y += barRowHeight;
       }
-      doc.fontSize(7).font('Helvetica-Oblique').fillColor('#666').text('Green = strength (70+)  Amber = needs improvement (50-69)  Red = at risk (below 50)', MARGIN, y, { width: contentWidth });
+      doc.fontSize(7).font('Helvetica-Oblique').fillColor('#666').text(labels.strengthWeaknessLegend, MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
       y += BARS_NOTE_H;
 
       // ── Recommendation ────────────────────────────────────────────────
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text('Teacher Recommendation', MARGIN, y, { width: contentWidth });
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text(labels.teacherRecommendation, MARGIN, y, { width: contentWidth });
       doc.fillColor('#000');
       y += RECOMMENDATION_TITLE_H;
       doc.fontSize(8.5).font('Helvetica').text(recommendationText, MARGIN, y, { width: contentWidth });
@@ -430,7 +437,7 @@ export class ReportsService {
 
       // ── Teacher's comment (possibly truncated above) ──────────────────
       if (hasComment && commentTextToRender) {
-        doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text("Teacher's Comment", MARGIN, y, { width: contentWidth });
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#0B3D91').text(labels.teachersComment, MARGIN, y, { width: contentWidth });
         doc.fillColor('#000');
         y += COMMENT_TITLE_H;
         doc.fontSize(8.5).font('Helvetica-Oblique');

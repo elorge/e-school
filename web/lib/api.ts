@@ -22,6 +22,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
+    public params?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -42,13 +44,17 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   if (!res.ok) {
     const body = await res.text();
     let message = body;
+    let code: string | undefined;
+    let params: Record<string, unknown> | undefined;
     try {
       const parsed = JSON.parse(body);
       message = parsed.message ?? body;
+      code = typeof parsed.code === 'string' ? parsed.code : undefined;
+      params = parsed.params && typeof parsed.params === 'object' ? parsed.params : undefined;
     } catch {
       // body wasn't JSON — use as-is
     }
-    throw new ApiError(res.status, typeof message === 'string' ? message : JSON.stringify(message));
+    throw new ApiError(res.status, typeof message === 'string' ? message : JSON.stringify(message), code, params);
   }
 
   // 204/empty responses (e.g. some DELETEs) have no body to parse

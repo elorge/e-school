@@ -4,6 +4,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Menu, ChevronDown } from 'lucide-react';
 import { answerQuestion, submitLocalAttempt, retryQueuedSubmit } from '@/lib/cbt-offline';
+import { useSchool } from '@/lib/school-context';
+import { cbtLabelsFor } from '@/lib/i18n/cbt-labels';
 import type { AttemptSession, SavedCodeAnswer } from '@/lib/endpoints/cbt';
 import MathText from './MathText';
 import CodeQuestionRunner from './CodeQuestionRunner';
@@ -59,6 +61,8 @@ export default function CbtSessionRunner({
   const [instructionsOpen, setInstructionsOpen] = useState(true);
   const submittedRef = useRef(false);
   const started = useRef(new Date(startedAt ?? Date.now())).current;
+  const school = useSchool();
+  const t = cbtLabelsFor(school.locale);
 
   useEffect(() => {
     const tick = () => {
@@ -110,7 +114,7 @@ export default function CbtSessionRunner({
       <div className="h-1.5 bg-[#0B1F33]" />
       <header className="sticky top-0 z-20 bg-[#137CBD] text-white shadow-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <button className="rounded p-1 text-white/90 hover:bg-white/10" aria-label="Menu">
+          <button className="rounded p-1 text-white/90 hover:bg-white/10" aria-label={t.toggleMenu}>
             <Menu size={22} />
           </button>
           <div className="text-center leading-tight">
@@ -123,7 +127,7 @@ export default function CbtSessionRunner({
             <button
               className="rounded p-1 text-white/90 hover:bg-white/10"
               onClick={() => setInstructionsOpen((o) => !o)}
-              aria-label="Toggle instructions"
+              aria-label={t.toggleInstructions}
             >
               <ChevronDown size={20} className={`transition-transform ${instructionsOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -138,14 +142,11 @@ export default function CbtSessionRunner({
       <div className="min-h-screen bg-[#F5F5F5]">
         {Header}
         <main className="mx-auto max-w-3xl px-4 pt-16 text-center">
-          <h1 className="mb-2 text-2xl font-bold text-[#2D3B45]">Test submitted</h1>
+          <h1 className="mb-2 text-2xl font-bold text-[#2D3B45]">{t.testSubmitted}</h1>
           {queued ? (
-            <p className="text-sm text-amber-700">
-              No internet right now — your submission is saved on this device and will finish syncing
-              automatically. Please don't close this tab yet.
-            </p>
+            <p className="text-sm text-amber-700">{t.submittedOffline}</p>
           ) : (
-            <p className="text-sm text-green-700">Successfully submitted.</p>
+            <p className="text-sm text-green-700">{t.submittedOnline}</p>
           )}
         </main>
       </div>
@@ -159,22 +160,21 @@ export default function CbtSessionRunner({
       <main className="mx-auto max-w-3xl px-4 pb-32 pt-6">
         <h1 className="mb-1 text-2xl font-bold text-[#2D3B45]">{quizTitle}</h1>
         <p className="mb-5 text-sm text-[#6B7780]">
-          Started: {started.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at{' '}
+          {t.startedAt} {started.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} {t.at}{' '}
           {started.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
         </p>
 
         {instructionsOpen && (
           <section className="mb-6">
-            <h2 className="mb-2 text-xl font-bold text-[#2D3B45]">Quiz Instructions</h2>
+            <h2 className="mb-2 text-xl font-bold text-[#2D3B45]">{t.quizInstructions}</h2>
             <ul className="list-disc space-y-2 pl-5 text-sm text-[#2D3B45]">
               <li>
-                <span className="font-semibold">Purpose:</span>{' '}
-                {purpose ??
-                  `Complete all ${session.questions.length} question(s) below. Your answers save automatically as you go.`}
+                <span className="font-semibold">{t.purposeLabel}</span>{' '}
+                {purpose ?? t.defaultPurpose(session.questions.length)}
               </li>
               <li>
-                <span className="font-semibold">Conditions:</span>{' '}
-                {conditions ?? 'Stay on this page until you submit. Once time runs out, the quiz submits itself.'}
+                <span className="font-semibold">{t.conditionsLabel}</span>{' '}
+                {conditions ?? t.defaultConditions}
               </li>
             </ul>
           </section>
@@ -187,9 +187,9 @@ export default function CbtSessionRunner({
             q.type === 'CODE' ? (
               <div key={q.id} className="overflow-hidden rounded border border-[#C7CDD1] bg-white">
                 <div className="flex items-center justify-between border-b border-[#C7CDD1] bg-[#F5F5F5] px-4 py-2.5">
-                  <p className="font-semibold text-[#2D3B45]">Question {idx + 1}</p>
+                  <p className="font-semibold text-[#2D3B45]">{t.question} {idx + 1}</p>
                   <p className="text-sm text-[#6B7780]">
-                    {q.points} pt{q.points !== 1 ? 's' : ''}
+                    {q.points} {q.points !== 1 ? t.points : t.point}
                   </p>
                 </div>
                 <div className="px-4 py-4">
@@ -203,9 +203,9 @@ export default function CbtSessionRunner({
             ) : (
               <div key={q.id} className="overflow-hidden rounded border border-[#C7CDD1] bg-white">
                 <div className="flex items-center justify-between border-b border-[#C7CDD1] bg-[#F5F5F5] px-4 py-2.5">
-                  <p className="font-semibold text-[#2D3B45]">Question {idx + 1}</p>
+                  <p className="font-semibold text-[#2D3B45]">{t.question} {idx + 1}</p>
                   <p className="text-sm text-[#6B7780]">
-                    {q.points} pt{q.points !== 1 ? 's' : ''}
+                    {q.points} {q.points !== 1 ? t.points : t.point}
                   </p>
                 </div>
                 <div className="px-4 py-4">
@@ -244,17 +244,17 @@ export default function CbtSessionRunner({
       <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-[#C7CDD1] bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="text-sm text-[#2D3B45]">
-            <span className="font-semibold">{answeredCount}</span> / {session.questions.length} answered
+            <span className="font-semibold">{answeredCount}</span> / {session.questions.length} {t.answered}
           </div>
           <div className="flex items-center gap-4">
             <span className={`font-mono text-sm ${isLowTime ? 'text-red-600' : 'text-[#6B7780]'}`}>
-              {formatCountdown(msRemaining)} left
+              {formatCountdown(msRemaining)} {t.left}
             </span>
             <button
               onClick={handleSubmit}
               className="rounded bg-[#137CBD] px-5 py-2 text-sm font-medium text-white"
             >
-              Submit Quiz
+              {t.submitQuiz}
             </button>
           </div>
         </div>

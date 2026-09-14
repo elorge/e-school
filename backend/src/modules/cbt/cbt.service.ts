@@ -4,6 +4,7 @@ import { randomInt } from 'crypto';
 import * as XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 import { MathRendererService } from '../../common/services/math-renderer.service';
+import { ERROR_CODES } from '../../common/i18n/error-codes';
 import { AssessmentScoringService } from '../assessment/assessment-scoring.service';
 import { renderTextWithMath } from '../../common/utils/render-math-text';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -349,12 +350,12 @@ const accessCode = String(randomInt(0, 1_000_000)).padStart(6, '0');
 
 async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId: string) {
     const test = await this.prisma.cbtTest.findFirst({ where: { schoolId, accessCode, status: CbtTestStatus.PUBLISHED } });
-    if (!test) throw new NotFoundException('Invalid or expired access code');
+    if (!test) throw new NotFoundException({ message: 'Invalid or expired access code', code: ERROR_CODES.CBT_INVALID_ACCESS_CODE });
 
     await this.assertWithinScheduledWindow(schoolId, test);
 
     const student = await this.prisma.student.findFirst({ where: { schoolId, studentId: admissionId } });
-    if (!student) throw new NotFoundException('Admission ID not recognized');
+    if (!student) throw new NotFoundException({ message: 'Admission ID not recognized', code: ERROR_CODES.CBT_ADMISSION_ID_NOT_RECOGNIZED });
 
     return this.getAttemptForStudent(schoolId, test.id, student.id);
   }
@@ -384,20 +385,22 @@ async startAttemptByAccessCode(schoolId: string, accessCode: string, admissionId
     const scheduledInSchoolTz = calendarDayInTimezone(test.scheduledDate, timezone);
 
     if (todayInSchoolTz !== scheduledInSchoolTz) {
-      throw new ForbiddenException(
-        `This test is scheduled for ${scheduledInSchoolTz} (${timezone}) — the access code only works on that day.`,
-      );
+      throw new ForbiddenException({
+        message: `This test is scheduled for ${scheduledInSchoolTz} (${timezone}) — the access code only works on that day.`,
+        code: ERROR_CODES.CBT_WRONG_DAY,
+        params: { date: scheduledInSchoolTz, timezone },
+      });
     }
   }
 
 async getAttemptForStudent(schoolId: string, testId: string, studentId: string) {
     const test = await this.findOneOrThrow(schoolId, testId);
-    if (test.status !== CbtTestStatus.PUBLISHED) throw new ForbiddenException('This test is not currently open');
+    if (test.status !== CbtTestStatus.PUBLISHED) throw new ForbiddenException({ message: 'This test is not currently open', code: ERROR_CODES.CBT_TEST_NOT_OPEN });
     await this.assertWithinScheduledWindow(schoolId, test);
 
     let attempt = await this.prisma.cbtAttempt.findUnique({ where: { testId_studentId: { testId, studentId } } });
-    if (!attempt) throw new NotFoundException('This student is not assigned to this test');
-    if (attempt.status !== CbtAttemptStatus.IN_PROGRESS) throw new ForbiddenException('This attempt has already been submitted');
+    if (!attempt) throw new NotFoundException({ message: 'This student is not assigned to this test', code: ERROR_CODES.CBT_NOT_ASSIGNED });
+    if (attempt.status !== CbtAttemptStatus.IN_PROGRESS) throw new ForbiddenException({ message: 'This attempt has already been submitted', code: ERROR_CODES.CBT_ALREADY_SUBMITTED });
 
     if (!attempt.beginAt) {
       attempt = await this.prisma.cbtAttempt.update({ where: { id: attempt.id }, data: { beginAt: new Date() } });

@@ -16,10 +16,12 @@ import { Wallet } from 'lucide-react';
 import PasswordInput from '@/components/PasswordInput';
 import { formatMoney, majorToMinor } from '@/lib/currency';
 import { ApiError } from '@/lib/api';
+import { adminDashboardLabelsFor } from '@/lib/i18n/admin-dashboard-labels';
 import type { User } from '@/lib/types';
 
 export default function SchoolAdminPage({ params }: { params: { school: string } }) {
   const school = useSchool();
+  const t = adminDashboardLabelsFor(school.locale);
   const [isLoading, setIsLoading] = useState(true);
   const [balanceKobo, setBalanceKobo] = useState<number | null>(null);
   const [staff, setStaff] = useState<User[]>([]);
@@ -51,7 +53,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       setClasses(classList);
       setTerms(termList);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load dashboard');
+      setError(t.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +68,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       const list = await listStudents(params.school, classId);
       setStudents(list.filter((s) => s.status === 'ACTIVE'));
     } catch {
-      setError('Failed to load students for this class');
+      setError(t.loadStudentsFailed);
     }
   }
 
@@ -88,11 +90,11 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       const { redirectUrl } = await initializePayment(params.school, { amountKobo, payerEmail });
       window.location.href = redirectUrl;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not start payment');
+      setError(t.couldNotStartPayment);
     }
   }
 
- async function handleCreateStaff(e: React.FormEvent) {
+  async function handleCreateStaff(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setNotice(null);
@@ -100,20 +102,20 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
     try {
       if (staffMode === 'invite') {
         await inviteStaff({ fullName: newStaff.fullName, email: newStaff.email });
-        setNotice(`Invite sent to ${newStaff.email} — they'll set their own password to activate the account.`);
+        setNotice(t.inviteSentNotice(newStaff.email));
       } else {
         if (newStaff.password !== newStaff.confirmPassword) {
-          setError('Passwords do not match.');
+          setError(t.passwordsDoNotMatch);
           setIsCreatingStaff(false);
           return;
         }
         await createUser({ fullName: newStaff.fullName, email: newStaff.email, password: newStaff.password, role: 'STAFF' });
-        setNotice(`Account created for ${newStaff.email}. Share the password with them directly — they'll be asked to change it on first login.`);
+        setNotice(t.accountCreatedNotice(newStaff.email));
       }
       setNewStaff({ fullName: '', email: '', password: '', confirmPassword: '' });
       loadData();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create staff account');
+      setError(t.couldNotCreateStaffAccount);
     } finally {
       setIsCreatingStaff(false);
     }
@@ -130,32 +132,32 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       if (err instanceof ApiError && err.status === 400) {
         setReassignPromptFor(userId);
       } else {
-        setError(err instanceof ApiError ? err.message : 'Could not remove staff member');
+        setError(t.couldNotRemoveStaffMember);
       }
     }
   }
 
-if (isLoading) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <main className="flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">{school.name} — Admin</h1>
+      <h1 className="text-xl font-semibold">{school.name} — {t.pageTitle}</h1>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {notice && <p className="text-sm text-brand-green">{notice}</p>}
       <section className="stat-hero">
         <div className="flex items-center justify-between">
           <div>
             <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wider text-white/60">
-              <Wallet size={13} /> Wallet balance
+              <Wallet size={13} /> {t.walletBalance}
             </p>
             <p className="font-display text-4xl font-semibold">
-              {balanceKobo === null ? '—' : formatMoney(balanceKobo, school.currency)}
+              {balanceKobo === null ? '—' : formatMoney(balanceKobo, school.currency, school.locale)}
             </p>
           </div>
         </div>
         <form onSubmit={handleFundWallet} className="relative mt-6 flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm text-white/80">
-            Amount ({school.currency})
+            {t.amountLabel(school.currency)}
             <input
               className="rounded border-0 bg-white/90 px-2 py-1.5 text-ink"
               type="number"
@@ -166,7 +168,7 @@ if (isLoading) return <LoadingScreen />;
             />
           </label>
           <label className="flex flex-col gap-1 text-sm text-white/80">
-            Payer email
+            {t.payerEmailLabel}
             <input
               className="rounded border-0 bg-white/90 px-2 py-1.5 text-ink"
               type="email"
@@ -176,13 +178,13 @@ if (isLoading) return <LoadingScreen />;
             />
           </label>
           <button type="submit" className="btn-primary relative bg-white text-brand-blue hover:bg-white/90">
-            Fund wallet
+            {t.fundWalletBtn}
           </button>
         </form>
       </section>
 
       <section className="card">
-        <h2 className="mb-2 font-medium">Staff</h2>
+        <h2 className="mb-2 font-medium">{t.staffHeading}</h2>
 
         <div className="mb-3 flex gap-1 text-xs">
           <button
@@ -190,19 +192,19 @@ if (isLoading) return <LoadingScreen />;
             onClick={() => setStaffMode('invite')}
             className={`rounded-full px-3 py-1 ${staffMode === 'invite' ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
           >
-            Invite by email
+            {t.inviteByEmailBtn}
           </button>
           <button
             type="button"
             onClick={() => setStaffMode('direct')}
             className={`rounded-full px-3 py-1 ${staffMode === 'direct' ? 'bg-brand-blue text-white' : 'bg-black/5 text-ink/60'}`}
           >
-            Set password now
+            {t.setPasswordNowBtn}
           </button>
         </div>
         <form onSubmit={handleCreateStaff} className="mb-4 flex flex-wrap items-end gap-2 border-b pb-4">
           <label className="flex flex-col gap-1 text-sm">
-            Full name
+            {t.fullNameLabel}
             <input
               className="rounded border px-2 py-1.5"
               value={newStaff.fullName}
@@ -211,7 +213,7 @@ if (isLoading) return <LoadingScreen />;
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Email
+            {t.emailLabel}
             <input
               className="rounded border px-2 py-1.5"
               type="email"
@@ -223,11 +225,11 @@ if (isLoading) return <LoadingScreen />;
           {staffMode === 'direct' && (
             <>
               <label className="flex flex-col gap-1 text-sm">
-                Temporary password
+                {t.temporaryPasswordLabel}
                 <PasswordInput value={newStaff.password} onChange={(v) => setNewStaff((f) => ({ ...f, password: v }))} minLength={8} required />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                Confirm password
+                {t.confirmPasswordLabel}
                 <PasswordInput
                   value={newStaff.confirmPassword}
                   onChange={(v) => setNewStaff((f) => ({ ...f, confirmPassword: v }))}
@@ -238,7 +240,7 @@ if (isLoading) return <LoadingScreen />;
             </>
           )}
           <button type="submit" disabled={isCreatingStaff} className="rounded bg-brand-blue px-3 py-1.5 text-sm text-white disabled:opacity-50">
-            {isCreatingStaff ? 'Saving…' : staffMode === 'invite' ? 'Send invite' : 'Create account'}
+            {isCreatingStaff ? t.savingBtn : staffMode === 'invite' ? t.sendInviteBtn : t.createAccountBtn}
           </button>
         </form>
 
@@ -255,7 +257,7 @@ if (isLoading) return <LoadingScreen />;
                     value={reassignTargetId}
                     onChange={(e) => setReassignTargetId(e.target.value)}
                   >
-                    <option value="">Reassign their classes/students to…</option>
+                    <option value="">{t.reassignPlaceholder}</option>
                     {staff
                       .filter((s) => s.id !== member.id)
                       .map((s) => (
@@ -269,12 +271,12 @@ if (isLoading) return <LoadingScreen />;
                     disabled={!reassignTargetId}
                     onClick={() => handleRemoveStaff(member.id, reassignTargetId)}
                   >
-                    Confirm removal
+                    {t.confirmRemovalBtn}
                   </button>
                 </div>
               ) : (
                 <button className="text-sm text-red-600 underline" onClick={() => handleRemoveStaff(member.id)}>
-                  Remove
+                  {t.removeBtn}
                 </button>
               )}
             </li>
@@ -282,24 +284,24 @@ if (isLoading) return <LoadingScreen />;
         </ul>
       </section>
     <section className="card">
-        <h2 className="mb-3 font-medium">Students &amp; Results</h2>
+        <h2 className="mb-3 font-medium">{t.studentsAndResultsHeading}</h2>
         <select className="mb-3 rounded border px-2 py-1.5 text-sm" value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-          <option value="">Select a class</option>
+          <option value="">{t.selectClass}</option>
           {classes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
           ))}
         </select>
-        {classFilter && students.length === 0 && <p className="text-sm text-ink/40">No active students in this class.</p>}
+        {classFilter && students.length === 0 && <p className="text-sm text-ink/40">{t.noActiveStudents}</p>}
         <ul className="flex flex-col gap-1">
           {students.map((s) => (
             <li key={s.id} className="flex items-center justify-between rounded-lg border border-black/5 px-3 py-2 text-sm">
               <span>
-                {s.firstName} {s.lastName} — <span className="font-mono text-xs text-ink/50">{s.studentId ?? 'pending ID'}</span>
+                {s.firstName} {s.lastName} — <span className="font-mono text-xs text-ink/50">{s.studentId ?? t.pendingId}</span>
               </span>
               <button onClick={() => setResultModalStudent(s)} className="text-brand-blue underline">
-                Enter results
+                {t.enterResultsBtn}
               </button>
             </li>
           ))}

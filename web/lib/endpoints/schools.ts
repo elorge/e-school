@@ -21,13 +21,14 @@ export function reactivateSchool(slug: string): Promise<School> {
   return apiFetch(`/schools/${slug}/reactivate`, { method: 'PATCH' });
 }
 
-/** SUPER_ADMIN only. countryCode/currency required — see lib/currency.ts SUPPORTED_COUNTRIES for the picker. */
+/** SUPER_ADMIN only. countryCode/currency required — see lib/currency.ts SUPPORTED_COUNTRIES for the picker. locale is optional — defaults from countryCode (see lib/locale.ts localeForCountry) if omitted. */
 export function createSchool(body: {
   slug: string;
   name: string;
   code: string;
   countryCode: string;
   currency: string;
+  locale?: string;
   logoUrl?: string;
   adminEmail: string;
   adminName: string;
@@ -55,6 +56,22 @@ export function setPriceOverride(slug: string, pricePerStudentKobo: number | nul
   });
 }
 
+/** SUPER_ADMIN only — change any school's language by slug. */
+export function setLocale(slug: string, locale: string): Promise<School> {
+  return apiFetch(`/schools/${slug}/locale`, {
+    method: 'PATCH',
+    body: JSON.stringify({ locale }),
+  });
+}
+
+/** SCHOOL_ADMIN self-service — change your own school's language. Used by the settings page's language switcher. */
+export function setMyLocale(locale: string): Promise<School> {
+  return apiFetch('/schools/me/locale', {
+    method: 'PATCH',
+    body: JSON.stringify({ locale }),
+  });
+}
+
 export interface SignupRequest {
   id: string;
   schoolName: string;
@@ -63,13 +80,14 @@ export interface SignupRequest {
   createdAt: string;
 }
 
-/** countryCode/currency required — collected via the country picker on the public signup form. */
+/** countryCode/currency required — collected via the country picker on the public signup form. locale is optional — defaults from countryCode if omitted. */
 export function requestSignup(body: {
   schoolName: string;
   slug: string;
   code: string;
   countryCode: string;
   currency: string;
+  locale?: string;
   adminName: string;
   adminEmail: string;
   adminPassword: string;

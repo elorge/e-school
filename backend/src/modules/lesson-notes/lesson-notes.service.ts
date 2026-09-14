@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLessonNoteDto } from './dto/create-lesson-note.dto';
 import { UpdateLessonNoteDto } from './dto/update-lesson-note.dto';
 import { LessonNoteStatus } from '@prisma/client';
+import { ERROR_CODES } from '../../common/i18n/error-codes';
 
 @Injectable()
 export class LessonNotesService {
@@ -59,7 +60,7 @@ export class LessonNotesService {
       where: { schoolId, studentId: admissionId, status: 'ACTIVE' },
       select: { classId: true },
     });
-    if (!student) throw new NotFoundException('Admission ID not recognized');
+    if (!student) throw new NotFoundException({ message: 'Admission ID not recognized', code: ERROR_CODES.LESSON_NOTE_ADMISSION_ID_NOT_RECOGNIZED });
     return student.classId;
   }
 
@@ -82,7 +83,7 @@ export class LessonNotesService {
     // Same NotFound whether the note doesn't exist, is a draft, OR
     // belongs to a different class — a student from another class
     // shouldn't be able to tell which case it is by trying the link.
-    if (!note) throw new NotFoundException('Lesson note not found, or not available to your class');
+    if (!note) throw new NotFoundException({ message: 'Lesson note not found, or not available to your class', code: ERROR_CODES.LESSON_NOTE_NOT_FOUND });
     return note;
   }
 }
