@@ -114,7 +114,18 @@ const FR: CalendarLabels = {
   eventTypeLabels: EVENT_TYPE_FR,
 };
 
-const CALENDAR_LABELS_BY_LOCALE: Record<SupportedLocale, CalendarLabels> = { en: EN, fr: FR };
+const CALENDAR_LABELS_BY_LOCALE: Record<SupportedLocale, CalendarLabels> = {
+  en: EN,
+  fr: FR,
+  // TODO: translate to Portuguese. Falls back to English for now so
+  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
+  // working, correctly-worded product immediately rather than a
+  // rushed/incorrect machine translation of operational and
+  // financial terminology. Prioritize replacing this over the
+  // already-translated marketing/legal/nav/footer/login/report-card
+  // strings, which speak to prospective customers and parents first.
+  pt: EN,
+};
 
 export function calendarLabelsFor(locale: string): CalendarLabels {
   return CALENDAR_LABELS_BY_LOCALE[locale as SupportedLocale] ?? CALENDAR_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

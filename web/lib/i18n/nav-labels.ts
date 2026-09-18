@@ -25,6 +25,11 @@ export interface NavLabels {
   fees: string;
   inventory: string;
   accounting: string;
+  hr: string;
+  staffDirectory: string;
+  payroll: string;
+  leave: string;
+  myInfo: string;
 }
 
 const EN: NavLabels = {
@@ -50,6 +55,11 @@ const EN: NavLabels = {
   fees: 'Fees',
   inventory: 'Inventory',
   accounting: 'Accounting',
+  hr: 'Staff (HR)',
+  staffDirectory: 'Staff Directory',
+  payroll: 'Payroll',
+  leave: 'Leave',
+  myInfo: 'My Info',
 };
 
 const FR: NavLabels = {
@@ -75,9 +85,44 @@ const FR: NavLabels = {
   fees: 'Frais scolaires',
   inventory: 'Inventaire',
   accounting: 'Comptabilité',
+  hr: 'Personnel (RH)',
+  staffDirectory: 'Répertoire du personnel',
+  payroll: 'Paie',
+  leave: 'Congés',
+  myInfo: 'Mes informations',
 };
 
-const NAV_LABELS_BY_LOCALE: Record<SupportedLocale, NavLabels> = { en: EN, fr: FR };
+const PT: NavLabels = {
+  logOut: 'Sair',
+  admin: 'Administração',
+  settings: 'Configurações',
+  auditLog: 'Registo de Auditoria',
+  academic: 'Académico',
+  documents: 'Documentos',
+  finance: 'Finanças',
+  checkResult: 'Consultar Resultado',
+  lessons: 'Aulas',
+  students: 'Alunos',
+  lessonNotes: 'Planos de Aula',
+  cbt: 'Provas (CBT)',
+  sessionWrap: 'Resumo do Ano Letivo',
+  classes: 'Turmas',
+  promoteStudents: 'Promover Alunos',
+  terms: 'Períodos Letivos',
+  calendar: 'Calendário',
+  gradingWeights: 'Ponderação das Notas',
+  generatePins: 'Gerar PINs',
+  fees: 'Propinas',
+  inventory: 'Inventário',
+  accounting: 'Contabilidade',
+  hr: 'Pessoal (RH)',
+  staffDirectory: 'Diretório de Pessoal',
+  payroll: 'Folha de Pagamento',
+  leave: 'Licenças',
+  myInfo: 'Minhas Informações',
+};
+
+const NAV_LABELS_BY_LOCALE: Record<SupportedLocale, NavLabels> = { en: EN, fr: FR, pt: PT };
 
 export function navLabelsFor(locale: string): NavLabels {
   return NAV_LABELS_BY_LOCALE[locale as SupportedLocale] ?? NAV_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

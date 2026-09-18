@@ -11,14 +11,14 @@
  * Naira.
  *
  * Every function takes a `locale` param (defaults to 'en' if the caller
- * hasn't been updated yet — see EmailService) and picks a full EN or FR
- * copy block rather than swapping individual words, since French isn't
- * just English with different nouns dropped in (word order, agreement,
- * etc. all differ). School names, amounts, and other school-entered or
- * pre-formatted values are never translated — only the platform's own
- * sentences around them.
+ * hasn't been updated yet — see EmailService) and picks a full EN, FR, or
+ * PT copy block rather than swapping individual words, since these
+ * languages aren't just each other with different nouns dropped in (word
+ * order, agreement, etc. all differ). School names, amounts, and other
+ * school-entered or pre-formatted values are never translated — only the
+ * platform's own sentences around them.
  */
-import { PLATFORM_DEFAULT_LOCALE, SupportedLocale } from '../../common/utils/locale.util';
+import { PLATFORM_DEFAULT_LOCALE, SupportedLocale, isSupportedLocale } from '../../common/utils/locale.util';
 
 const wrapper = (bodyHtml: string, footerHtml: string) => `
 <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1a1a1a;">
@@ -34,10 +34,11 @@ const wrapper = (bodyHtml: string, footerHtml: string) => `
 const FOOTER: Record<SupportedLocale, string> = {
   en: 'Elorge Technologies Limited — Software Development • IT Infrastructure<br />This is an automated message, please do not reply directly to this email.',
   fr: "Elorge Technologies Limited — Développement logiciel • Infrastructure informatique<br />Ceci est un message automatique, merci de ne pas y répondre directement.",
+  pt: 'Elorge Technologies Limited — Desenvolvimento de Software • Infraestrutura de TI<br />Esta é uma mensagem automática, por favor não responda diretamente a este e-mail.',
 };
 
 function resolveLocale(locale?: string): SupportedLocale {
-  return (locale === 'fr' ? 'fr' : locale === 'en' ? 'en' : PLATFORM_DEFAULT_LOCALE) as SupportedLocale;
+  return locale && isSupportedLocale(locale) ? locale : PLATFORM_DEFAULT_LOCALE;
 }
 
 export function schoolWelcomeEmail(params: { schoolName: string; slug: string; welcomeBonusFormatted: string; locale?: string }) {
@@ -56,6 +57,23 @@ export function schoolWelcomeEmail(params: { schoolName: string; slug: string; w
         <p>Prochaines étapes : créez des comptes pour votre personnel, enregistrez vos classes et élèves — vous êtes prêt, même hors ligne.</p>
       `,
         FOOTER.fr,
+      ),
+    };
+  }
+  if (l === 'pt') {
+    return {
+      subject: `Bem-vindo à Elorge Schools, ${params.schoolName}!`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">A sua escola está no ar 🎉</h2>
+        <p><strong>${params.schoolName}</strong> foi integrada na Elorge Schools.</p>
+        <p>Creditámos na sua carteira um bónus de boas-vindas único de
+          <strong>${params.welcomeBonusFormatted}</strong> — suficiente para experimentar um trimestre completo,
+          totalmente grátis.</p>
+        <p>O espaço da sua escola: <strong>${params.slug}</strong></p>
+        <p>Próximos passos: crie contas para o seu pessoal, registe as suas turmas e alunos — está tudo pronto, mesmo offline.</p>
+      `,
+        FOOTER.pt,
       ),
     };
   }
@@ -93,6 +111,21 @@ export function staffAccountCreatedEmail(params: { fullName: string; schoolName:
       ),
     };
   }
+  if (l === 'pt') {
+    return {
+      subject: `A sua conta Elorge Schools está pronta`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">Olá ${params.fullName},</h2>
+        <p>Foi criada uma conta para si em <strong>${params.schoolName}</strong> na Elorge Schools, com a função
+          <strong>${params.role.replace('_', ' ')}</strong>.</p>
+        <p>Inicie sessão com: <strong>${params.loginEmail}</strong></p>
+        <p>Se não esperava esta mensagem, contacte a administração da sua escola.</p>
+      `,
+        FOOTER.pt,
+      ),
+    };
+  }
   return {
     subject: `Your Elorge Schools account is ready`,
     html: wrapper(
@@ -124,6 +157,20 @@ export function walletCreditConfirmedEmail(params: { schoolName: string; amountF
       ),
     };
   }
+  if (l === 'pt') {
+    return {
+      subject: `Carteira creditada — ${params.amountFormatted}`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">Pagamento confirmado</h2>
+        <p>A carteira de <strong>${params.schoolName}</strong> foi creditada com
+          <strong>${params.amountFormatted}</strong> (${params.source}).</p>
+        <p>Novo saldo da carteira: <strong>${params.newBalanceFormatted}</strong></p>
+      `,
+        FOOTER.pt,
+      ),
+    };
+  }
   return {
     subject: `Wallet credited — ${params.amountFormatted}`,
     html: wrapper(
@@ -152,6 +199,21 @@ export function manualTransferSubmittedEmail(params: { schoolName: string; amoun
         <p>Notre équipe financière l'examinera et le confirmera prochainement. Votre portefeuille sera crédité une fois approuvé.</p>
       `,
         FOOTER.fr,
+      ),
+    };
+  }
+  if (l === 'pt') {
+    return {
+      subject: `Transferência bancária recebida — a aguardar verificação`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">Declaração de transferência submetida</h2>
+        <p>Recebemos uma declaração de transferência bancária de
+          <strong>${params.amountFormatted}</strong> para <strong>${params.schoolName}</strong>.</p>
+        <p>Referência: <strong>${params.reference}</strong></p>
+        <p>A nossa equipa financeira irá analisá-la e confirmá-la em breve. A sua carteira será creditada assim que for aprovada.</p>
+      `,
+        FOOTER.pt,
       ),
     };
   }
@@ -187,6 +249,21 @@ export function manualTransferResolvedEmail(params: { schoolName: string; amount
       ),
     };
   }
+  if (l === 'pt') {
+    return {
+      subject: params.approved ? `Transferência aprovada — ${params.amountFormatted} creditado` : `Declaração de transferência rejeitada`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">${params.approved ? 'Transferência aprovada' : 'Transferência rejeitada'}</h2>
+        <p>A sua declaração de transferência bancária de <strong>${params.amountFormatted}</strong>
+          (ref.: ${params.reference}) para <strong>${params.schoolName}</strong> foi
+          <strong>${params.approved ? 'aprovada e creditada na sua carteira' : 'rejeitada'}</strong>.</p>
+        ${params.approved ? '' : '<p>Se acredita que isto é um erro, contacte o suporte com o seu comprovativo de transferência.</p>'}
+      `,
+        FOOTER.pt,
+      ),
+    };
+  }
   return {
     subject: params.approved ? `Transfer approved — ${params.amountFormatted} credited` : `Transfer claim rejected`,
     html: wrapper(
@@ -216,6 +293,21 @@ export function pinsGeneratedEmail(params: { schoolName: string; termName: strin
           Pour des raisons de sécurité, les codes PIN sont affichés une seule fois et ne sont jamais envoyés en clair par e-mail.</p>
       `,
         FOOTER.fr,
+      ),
+    };
+  }
+  if (l === 'pt') {
+    return {
+      subject: `PINs de resultados gerados para ${params.termName}`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">PINs gerados</h2>
+        <p><strong>${params.studentCount}</strong> PIN(s) de resultado foram gerados para <strong>${params.schoolName}</strong>
+          — ${params.termName} — a um custo total de <strong>${params.totalCostFormatted}</strong>.</p>
+        <p>Descarregue a folha de PINs no seu painel para partilhar os números de matrícula e PINs com os alunos.
+          Por segurança, os PINs são apresentados apenas uma vez e nunca são enviados por e-mail em texto simples.</p>
+      `,
+        FOOTER.pt,
       ),
     };
   }
@@ -250,6 +342,20 @@ export function lowBalanceWarningEmail(params: { schoolName: string; balanceForm
       ),
     };
   }
+  if (l === 'pt') {
+    return {
+      subject: `Saldo da carteira baixo — ${params.schoolName}`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">O saldo da sua carteira está baixo</h2>
+        <p>O saldo da carteira de <strong>${params.schoolName}</strong> é agora de
+          <strong>${params.balanceFormatted}</strong>.</p>
+        <p>Carregue a sua carteira para continuar a gerar PINs de resultados sem interrupções.</p>
+      `,
+        FOOTER.pt,
+      ),
+    };
+  }
   return {
     subject: `Low wallet balance — ${params.schoolName}`,
     html: wrapper(
@@ -278,6 +384,21 @@ export function staffInviteEmail(params: { fullName: string; schoolName: string;
         <p>Si vous ne vous attendiez pas à ce message, veuillez contacter l'administration de votre école.</p>
       `,
         FOOTER.fr,
+      ),
+    };
+  }
+  if (l === 'pt') {
+    return {
+      subject: `Foi adicionado(a) a ${params.schoolName} na Elorge Schools`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">Olá ${params.fullName},</h2>
+        <p>Foi adicionado(a) como membro do pessoal em <strong>${params.schoolName}</strong> na Elorge Schools.
+          Defina a sua palavra-passe para ativar a sua conta — este link é válido por 7 dias.</p>
+        <p><a href="${params.activateUrl}" style="display:inline-block;padding:10px 20px;background:#0b3d91;color:#fff;border-radius:6px;text-decoration:none;">Ativar a minha conta</a></p>
+        <p>Se não esperava esta mensagem, contacte a administração da sua escola.</p>
+      `,
+        FOOTER.pt,
       ),
     };
   }
@@ -310,6 +431,21 @@ export function passwordResetEmail(params: { fullName: string; resetUrl: string;
         <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité.</p>
       `,
         FOOTER.fr,
+      ),
+    };
+  }
+  if (l === 'pt') {
+    return {
+      subject: `Redefina a sua palavra-passe da Elorge Schools`,
+      html: wrapper(
+        `
+        <h2 style="font-size: 20px;">Olá ${params.fullName},</h2>
+        <p>Recebemos um pedido para redefinir a sua palavra-passe. Clique abaixo para escolher uma nova —
+          este link expira em 30 minutos.</p>
+        <p><a href="${params.resetUrl}" style="display:inline-block;padding:10px 20px;background:#0b3d91;color:#fff;border-radius:6px;text-decoration:none;">Redefinir palavra-passe</a></p>
+        <p>Se não foi você a solicitar isto, pode ignorar este e-mail em segurança.</p>
+      `,
+        FOOTER.pt,
       ),
     };
   }

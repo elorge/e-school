@@ -85,7 +85,18 @@ const FR: PasswordFlowLabels = {
   signIn: 'Se connecter',
 };
 
-const PASSWORD_FLOW_LABELS_BY_LOCALE: Record<SupportedLocale, PasswordFlowLabels> = { en: EN, fr: FR };
+const PASSWORD_FLOW_LABELS_BY_LOCALE: Record<SupportedLocale, PasswordFlowLabels> = {
+  en: EN,
+  fr: FR,
+  // TODO: translate to Portuguese. Falls back to English for now so
+  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
+  // working, correctly-worded product immediately rather than a
+  // rushed/incorrect machine translation of operational and
+  // financial terminology. Prioritize replacing this over the
+  // already-translated marketing/legal/nav/footer/login/report-card
+  // strings, which speak to prospective customers and parents first.
+  pt: EN,
+};
 
 export function passwordFlowLabelsFor(locale: string): PasswordFlowLabels {
   return PASSWORD_FLOW_LABELS_BY_LOCALE[locale as SupportedLocale] ?? PASSWORD_FLOW_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

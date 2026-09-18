@@ -65,6 +65,15 @@ model School {
   assessmentWeights AssessmentWeight[]
   assessmentScores  AssessmentScore[]
 
+  staffProfiles         StaffProfile[]
+  staffIdCards          StaffIdCard[]
+  staffAttendanceRecords StaffAttendanceRecord[]
+  payrollRuns           PayrollRun[]
+  payslips              Payslip[]
+  leaveTypes            LeaveType[]
+  leaveRequests         LeaveRequest[]
+  staffLeaveBalances    StaffLeaveBalance[]
+
   @@map("schools")
 }
 
@@ -99,6 +108,13 @@ model User {
   expensesRecorded       ExpenseEntry[]          @relation("ExpenseRecordedBy")
   platformExpensesRecorded PlatformExpense[]      @relation("PlatformExpenseRecordedBy")
   notifications          Notification[]
+
+  // ─── HR / staff ERP — see schema-changes-hr.prisma notes below ───────
+  staffProfile           StaffProfile?
+  payslipsReceived       Payslip[]      @relation("PayslipForUser")
+  leaveRequestsReviewed  LeaveRequest[] @relation("LeaveReviewedBy")
+  payrollRunsCreated     PayrollRun[]   @relation("PayrollRunCreatedBy")
+  payrollRunsApproved    PayrollRun[]   @relation("PayrollRunApprovedBy")
 
   @@map("users")
 }
@@ -796,4 +812,246 @@ model SubjectCareerField {
   @@unique([schoolId, subject, field])
   @@index([subject])
   @@map("subject_career_fields")
+}
+
+// ─── HR / staff ERP ─────────────────────────────────────────────────────
+// A User row (role SCHOOL_ADMIN or STAFF) is the login/identity; a
+// StaffProfile is the HR record hung off it 1:1 — kept separate rather
+// than bloating User because most of this (bank details, salary,
+// next-of-kin) is HR-only data that non-HR code paths never touch.
+// SUPER_ADMIN/FINANCE_OPS users never get a StaffProfile — they're
+// Elorge platform staff, not a school's employee.
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  NYSC // Nigeria's National Youth Service Corps posting — common enough in this market to name explicitly rather than force into CONTRACT
+  VOLUNTEER
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  TERMINATED
+}
+
+model StaffProfile {
+  id       String @id @default(uuid())
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [id])
+
+  staffId          String           @unique // e.g. "GRW/STAFF/0001" — same sequential pattern as Student.studentId, see StaffService.createAndAssignStaffId
+  department       String?
+  designation      String? // job title, e.g. "Mathematics Teacher", "Bursar"
+  employmentType   EmploymentType   @default(FULL_TIME)
+  employmentStatus EmploymentStatus @default(ACTIVE)
+  dateOfEmployment DateTime?
+  dateOfBirth      DateTime?
+  gender           String?
+  phone            String?
+  address          String?
+  nextOfKinName    String?
+  nextOfKinPhone   String?
+  bankName         String?
+  bankAccountName  String?
+  bankAccountNumber String?
+  photoUrl         String?
+
+  // Current recurring salary structure. Minor unit of School.currency,
+  // same convention as every other *Kobo field. Payroll snapshots these
+  // onto each Payslip.breakdown at generation time — editing them here
+  // only affects payroll runs generated AFTER the edit, never past
+  // payslips (spec parity with FeeStructure vs FeeInvoice).
+  baseSalaryKobo Int   @default(0)
+  allowances     Json? // [{ name: string, amountKobo: number }]
+  deductions     Json? // [{ name: string, amountKobo: number }] — recurring deductions other than one-off payroll adjustments
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  idCards           StaffIdCard[]
+  payslips          Payslip[]
+  leaveRequests     LeaveRequest[]
+  leaveBalances     StaffLeaveBalance[]
+  attendanceRecords StaffAttendanceRecord[]
+
+  @@index([schoolId, employmentStatus])
+  @@map("staff_profiles")
+}
+
+/// Deliberately a separate model from IdCard (students) rather than a
+/// shared polymorphic table — the two have different renderers (see
+/// StaffIdCardsService.renderIdCardPdf) and different lifecycle rules,
+/// and a shared table would need a nullable studentId AND nullable
+/// staffProfileId, which is worse than two small tables.
+model StaffIdCard {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id])
+  staffProfileId String
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id])
+  qrCode         String       @unique // encodes school_id + staff_profile_id; scanned for staff attendance
+  issuedAt       DateTime     @default(now())
+
+  @@map("staff_id_cards")
+}
+
+enum StaffAttendanceDirection {
+  CLOCK_IN
+  CLOCK_OUT
+}
+
+model StaffAttendanceRecord {
+  id                String                   @id @default(uuid())
+  schoolId          String
+  school            School                   @relation(fields: [schoolId], references: [id])
+  staffProfileId    String
+  staffProfile      StaffProfile             @relation(fields: [staffProfileId], references: [id])
+  direction         StaffAttendanceDirection @default(CLOCK_IN)
+  source            String                   @default("qr") // "qr" | "manual"
+  occurredAt        DateTime // on-device scan time, clamped the same way as student AttendanceRecord — see ATTENDANCE_MAX_BACKDATE_HOURS
+  syncedAt          DateTime                 @default(now())
+  clientReferenceId String                   @unique
+
+  @@index([schoolId, staffProfileId, occurredAt])
+  @@map("staff_attendance_records")
+}
+
+enum PayrollRunStatus {
+  DRAFT // generated, editable/regeneratable, nothing paid yet
+  APPROVED // locked in by a School Admin, ready for disbursement
+  PAID // every payslip in the run has been marked paid
+  CANCELLED
+}
+
+/// One PayrollRun = one pay period for one school. Generating a run
+/// snapshots every ACTIVE staff member's current StaffProfile salary
+/// structure into a Payslip row each — see PayrollService.generateRun.
+model PayrollRun {
+  id                  String           @id @default(uuid())
+  schoolId            String
+  school              School           @relation(fields: [schoolId], references: [id])
+  periodLabel         String // e.g. "September 2026" — free text, school's own convention
+  periodStart         DateTime
+  periodEnd           DateTime
+  status              PayrollRunStatus @default(DRAFT)
+  totalGrossKobo      Int              @default(0)
+  totalDeductionsKobo Int              @default(0)
+  totalNetKobo        Int              @default(0)
+  createdById         String
+  createdBy           User             @relation("PayrollRunCreatedBy", fields: [createdById], references: [id])
+  approvedById        String?
+  approvedBy          User?            @relation("PayrollRunApprovedBy", fields: [approvedById], references: [id])
+  approvedAt          DateTime?
+  createdAt           DateTime         @default(now())
+
+  payslips Payslip[]
+
+  @@index([schoolId, status])
+  @@map("payroll_runs")
+}
+
+enum PayslipStatus {
+  PENDING
+  PAID
+}
+
+model Payslip {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id])
+  payrollRunId   String
+  payrollRun     PayrollRun   @relation(fields: [payrollRunId], references: [id])
+  staffProfileId String
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id])
+  userId         String // denormalized from StaffProfile.userId so "my payslips" queries skip the join
+  user           User         @relation("PayslipForUser", fields: [userId], references: [id])
+
+  baseSalaryKobo Int
+  allowancesKobo Int
+  deductionsKobo Int
+  grossKobo      Int
+  netKobo        Int
+  currency       String // copied from School.currency at generation time, same self-describing pattern as WalletLedgerEntry.currency
+  breakdown      Json // snapshot: { allowances: [{name,amountKobo}], deductions: [{name,amountKobo}] } — frozen at generation, never re-derived from live StaffProfile
+
+  status            PayslipStatus @default(PENDING)
+  paidAt            DateTime?
+  paymentReference  String? // manual bank transfer reference / receipt number recorded by the admin marking this paid
+  expenseEntryId    String?       @unique // links to the ExpenseEntry (category "Salaries") written on payment, so payroll and accounting never double-count
+  createdAt         DateTime      @default(now())
+
+  @@unique([payrollRunId, staffProfileId])
+  @@index([schoolId, userId])
+  @@map("payslips")
+}
+
+model LeaveType {
+  id                 String   @id @default(uuid())
+  schoolId           String
+  school             School   @relation(fields: [schoolId], references: [id])
+  name               String // e.g. "Annual Leave", "Sick Leave", "Maternity/Paternity Leave"
+  defaultDaysPerYear Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  leaveRequests LeaveRequest[]
+  balances      StaffLeaveBalance[]
+
+  @@unique([schoolId, name])
+  @@map("leave_types")
+}
+
+/// One row per staff/leaveType/year. Created lazily (from
+/// LeaveType.defaultDaysPerYear) the first time it's needed rather than
+/// batch-provisioned for every staff member up front, so adding a new
+/// LeaveType never requires a backfill job.
+model StaffLeaveBalance {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id])
+  staffProfileId String
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id])
+  leaveTypeId    String
+  leaveType      LeaveType    @relation(fields: [leaveTypeId], references: [id])
+  year           Int
+  daysAllotted   Int
+  daysUsed       Int          @default(0)
+
+  @@unique([staffProfileId, leaveTypeId, year])
+  @@map("staff_leave_balances")
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeaveRequest {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id])
+  staffProfileId String
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id])
+  leaveTypeId    String
+  leaveType      LeaveType    @relation(fields: [leaveTypeId], references: [id])
+  startDate      DateTime
+  endDate        DateTime
+  daysCount      Int
+  reason         String?
+  status         LeaveStatus  @default(PENDING)
+  reviewedById   String?
+  reviewedBy     User?        @relation("LeaveReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt     DateTime?
+  reviewNote     String?
+  createdAt      DateTime     @default(now())
+
+  @@index([schoolId, status])
+  @@index([staffProfileId, status])
+  @@map("leave_requests")
 }

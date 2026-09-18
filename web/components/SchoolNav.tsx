@@ -10,7 +10,7 @@ import PendingSyncBadge from './PendingSyncBadge';
 import NotificationBell from './NotificationBell';
 import { useSchool } from '@/lib/school-context';
 import { navLabelsFor } from '@/lib/i18n/nav-labels';
-import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings, History } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings, History, Users, Contact } from 'lucide-react';
 
 function DropdownMenu({
   label,
@@ -157,6 +157,23 @@ export default function SchoolNav({
               { href: `/${slug}/admin/accounting`, text: t.accounting },
             ]}
           />
+        )}
+        {isSchoolAdmin && (
+          <DropdownMenu
+            label={t.hr}
+            icon={Users}
+            items={[
+              { href: `/${slug}/admin/staff`, text: t.staffDirectory },
+              { href: `/${slug}/admin/staff/payroll`, text: t.payroll },
+              { href: `/${slug}/admin/staff/leave`, text: t.leave },
+            ]}
+          />
+        )}
+        {isStaffOrAdmin && (
+          <Link href={`/${slug}/staff/me`} className="flex items-center gap-1.5 whitespace-nowrap">
+            <Contact size={15} />
+            {t.myInfo}
+          </Link>
         )}
         <Link href={`/${slug}/results`} className="flex items-center gap-1.5 whitespace-nowrap">
           <Search size={15} />

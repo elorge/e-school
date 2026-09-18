@@ -33,6 +33,9 @@ import { SubjectsModule } from './modules/subjects/subjects.module';
 import { CareerFieldsModule } from './modules/career-fields/career-fields.module';
 import { AssessmentModule } from './modules/assessment/assessment.module';
 import { HealthModule } from './modules/health/health.module';
+import { StaffModule } from './modules/staff/staff.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { LeaveModule } from './modules/leave/leave.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { envValidationSchema } from './config/env.validation';
@@ -71,6 +74,9 @@ import { envValidationSchema } from './config/env.validation';
     SubjectsModule,
     CareerFieldsModule,
     AssessmentModule,
+    StaffModule,
+    PayrollModule,
+    LeaveModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

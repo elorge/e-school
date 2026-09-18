@@ -33,6 +33,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   XOF: 'CFA',
   XAF: 'FCFA',
   RWF: 'RF',
+  MZN: 'MT',
+  AOA: 'Kz',
 };
 
 /** formatMoney(1200000, 'NGN') -> "₦12,000.00". Use this everywhere a page used to hardcode ₦ and /100. */
@@ -44,7 +46,7 @@ export function formatMoney(amountMinor: number, currency: string, locale = 'en'
 }
 
 export const SUPPORTED_CURRENCIES = [
-  'NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'RWF', 'USD', 'GBP', 'EUR',
+  'NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'RWF', 'MZN', 'AOA', 'USD', 'GBP', 'EUR',
 ] as const;
 
 export interface CountryOption {
@@ -65,6 +67,8 @@ export const SUPPORTED_COUNTRIES: CountryOption[] = [
   { code: 'CI', name: "Côte d'Ivoire", currency: 'XOF' },
   { code: 'SN', name: 'Senegal', currency: 'XOF' },
   { code: 'CM', name: 'Cameroon', currency: 'XAF' },
+  { code: 'MZ', name: 'Mozambique', currency: 'MZN' },
+  { code: 'AO', name: 'Angola', currency: 'AOA' },
   { code: 'US', name: 'United States', currency: 'USD' },
   { code: 'GB', name: 'United Kingdom', currency: 'GBP' },
 ];

@@ -70,7 +70,18 @@ const FR: GradingLabels = {
   saveError: 'Impossible d\'enregistrer — vérifiez la classe/matière/trimestre.',
 };
 
-const GRADING_LABELS_BY_LOCALE: Record<SupportedLocale, GradingLabels> = { en: EN, fr: FR };
+const GRADING_LABELS_BY_LOCALE: Record<SupportedLocale, GradingLabels> = {
+  en: EN,
+  fr: FR,
+  // TODO: translate to Portuguese. Falls back to English for now so
+  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
+  // working, correctly-worded product immediately rather than a
+  // rushed/incorrect machine translation of operational and
+  // financial terminology. Prioritize replacing this over the
+  // already-translated marketing/legal/nav/footer/login/report-card
+  // strings, which speak to prospective customers and parents first.
+  pt: EN,
+};
 
 export function gradingLabelsFor(locale: string): GradingLabels {
   return GRADING_LABELS_BY_LOCALE[locale as SupportedLocale] ?? GRADING_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

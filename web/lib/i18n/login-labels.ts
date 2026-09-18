@@ -37,7 +37,19 @@ const FR: LoginLabels = {
   getStarted: 'Commencer',
 };
 
-const LOGIN_LABELS_BY_LOCALE: Record<SupportedLocale, LoginLabels> = { en: EN, fr: FR };
+const PT: LoginLabels = {
+  signIn: 'Entrar',
+  emailLabel: 'E-mail',
+  passwordLabel: 'Palavra-passe',
+  signingIn: 'A entrar…',
+  noSchoolLinked: 'A sua conta ainda não está associada a nenhuma escola. Contacte o administrador da sua escola.',
+  serverUnreachable: 'Não foi possível contactar o servidor. Verifique se o backend está em execução e acessível, e se o CORS permite esta origem.',
+  forgotPassword: 'Esqueceu-se da palavra-passe?',
+  newSchool: 'Escola nova?',
+  getStarted: 'Começar',
+};
+
+const LOGIN_LABELS_BY_LOCALE: Record<SupportedLocale, LoginLabels> = { en: EN, fr: FR, pt: PT };
 
 export function loginLabelsFor(locale: string): LoginLabels {
   return LOGIN_LABELS_BY_LOCALE[locale as SupportedLocale] ?? LOGIN_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

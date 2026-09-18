@@ -46,6 +46,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   XOF: 'CFA',
   XAF: 'FCFA',
   RWF: 'RF',
+  MZN: 'MT',
+  AOA: 'Kz',
 };
 
 /** Formats a minor-unit amount for display — e.g. formatMoney(1200000, 'NGN') -> "₦12,000.00". Used by email templates and anywhere else money is shown to a human. */
@@ -68,7 +70,7 @@ export function formatMoney(amountMinor: number, currency: string, locale = 'en'
  * nothing downstream knows how to charge.
  */
 export const SUPPORTED_CURRENCIES = [
-  'NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'RWF', 'USD', 'GBP', 'EUR',
+  'NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'RWF', 'MZN', 'AOA', 'USD', 'GBP', 'EUR',
 ] as const;
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 

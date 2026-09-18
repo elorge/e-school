@@ -24,6 +24,23 @@ export class UsersService {
    * one call; omit it to get back a count of what needs reassigning.
    */
   async remove(schoolId: string, userId: string, reassignToStaffId?: string) {
+    // An HR profile carries payroll/leave/attendance history that must
+    // stay intact (payslips are a financial record — never silently
+    // deletable). Rather than cascading through all of that, block the
+    // account deletion outright and point the admin at the correct tool:
+    // set employmentStatus to TERMINATED on the HR profile, which keeps
+    // history while marking them as no longer active staff. The account
+    // itself can still be removed afterwards once there's a real need to
+    // free up the email address — at which point this same check re-runs.
+    const staffProfile = await this.prisma.staffProfile.findUnique({ where: { userId } });
+    if (staffProfile) {
+      throw new BadRequestException({
+        message:
+          'This staff member has an HR profile with payroll/leave history. Set their employment status to TERMINATED from the Staff page instead of deleting the account.',
+        code: 'HAS_STAFF_PROFILE',
+      });
+    }
+
     const [classesCreated, classesTeaching, studentsCreated] = await Promise.all([
       this.prisma.class.findMany({ where: { createdByStaffId: userId } }),
       this.prisma.class.findMany({ where: { classTeacherId: userId } }),

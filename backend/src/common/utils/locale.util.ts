@@ -6,7 +6,7 @@
  * currency.ts) does NOT require adding a language here — it only needs
  * one of these two if its usual business language isn't English.
  */
-export const SUPPORTED_LOCALES = ['en', 'fr'] as const;
+export const SUPPORTED_LOCALES = ['en', 'fr', 'pt'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const PLATFORM_DEFAULT_LOCALE: SupportedLocale = 'en';
@@ -20,10 +20,11 @@ export const PLATFORM_DEFAULT_LOCALE: SupportedLocale = 'en';
  * admin can always override it in settings regardless of what their
  * country's default is.
  *
- * Only Francophone West/Central African corridors are mapped to 'fr' —
- * everywhere else on the current Flutterwave-supported country list
- * (SUPPORTED_COUNTRIES in web/lib/currency.ts) conducts school business in
- * English even where other languages are also spoken locally.
+ * Francophone West/Central African corridors map to 'fr', Lusophone
+ * corridors (Mozambique, Angola) map to 'pt' — everywhere else on the
+ * current Flutterwave-supported country list (SUPPORTED_COUNTRIES in
+ * web/lib/currency.ts) conducts school business in English even where
+ * other languages are also spoken locally.
  */
 export const LOCALE_BY_COUNTRY: Record<string, SupportedLocale> = {
   NG: 'en',
@@ -36,6 +37,8 @@ export const LOCALE_BY_COUNTRY: Record<string, SupportedLocale> = {
   CI: 'fr',
   SN: 'fr',
   CM: 'fr',
+  MZ: 'pt',
+  AO: 'pt',
   US: 'en',
   GB: 'en',
 };

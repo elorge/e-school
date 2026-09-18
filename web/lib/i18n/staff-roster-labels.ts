@@ -154,7 +154,18 @@ const FR: StaffRosterLabels = {
   yesRemove: 'Oui, retirer',
 };
 
-const STAFF_ROSTER_LABELS_BY_LOCALE: Record<SupportedLocale, StaffRosterLabels> = { en: EN, fr: FR };
+const STAFF_ROSTER_LABELS_BY_LOCALE: Record<SupportedLocale, StaffRosterLabels> = {
+  en: EN,
+  fr: FR,
+  // TODO: translate to Portuguese. Falls back to English for now so
+  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
+  // working, correctly-worded product immediately rather than a
+  // rushed/incorrect machine translation of operational and
+  // financial terminology. Prioritize replacing this over the
+  // already-translated marketing/legal/nav/footer/login/report-card
+  // strings, which speak to prospective customers and parents first.
+  pt: EN,
+};
 
 export function staffRosterLabelsFor(locale: string): StaffRosterLabels {
   return STAFF_ROSTER_LABELS_BY_LOCALE[locale as SupportedLocale] ?? STAFF_ROSTER_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

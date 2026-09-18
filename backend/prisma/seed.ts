@@ -3,6 +3,8 @@ import { PrismaClient, Role, StudentStatus, LedgerType, LedgerSource, LedgerStat
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { SUBJECT_CAREER_FIELDS } from '../src/common/constants';
+import { timezoneForCountry } from '../src/common/utils/timezone.util';
+import { localeForCountry } from '../src/common/utils/locale.util';
 
 const prisma = new PrismaClient();
 
@@ -87,13 +89,24 @@ async function seedDemoSchool() {
     return;
   }
 
+  const countryCode = 'NG';
   const school = await prisma.school.create({
     data: {
       slug,
       name: 'Greenwood College',
       code: 'GRW',
-      countryCode: 'NG',
+      countryCode,
       currency: 'NGN',
+      // timezone has no DB default and is a required column — bypassing
+      // SchoolsService.create() here (this is a direct prisma call) means
+      // we have to derive it ourselves, the same way that service does,
+      // or this create() throws "Argument `timezone` is missing" and the
+      // whole demo school (students, wallet, everything below) never gets
+      // seeded. locale DOES have a DB default ('en'), but it's set
+      // explicitly too so this stays correct if that default ever changes
+      // or a non-English-default country is used here later.
+      timezone: timezoneForCountry(countryCode),
+      locale: localeForCountry(countryCode),
       pricePerStudentKoboOverride: null, // uses platform default
       sessionWrapEnabled: true, // seeded ON so you can demo it immediately
     },

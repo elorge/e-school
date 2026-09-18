@@ -69,6 +69,37 @@ const FR_SECTIONS = [
   },
 ];
 
+const PT_SECTIONS = [
+  {
+    heading: '1. O serviço',
+    body: 'Elorge Schools ("a Plataforma") é um serviço de gestão escolar fornecido pela Elorge Technologies Limited ("Elorge", "nós") a escolas registadas ("você", "a Escola"). Ao criar um espaço de trabalho para a sua escola, você aceita estes termos em nome da sua instituição.',
+  },
+  {
+    heading: '2. As suas responsabilidades',
+    body: 'Você é responsável por obter o consentimento legal dos pais/encarregados de educação antes de submeter dados de alunos à Plataforma, pela exactidão dos resultados e registos introduzidos pela sua equipa, e por manter as credenciais de acesso da equipa seguras. A Elorge não é responsável por dados introduzidos incorrectamente pela sua equipa.',
+  },
+  {
+    heading: '3. A carteira e a facturação',
+    body: "Certas funcionalidades (geração de PIN de resultados, provas por computador) utilizam um saldo pré-pago na carteira, cobrado por aluno e por período letivo à tarifa publicada da plataforma. Os fundos da carteira não são reembolsáveis, excepto quando uma cobrança não resultou na prestação do serviço correspondente (ver Reembolsos).",
+  },
+  {
+    heading: '4. Suspensão',
+    body: "A Elorge pode suspender o acesso da equipa/administração de uma Escola por falta de pagamento ou violação destes termos. A suspensão não elimina dados, nem bloqueia o acesso de um encarregado de educação aos resultados já gerados do seu educando através de um PIN válido.",
+  },
+  {
+    heading: '5. Disponibilidade',
+    body: 'A Plataforma é fornecida "tal como está". Procuramos alta disponibilidade, mas não garantimos um serviço ininterrupto. As funcionalidades offline destinam-se a reduzir, não a eliminar, o impacto de problemas de conectividade.',
+  },
+  {
+    heading: '6. Propriedade dos dados',
+    body: "Você mantém a propriedade de todos os dados que submeter. Ao encerrar a conta, pode solicitar uma exportação dos dados da sua escola dentro de um período razoável antes da eliminação.",
+  },
+  {
+    heading: '7. Alterações',
+    body: 'Podemos actualizar estes termos; a utilização continuada após uma alteração constitui aceitação. Alterações significativas serão comunicadas aos Administradores da Escola.',
+  },
+];
+
 const EN: TermsPageLabels = {
   title: 'Terms of Service',
   lastUpdated: 'Last updated: [DATE] — Elorge Technologies Limited',
@@ -81,7 +112,13 @@ const FR: TermsPageLabels = {
   sections: FR_SECTIONS,
 };
 
-const TERMS_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, TermsPageLabels> = { en: EN, fr: FR };
+const PT: TermsPageLabels = {
+  title: 'Termos de Serviço',
+  lastUpdated: 'Última actualização: [DATE] — Elorge Technologies Limited',
+  sections: PT_SECTIONS,
+};
+
+const TERMS_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, TermsPageLabels> = { en: EN, fr: FR, pt: PT };
 
 export function termsPageLabelsFor(locale: string): TermsPageLabels {
   return TERMS_PAGE_LABELS_BY_LOCALE[locale as SupportedLocale] ?? TERMS_PAGE_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

@@ -2,13 +2,17 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { PLATFORM_DEFAULT_LOCALE, SupportedLocale } from './locale';
+import { PLATFORM_DEFAULT_LOCALE, SupportedLocale, isSupportedLocale } from './locale';
 
 function readCookieLocale(): SupportedLocale {
   if (typeof document === 'undefined') return PLATFORM_DEFAULT_LOCALE;
   const match = document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/);
   const value = match ? decodeURIComponent(match[1]) : null;
-  return value === 'fr' ? 'fr' : PLATFORM_DEFAULT_LOCALE;
+  // Was hardcoded to only ever recognize 'fr' — every other saved
+  // language (e.g. 'pt') silently fell back to English on reload. Check
+  // against the actual supported-locale list instead, so adding a new
+  // language here doesn't also require remembering to update this check.
+  return value && isSupportedLocale(value) ? value : PLATFORM_DEFAULT_LOCALE;
 }
 
 interface MarketingLocaleContextValue {

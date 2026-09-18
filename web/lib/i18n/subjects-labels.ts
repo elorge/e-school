@@ -76,7 +76,18 @@ const FR: SubjectsLabels = {
   platformDefaults: (count) => `Valeurs par défaut de la plateforme (${count})`,
 };
 
-const SUBJECTS_LABELS_BY_LOCALE: Record<SupportedLocale, SubjectsLabels> = { en: EN, fr: FR };
+const SUBJECTS_LABELS_BY_LOCALE: Record<SupportedLocale, SubjectsLabels> = {
+  en: EN,
+  fr: FR,
+  // TODO: translate to Portuguese. Falls back to English for now so
+  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
+  // working, correctly-worded product immediately rather than a
+  // rushed/incorrect machine translation of operational and
+  // financial terminology. Prioritize replacing this over the
+  // already-translated marketing/legal/nav/footer/login/report-card
+  // strings, which speak to prospective customers and parents first.
+  pt: EN,
+};
 
 export function subjectsLabelsFor(locale: string): SubjectsLabels {
   return SUBJECTS_LABELS_BY_LOCALE[locale as SupportedLocale] ?? SUBJECTS_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

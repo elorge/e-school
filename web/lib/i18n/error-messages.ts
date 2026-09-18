@@ -57,7 +57,18 @@ function formatTime(iso: string, locale: string): string {
   }
 }
 
-const ERROR_MESSAGES_BY_LOCALE: Record<SupportedLocale, Record<string, MessageFn>> = { en: EN, fr: FR };
+const ERROR_MESSAGES_BY_LOCALE: Record<SupportedLocale, Record<string, MessageFn>> = {
+  en: EN,
+  fr: FR,
+  // TODO: translate to Portuguese. Falls back to English for now so
+  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
+  // working, correctly-worded product immediately rather than a
+  // rushed/incorrect machine translation of operational and
+  // financial terminology. Prioritize replacing this over the
+  // already-translated marketing/legal/nav/footer/login/report-card
+  // strings, which speak to prospective customers and parents first.
+  pt: EN,
+};
 
 /**
  * The one helper every catch block should use instead of `err.message`.

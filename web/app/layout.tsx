@@ -23,9 +23,12 @@ export const metadata: Metadata = {
     template: '%s | Elorge Schools',
   },
   description:
-    'Nigerian school management software: verifiable results, computer-based testing (CBT), lesson notes with presenter mode, ID cards, fees, and a wallet — built to keep working even offline.',
+    'School management software for Africa and beyond: verifiable results, computer-based testing (CBT), lesson notes with presenter mode, ID cards, fees, and a wallet — built to keep working even offline.',
   keywords: [
     'school management software Nigeria',
+    'school management software Ghana',
+    'school management software Kenya',
+    'school management software Africa',
     'school with CBT',
     'computer based testing school software',
     'check school result online',
@@ -33,8 +36,8 @@ export const metadata: Metadata = {
     'school with lesson notes',
     'school ID card software',
     'school fees management software',
-    'offline school software Nigeria',
-    'school management system Nigeria',
+    'offline school software',
+    'school management system',
   ],
   authors: [{ name: 'Elorge Technologies Limited' }],
   creator: 'Elorge Technologies Limited',
@@ -85,7 +88,7 @@ const organizationJsonLd = {
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
   description:
-    'Nigerian school management software company offering CBT, verifiable results, lesson notes, ID cards, attendance, and fee management.',
+    'School management software company, headquartered in Nigeria, offering CBT, verifiable results, lesson notes, ID cards, attendance, and fee management to schools across Africa and beyond.',
   email: 'hello@elorgeschools.com',
   sameAs: [
     // TODO: add real LinkedIn / X / Facebook URLs here once you have them

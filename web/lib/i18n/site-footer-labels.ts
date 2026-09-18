@@ -24,7 +24,7 @@ export interface SiteFooterLabels {
 }
 
 const EN: SiteFooterLabels = {
-  tagline: "School management built for Nigerian schools — records, results, and finances that work even when the internet doesn't.",
+  tagline: "School management built for schools across Africa and beyond — records, results, and finances that work even when the internet doesn't.",
   productHeading: 'Product',
   companyHeading: 'Company',
   getInTouchHeading: 'Get in touch',
@@ -67,7 +67,29 @@ const FR: SiteFooterLabels = {
   linkPrivacy: 'Politique de confidentialité',
 };
 
-const SITE_FOOTER_LABELS_BY_LOCALE: Record<SupportedLocale, SiteFooterLabels> = { en: EN, fr: FR };
+const PT: SiteFooterLabels = {
+  tagline: "Gestão escolar criada para escolas em África e além — registos, resultados e finanças que funcionam mesmo quando a internet falha.",
+  productHeading: 'Produto',
+  companyHeading: 'Empresa',
+  getInTouchHeading: 'Fale connosco',
+  chatOnWhatsApp: 'Conversar no WhatsApp',
+  getStarted: 'Começar →',
+  copyright: 'Elorge Technologies Limited — Desenvolvimento de Software e Infraestrutura de TI',
+  linkFeatures: 'Funcionalidades',
+  linkSessionWrap: 'Resumo do Ano Letivo',
+  linkCbt: 'Provas por Computador',
+  linkFinance: 'Propinas, Inventário e Contabilidade',
+  linkLessonNotes: 'Planos de Aula',
+  linkCheckResult: 'Consultar um Resultado',
+  linkOffline: 'Funciona Offline',
+  linkAbout: 'Sobre Nós',
+  linkCareers: 'Carreiras',
+  linkContact: 'Contacto',
+  linkTerms: 'Termos de Serviço',
+  linkPrivacy: 'Política de Privacidade',
+};
+
+const SITE_FOOTER_LABELS_BY_LOCALE: Record<SupportedLocale, SiteFooterLabels> = { en: EN, fr: FR, pt: PT };
 
 export function siteFooterLabelsFor(locale: string): SiteFooterLabels {
   return SITE_FOOTER_LABELS_BY_LOCALE[locale as SupportedLocale] ?? SITE_FOOTER_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

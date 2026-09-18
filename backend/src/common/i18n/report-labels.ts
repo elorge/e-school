@@ -66,7 +66,24 @@ const FR: ReportLabels = {
   scanForAttendance: 'Scanner pour la présence',
 };
 
-const REPORT_LABELS_BY_LOCALE: Record<SupportedLocale, ReportLabels> = { en: EN, fr: FR };
+const PT: ReportLabels = {
+  reportCardTitle: (termName) => `Boletim Escolar — ${termName}`,
+  admissionId: (id) => `Número de Matrícula: ${id}`,
+  subjectScores: 'Notas por Disciplina',
+  strengthWeakness: 'Pontos Fortes e Pontos a Melhorar',
+  strengthWeaknessLegend: 'Verde = ponto forte (70+)  Âmbar = a melhorar (50-69)  Vermelho = em risco (abaixo de 50)',
+  teacherRecommendation: 'Recomendação do Professor',
+  teachersComment: 'Comentário do Professor',
+  noScoresRecorded: 'Nenhuma nota registada para este período.',
+  strongPerformanceIn: (subjects) => `Bom desempenho em ${subjects}.`,
+  couldImproveIn: (subjects) => `Poderia melhorar com mais prática em ${subjects}.`,
+  needsSupportIn: (subjects) => `Precisa de apoio focado, possivelmente aulas extra, em ${subjects}.`,
+  noPhoto: 'Sem foto',
+  idCardIdPrefix: (id) => `Nº: ${id}`,
+  scanForAttendance: 'Digitalizar para presença',
+};
+
+const REPORT_LABELS_BY_LOCALE: Record<SupportedLocale, ReportLabels> = { en: EN, fr: FR, pt: PT };
 
 export function reportLabelsFor(locale: string): ReportLabels {
   return REPORT_LABELS_BY_LOCALE[locale as SupportedLocale] ?? REPORT_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

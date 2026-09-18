@@ -2,7 +2,7 @@
 // Mirrors backend/src/common/utils/locale.util.ts — keep in sync manually,
 // same as currency.ts mirrors currency.util.ts.
 
-export const SUPPORTED_LOCALES = ['en', 'fr'] as const;
+export const SUPPORTED_LOCALES = ['en', 'fr', 'pt'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const PLATFORM_DEFAULT_LOCALE: SupportedLocale = 'en';
@@ -11,6 +11,7 @@ export const PLATFORM_DEFAULT_LOCALE: SupportedLocale = 'en';
 export const LOCALE_LABELS: Record<SupportedLocale, string> = {
   en: 'English',
   fr: 'Français',
+  pt: 'Português',
 };
 
 /**
@@ -29,10 +30,16 @@ const LOCALE_BY_COUNTRY: Record<string, SupportedLocale> = {
   CI: 'fr',
   SN: 'fr',
   CM: 'fr',
+  MZ: 'pt',
+  AO: 'pt',
   US: 'en',
   GB: 'en',
 };
 
 export function localeForCountry(countryCode: string): SupportedLocale {
   return LOCALE_BY_COUNTRY[countryCode] ?? PLATFORM_DEFAULT_LOCALE;
+}
+
+export function isSupportedLocale(value: string): value is SupportedLocale {
+  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }

@@ -129,7 +129,9 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
       setReassignTargetId('');
       loadData();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 400) {
+      if (err instanceof ApiError && err.status === 400 && err.code === 'HAS_STAFF_PROFILE') {
+        setError(err.message);
+      } else if (err instanceof ApiError && err.status === 400) {
         setReassignPromptFor(userId);
       } else {
         setError(t.couldNotRemoveStaffMember);
