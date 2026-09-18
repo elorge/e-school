@@ -85,17 +85,37 @@ const FR: PasswordFlowLabels = {
   signIn: 'Se connecter',
 };
 
+const PT: PasswordFlowLabels = {
+  resetYourPassword: 'Redefina a sua palavra-passe',
+  forgotIntro: 'Insira o seu e-mail e enviaremos um link de redefinição.',
+  emailLabel: 'E-mail',
+  sending: 'A enviar…',
+  sendResetLink: 'Enviar link de redefinição',
+  resetLinkSentNotice: 'Se esse e-mail estiver registado, foi enviado um link de redefinição.',
+  backToSignIn: 'Voltar ao início de sessão',
+  changePasswordHeading: 'Escolha uma nova palavra-passe',
+  changePasswordIntro: 'Por segurança, precisa de definir uma nova palavra-passe antes de continuar.',
+  currentPasswordLabel: 'Palavra-passe atual (temporária)',
+  newPasswordLabel: 'Nova palavra-passe',
+  confirmNewPasswordLabel: 'Confirme a nova palavra-passe',
+  passwordsDoNotMatch: 'As palavras-passe não coincidem.',
+  saving: 'A guardar…',
+  changePasswordBtn: 'Alterar palavra-passe',
+  couldNotChangePassword: 'Não foi possível alterar a palavra-passe',
+  chooseNewPasswordHeading: 'Escolha uma nova palavra-passe',
+  newPasswordSetNotice: 'A sua palavra-passe foi atualizada. Já pode iniciar sessão.',
+  invalidLinkError: 'Este link de redefinição é inválido ou expirou.',
+  resetPasswordBtn: 'Redefinir palavra-passe',
+  missingTokenError: 'Este link não contém um token de redefinição. Por favor, solicite um novo.',
+  requestNewLink: 'Solicitar um novo link',
+  setNewPasswordBtn: 'Definir nova palavra-passe',
+  signIn: 'Iniciar sessão',
+};
+
 const PASSWORD_FLOW_LABELS_BY_LOCALE: Record<SupportedLocale, PasswordFlowLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function passwordFlowLabelsFor(locale: string): PasswordFlowLabels {

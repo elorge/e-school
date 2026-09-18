@@ -266,17 +266,114 @@ const FR: HomeLabels = {
   finalCtaHeading: 'Prêt à le voir fonctionner avec vos propres données ?',
 };
 
+const PT_CORE_FEATURES = [
+  { title: 'Resultados que se verificam a si próprios', body: 'Cada boletim tem um carimbo QR que um encarregado de educação pode digitalizar para confirmar a sua autenticidade — nunca mais duvidar de um certificado.' },
+  { title: 'Cartões de identificação e presença no portão', body: 'Emita um cartão de identificação digital no dia em que o aluno é matriculado. Digitalize-o no portão — mesmo que não haja sinal nessa manhã.' },
+  { title: 'Uma carteira, não três faturas', body: 'Carregue uma vez, na sua própria moeda. Os PINs de resultado e as provas baseadas em computador retiram da mesma cobrança por aluno — nunca cobrado duas vezes pelo mesmo aluno no mesmo período.' },
+  { title: 'Um calendário que qualquer professor pode imprimir', body: 'Organize um período em minutos, e depois entregue a cada diretor de turma uma cópia imprimível — sem ter de reescrever as mesmas datas à mão.' },
+];
+
+const PT_CBT_FEATURES = [
+  { title: 'Agendada, não em aberto', body: 'O código de acesso de uma prova só funciona no dia agendado, dentro de uma janela definida — não na semana seguinte, nem no mês seguinte.' },
+  { title: 'Funciona mesmo que o laboratório perca o sinal', body: 'As respostas são guardadas primeiro no dispositivo e sincronizam assim que a ligação regressar — uma queda de rede nunca faz perder o progresso de um aluno.' },
+  { title: 'Uma escola, sem laboratório necessário', body: 'As escolas sem um laboratório de informática completo continuam a inserir todas as notas à mão — nada aqui é obrigatório para usar o resto da plataforma.' },
+];
+
+const PT_LESSON_NOTES_FEATURES = [
+  { title: 'Um formato que os professores já conhecem', body: 'Um formato estruturado de nota de aula — não uma caixa de texto em branco.' },
+  { title: 'Um clique até ao projetor', body: 'A mesma nota transforma-se numa apresentação de diapositivos limpa e em ecrã inteiro — sem necessidade de construir diapositivos separados.' },
+  { title: 'Quadro branco incorporado', body: 'Caneta, borracha e cores, diretamente sobre o diapositivo — para resolver um passo ao vivo.' },
+];
+
+const PT_FINANCE_FEATURES = [
+  { title: 'Propinas e faturação', body: 'Gere faturas por turma e por período, registe pagamentos, e veja quem ainda deve num relance.' },
+  { title: 'Inventário', body: 'Entradas e saídas de stock, com alertas automáticos de stock baixo antes de esgotar essenciais.' },
+  { title: 'Contabilidade', body: 'Receitas e despesas, por categoria, para qualquer período — exportadas para Excel num clique.' },
+];
+
+const PT_RUN_SCHOOL_FEATURES = [
+  { title: 'Importação de alunos em massa', body: 'Já tem 400 alunos em papel ou noutro sistema? Descarregue um modelo, preencha-o no Excel offline, e carregue-o — com retorno de erro linha a linha caso algo precise de correção.' },
+  { title: 'Promoção de fim de ano letivo num clique', body: 'Passe toda uma turma para o ano seguinte em poucos cliques no final do ano, em vez de editar cada aluno um a um.' },
+  { title: 'Convites ao pessoal, feitos como deve ser', body: 'Convide um professor por e-mail — ele define a sua própria palavra-passe para ativar a conta, ou um administrador pode definir uma diretamente com alteração obrigatória no primeiro início de sessão.' },
+];
+
+const PT_INFRASTRUCTURE_FEATURES = [
+  { title: 'Impressão de cartões de identificação', body: 'Impressoras e cartões em branco para transformar os cartões de identificação digitais que já gera em cartões físicos.' },
+  { title: 'Leitores no portão', body: 'Leitores de QR/código de barras adequados ao fluxo de presença, com um guia de instalação incluído.' },
+  { title: 'Computadores para laboratório CBT', body: 'Equipamento de laboratório de gama de entrada dimensionado para provas baseadas em computador, para escolas ainda não totalmente equipadas.' },
+  { title: 'Configuração de rede', body: 'Cablagem estruturada e routers para que a promessa de "funciona mesmo offline" se mantenha no wifi real do seu campus.' },
+];
+
+const PT_FAQS = [
+  { q: 'Como é que um encarregado de educação consulta um resultado escolar online com a Elorge?', a: 'Um encarregado de educação visita a página de resultados da escola, insere o Número de Matrícula do aluno e um PIN de resultado emitido pela escola, e vê um boletim verificado e com carimbo QR — sem necessidade de conta.' },
+  { q: 'A Elorge suporta provas baseadas em computador (CBT)?', a: 'Sim. As escolas com um laboratório de informática podem construir um banco de perguntas, publicar provas agendadas com um código de acesso comunicado oralmente, e as perguntas objetivas são corrigidas instantaneamente. As escolas sem laboratório podem dispensar completamente o CBT e inserir as notas à mão.' },
+  { q: 'Os professores podem escrever e apresentar notas de aula na Elorge?', a: 'Sim. Os professores escrevem notas de aula num formato estruturado — objetivos, conhecimentos prévios, apresentação, avaliação, trabalho de casa — e depois transformam qualquer nota numa apresentação de diapositivos em ecrã inteiro para o projetor com um clique, com um quadro branco incorporado.' },
+  { q: 'A Elorge funciona sem acesso à internet?', a: 'Sim. A Elorge pode ser instalada como aplicação no telemóvel ou computador e continua a funcionar durante cortes — matriculando alunos, inserindo notas, e realizando provas CBT offline — sincronizando tudo assim que a ligação regressar.' },
+  { q: 'A Elorge é apenas para escolas na Nigéria?', a: 'Não. A Elorge começou na Nigéria e agora integra escolas em vários países, cada uma faturada na sua própria moeda através da Flutterwave — a estrutura académica da sua escola (períodos, semestres, ou trimestres) e a sua lista de disciplinas também são inteiramente suas, sem estarem fixas ao currículo de nenhum país específico.' },
+  { q: 'Que calendário académico é que a Elorge assume — períodos, semestres, ou outra coisa?', a: 'O que a sua escola realmente utilizar. Uma escola pode funcionar com 2 semestres, 3 períodos, 4 trimestres, ou qualquer outra estrutura, e nomear os períodos como habitualmente faz — nada está fixo ao calendário académico de um único país.' },
+];
+
+const PT: HomeLabels = {
+  kicker: 'Software de Gestão Escolar Elorge Technologies',
+  heroTitle: 'Um registo que os seus pais não têm de acreditar apenas na sua palavra.',
+  heroSubtitle: 'Resultados, cartões de identificação, presenças, propinas, provas baseadas em computador, e finanças escolares — num só lugar, a funcionar como a sua escola realmente funciona: às vezes com sinal, às vezes sem, onde quer que a sua escola esteja.',
+  getStarted: 'Começar',
+  signIn: 'Iniciar sessão',
+  mockSchoolName: 'Colégio Greenwood',
+  mockTermLabel: '2025/2026 — 2º Período',
+  admissionIdLabel: 'Número de Matrícula',
+  verifiedLabel: 'Verificado — digitalize para confirmar em elorgeschools.org/verify',
+  coreFeaturesHeading: 'Tudo o que uma secretaria escolar realmente faz, num só início de sessão.',
+  coreFeatures: PT_CORE_FEATURES,
+  globalKicker: 'Não apenas a Nigéria',
+  globalHeading: 'Construído na Nigéria. Construído para funcionar em qualquer lugar.',
+  globalBody: 'O país, a moeda, o calendário académico e a lista de disciplinas da sua escola são inteiramente seus — nada aqui presume o sistema de um único país. Uma escola em qualquer lugar configura o seu próprio espaço de trabalho e é faturada na sua própria moeda através da Flutterwave.',
+  dontSeeCountry: 'Não vê o seu país?',
+  talkToUs: 'Fale connosco',
+  addingCorridors: '— estamos a adicionar corredores à medida que as escolas os pedem.',
+  sessionWrapKicker: 'Resumo do Ano Letivo',
+  sessionWrapHeading: 'Um ano letivo de notas, transformado num ponto de partida para uma conversa a sério.',
+  sessionWrapBody: 'No final de um ano letivo, a Elorge analisa aquilo em que um aluno foi consistentemente forte — não um único teste com sorte, um ano letivo inteiro — e destaca áreas que vale a pena explorar por causa disso. As sugestões de áreas profissionais também não estão fixas a um único currículo: uma escola que lecione disciplinas fora das predefinições incorporadas associa as suas próprias para obter as mesmas sugestões. Não é um veredicto, e dizemo-lo em todo o lado: um ponto de partida para uma conversa entre encarregados de educação e professores, não um substituto para ela.',
+  sessionWrapCardYear: '2025/2026',
+  sessionWrapCardTerms: '3 períodos registados',
+  fieldsWorthExploring: 'Áreas que vale a pena explorar',
+  cbtKicker: 'Provas baseadas em computador',
+  cbtHeading: 'Para escolas com um laboratório de informática — as perguntas objetivas corrigem-se a si próprias.',
+  cbtBody: 'Construa um banco de perguntas à mão, ou descarregue um modelo, preencha-o no Excel offline, e carregue-o de uma só vez. Publique uma prova com uma data agendada e um código de acesso comunicado oralmente — os alunos iniciam sessão apenas com o seu Número de Matrícula, sem contas a criar. As notas objetivas são corrigidas instantaneamente; um professor adiciona a nota da parte teórica assim que as submissões estejam concluídas, e o resultado combinado passa diretamente para o mesmo boletim, protegido pelo mesmo PIN do encarregado de educação. Nenhum sistema separado para consultar.',
+  cbtFeatures: PT_CBT_FEATURES,
+  lessonNotesKicker: 'Notas de aula',
+  lessonNotesHeading: 'Escritas uma vez, ensinadas no quadro, lidas novamente em casa.',
+  lessonNotesBody: 'Os professores escrevem num formato estruturado usado para supervisão — objetivos, conhecimentos prévios, apresentação, avaliação, trabalho de casa. Um clique transforma-a numa apresentação de diapositivos em ecrã inteiro para o projetor, com um quadro branco sobreposto para resolver um problema ao vivo. Publique-a, e ela fica disponível para os alunos dessa turma a lerem novamente em casa, ao seu próprio ritmo — restrita à sua própria turma, não à internet aberta.',
+  lessonNotesFeatures: PT_LESSON_NOTES_FEATURES,
+  presentationLabel: 'Apresentação',
+  presentationSubject: 'Matemática — 8ª Classe',
+  presentationTitle: 'Resolver para x:',
+  whiteboardActive: 'Quadro branco ativo',
+  offlineKicker: 'Offline em primeiro lugar',
+  offlineHeading: 'Matricular um aluno, inserir uma nota, realizar uma prova — sem sinal nenhum.',
+  offlineBody: 'A eletricidade falha a meio da época de matrículas, ou o wifi do campus cai sem aviso. A Elorge é instalável diretamente a partir do seu navegador, funciona como uma aplicação real no seu telemóvel ou computador, e continua a funcionar durante o corte — sincronizando tudo assim que estiver de volta.',
+  financeKicker: 'Para além do académico',
+  financeHeading: 'Uma secretaria financeira, incorporada.',
+  financeBody: 'Defina as propinas de um período uma vez, gere faturas para cada turma, e registe os pagamentos à medida que chegam — em dinheiro ou por transferência, na sua própria moeda. Acompanhe materiais e equipamento para saber antes de esgotarem. Veja receitas contra despesas para qualquer intervalo de datas, exportável para Excel para o seu contabilista.',
+  financeFeatures: PT_FINANCE_FEATURES,
+  operationsHeading: 'A integração é rápida, mesmo com centenas de alunos já existentes.',
+  runSchoolFeatures: PT_RUN_SCHOOL_FEATURES,
+  infrastructureKicker: 'Para além do software',
+  infrastructureHeading: 'A Elorge é também uma empresa de infraestrutura de TI — também podemos ajudar no lado do hardware.',
+  infrastructureBody: 'A plataforma funciona quer tenha ou não tenha nada disto — mas se está a configurar cartões de identificação, um laboratório de informática, ou presença no portão pela primeira vez, podemos indicar-lhe o equipamento certo e ajudá-lo a configurá-lo.',
+  infrastructureFeatures: PT_INFRASTRUCTURE_FEATURES,
+  interestedInThis: 'Interessado em alguma coisa disto?',
+  advisePrefix: '— iremos aconselhá-lo sobre o que realmente se adequa à sua escola antes de recomendar seja o que for.',
+  faqHeading: 'Perguntas frequentes.',
+  faqs: PT_FAQS,
+  credibility: 'Construído para escolas que levam os seus registos a sério — de academias de campus único a colégios multi-filiais, em todos os países onde operamos.',
+  finalCtaHeading: 'Pronto para ver isto a funcionar com os seus próprios dados?',
+};
+
 const HOME_LABELS_BY_LOCALE: Record<SupportedLocale, HomeLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function homeLabelsFor(locale: string): HomeLabels {

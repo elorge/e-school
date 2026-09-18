@@ -61,17 +61,30 @@ const FR: DocumentsLabels = {
   termCalendarPdfBtn: 'PDF calendrier du trimestre',
 };
 
+const PT: DocumentsLabels = {
+  pageTitle: 'Documentos',
+  loadFailed: 'Falha ao carregar alunos/períodos',
+  genericDownloadError: 'Não foi possível gerar esse documento. Verifique a sua seleção e tente novamente.',
+  studentDocumentsHeading: 'Documentos do aluno',
+  studentLabel: 'Aluno',
+  selectStudent: 'Selecione um aluno',
+  pendingId: 'matrícula pendente',
+  termLabel: 'Período',
+  selectTerm: 'Selecione um período',
+  issueIdCardBtn: 'Emitir cartão de identificação',
+  couldNotIssueIdCard: 'Não foi possível emitir o cartão de identificação',
+  idCardPdfBtn: 'PDF do cartão de identificação',
+  noIdCardYetError: 'Ainda não há cartão de identificação registado para este aluno — clique primeiro em "Emitir cartão de identificação".',
+  reportCardPdfBtn: 'PDF do boletim escolar',
+  generating: 'A gerar…',
+  termDocumentsHeading: 'Documentos do período',
+  termCalendarPdfBtn: 'PDF do calendário do período',
+};
+
 const DOCUMENTS_LABELS_BY_LOCALE: Record<SupportedLocale, DocumentsLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function documentsLabelsFor(locale: string): DocumentsLabels {

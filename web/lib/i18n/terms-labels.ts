@@ -46,17 +46,25 @@ const FR: TermsLabels = {
   allTermsHeading: 'Toutes les périodes',
 };
 
+const PT: TermsLabels = {
+  pageTitle: 'Períodos',
+  loadFailed: 'Falha ao carregar os períodos',
+  createHeading: 'Criar um período',
+  createHelp: 'O ano letivo agrupa todos os períodos — por ex. "2025/2026" — e é o que alimenta o Resumo do Ano Letivo. Seja qual for o nome que a sua escola dá aos seus períodos (Trimestre, Semestre, Bimestre) e quantos existam por ano letivo, isto funciona — o número só precisa de ser único dentro de um ano letivo.',
+  academicSessionLabel: 'Ano letivo',
+  periodLabelLabel: 'Como chama a um período',
+  numberLabel: 'Número',
+  startDateLabel: 'Data de início',
+  endDateLabel: 'Data de fim',
+  createBtn: (periodLabel) => `Criar ${periodLabel || 'período'}`,
+  createError: 'Não foi possível criar o período — verifique se o ano letivo/número já não está em uso',
+  allTermsHeading: 'Todos os períodos',
+};
+
 const TERMS_LABELS_BY_LOCALE: Record<SupportedLocale, TermsLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function termsLabelsFor(locale: string): TermsLabels {

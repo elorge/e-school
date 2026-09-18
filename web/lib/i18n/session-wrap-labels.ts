@@ -72,17 +72,33 @@ const FR: SessionWrapLabels = {
   genericError: "Une erreur s'est produite. Veuillez réessayer.",
 };
 
+const PT: SessionWrapLabels = {
+  sessionWrap: 'Resumo do Ano Letivo',
+  termsOnFile: (count) => `${count} período(s) registado(s)`,
+  fieldsWorthExploring: 'Áreas que vale a pena explorar',
+  pageTitle: 'Resumo do Ano Letivo',
+  studentLabel: 'Aluno',
+  selectStudent: 'Selecione um aluno',
+  academicSessionLabel: 'Ano letivo',
+  selectSession: 'Selecione um ano letivo',
+  generate: 'Gerar',
+  generating: 'A gerar…',
+  loadFailed: 'Falha ao carregar alunos/anos letivos',
+  noResultsFound: 'Ainda não foram encontrados resultados para este aluno nesse ano letivo.',
+  downloadAsPdf: 'Descarregar em PDF',
+  yourChildsSessionWrap: 'O Resumo do Ano Letivo do seu filho/a',
+  publicIntro: 'Utilize o PIN de resultado atual do seu filho/a — verá todos os períodos registados até agora neste ano letivo, mesmo que seja apenas um.',
+  admissionIdLabel: 'Número de Matrícula',
+  pinLabel: 'PIN',
+  checking: 'A verificar…',
+  viewSessionWrap: 'Ver Resumo do Ano Letivo',
+  genericError: 'Ocorreu um erro. Por favor, tente novamente.',
+};
+
 const SESSION_WRAP_LABELS_BY_LOCALE: Record<SupportedLocale, SessionWrapLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function sessionWrapLabelsFor(locale: string): SessionWrapLabels {

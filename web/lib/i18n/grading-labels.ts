@@ -70,17 +70,33 @@ const FR: GradingLabels = {
   saveError: 'Impossible d\'enregistrer — vérifiez la classe/matière/trimestre.',
 };
 
+const PT: GradingLabels = {
+  pageTitle: 'Ponderação de Notas',
+  description: 'Decida que parte da nota final de uma disciplina vem do Teste vs. Exame (ou qualquer divisão que pretenda). Deixe um período por selecionar para definir um valor predefinido que se aplica a todos os períodos, e depois substitua períodos individuais conforme necessário — a mesma lógica de deixar uma disciplina por selecionar para definir um valor predefinido para toda a turma.',
+  selectClass: 'Selecione uma turma',
+  allSubjectsClassDefault: 'Todas as disciplinas (predefinição da turma)',
+  allTermsDefault: 'Todos os períodos (predefinição)',
+  coveragePrefix: (subjectSuffix) => `COBERTURA ${subjectSuffix}`,
+  allSubjectsClassDefaultSuffix: '— todas as disciplinas (predefinição da turma)',
+  levelTermSubject: 'Configurado para este período',
+  levelSubjectDefault: 'A usar a predefinição desta disciplina',
+  levelTermClasswide: 'A usar a ponderação da turma deste período',
+  levelClassDefault: 'A usar a predefinição da turma',
+  levelUnweighted: 'Sem ponderação (inserção direta da nota)',
+  componentNamePlaceholder: 'Nome do componente (ex. Teste)',
+  addComponentBtn: 'Adicionar componente',
+  totalLabel: (total) => `Total: ${total}%`,
+  saveWeightingBtn: 'Guardar ponderação',
+  weightsSumError: (total) => `As ponderações devem somar 100 — atualmente ${total}.`,
+  confirmNoWiderDefault: 'Isto só se aplica ao período selecionado. Outros períodos desta turma/disciplina ainda não têm uma predefinição, por isso continuarão a usar a inserção direta e sem ponderação das notas até que os configure também (ou defina uma predefinição deixando o Período em branco). Guardar mesmo assim?',
+  savedNotice: 'Guardado. Os novos resultados CBT e as notas de componentes inseridas manualmente para esta turma serão agora ponderados desta forma.',
+  saveError: 'Não foi possível guardar — verifique a turma/disciplina/período.',
+};
+
 const GRADING_LABELS_BY_LOCALE: Record<SupportedLocale, GradingLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function gradingLabelsFor(locale: string): GradingLabels {

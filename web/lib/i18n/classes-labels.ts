@@ -112,17 +112,47 @@ const FR: ClassesLabels = {
   addBtn: 'Ajouter',
 };
 
+const PT: ClassesLabels = {
+  pageTitle: 'Turmas',
+  loadFailed: 'Falha ao carregar turmas/pessoal',
+  subjectCatalogHeading: 'Catálogo de disciplinas',
+  subjectCatalogHelp: 'Lista de disciplinas de toda a escola — adicione o que o seu currículo utilizar, não há um conjunto fixo. Atribua as relevantes a cada turma abaixo.',
+  addSubjectPlaceholder: 'ex. Matemática Avançada, Suaíli, Twi',
+  addToCatalogBtn: 'Adicionar ao catálogo',
+  couldNotAddSubject: 'Não foi possível adicionar a disciplina — pode já existir',
+  careerFieldsHeading: 'Sugestões de áreas profissionais',
+  careerFieldsHelp: 'Alimenta a secção de "áreas sugeridas" do Resumo do Ano Letivo. As predefinições abaixo cobrem um currículo comum na região — associe qualquer disciplina do seu catálogo acima (como as que acabou de adicionar) às áreas profissionais que apoia, e o Resumo do Ano Letivo passará também a sugeri-las.',
+  subjectSelectLabel: 'Disciplina',
+  careerFieldPlaceholder: 'Área profissional, ex. Linguística',
+  linkBtn: 'Associar',
+  mappingLinkedNotice: (subject, field) => `Associada "${subject}" → "${field}" para as sugestões do Resumo do Ano Letivo.`,
+  couldNotAddMapping: 'Não foi possível adicionar esta associação',
+  couldNotRemoveMapping: 'Não foi possível remover esta associação',
+  yourMappingsHeading: 'As associações da sua escola',
+  platformDefaults: (count) => `Predefinições da plataforma (${count})`,
+  createClassHeading: 'Criar uma turma',
+  classNameLabel: 'Nome da turma',
+  classNamePlaceholder: '8ª Classe',
+  classTeacherLabel: 'Diretor(a) de turma (opcional — pode atribuir depois)',
+  unassigned: '— não atribuído —',
+  createClassBtn: 'Criar turma',
+  couldNotCreateClass: 'Não foi possível criar a turma',
+  allClassesHeading: 'Todas as turmas',
+  classTeacherPrefix: 'diretor(a) de turma:',
+  hideSubjectsBtn: 'Ocultar disciplinas',
+  manageSubjectsBtn: 'Gerir disciplinas',
+  reassignTeacherPlaceholder: 'Reatribuir professor…',
+  classTeacherUpdatedNotice: 'Diretor(a) de turma atualizado(a).',
+  couldNotAssignTeacher: 'Não foi possível atribuir o professor',
+  noSubjectsAssignedYet: 'Ainda não há disciplinas atribuídas.',
+  addASubjectPlaceholder: 'Adicionar uma disciplina…',
+  addBtn: 'Adicionar',
+};
+
 const CLASSES_LABELS_BY_LOCALE: Record<SupportedLocale, ClassesLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function classesLabelsFor(locale: string): ClassesLabels {

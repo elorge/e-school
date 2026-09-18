@@ -31,17 +31,20 @@ const FR: PromotionLabels = {
   promoteBtn: (count) => `Promouvoir ${count} élève(s)`,
 };
 
+const PT: PromotionLabels = {
+  pageTitle: 'Promoção de Final de Ano',
+  fromClass: 'Da turma',
+  toClass: 'Para a turma',
+  chooseTargetError: 'Escolha uma turma de destino e pelo menos um aluno.',
+  promotedNotice: (count) => `${count} aluno(s) promovido(s).`,
+  couldNotPromote: 'Não foi possível promover os alunos',
+  promoteBtn: (count) => `Promover ${count} aluno(s)`,
+};
+
 const PROMOTION_LABELS_BY_LOCALE: Record<SupportedLocale, PromotionLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function promotionLabelsFor(locale: string): PromotionLabels {

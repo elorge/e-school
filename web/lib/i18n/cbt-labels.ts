@@ -117,17 +117,46 @@ const FR: CbtLabels = {
   startAnotherSessionBtn: 'Démarrer une autre session',
 };
 
+const PT: CbtLabels = {
+  testSubmitted: 'Prova submetida',
+  submittedOffline:
+    'Sem internet neste momento — a sua submissão está guardada neste dispositivo e será sincronizada automaticamente. Por favor, não feche este separador ainda.',
+  submittedOnline: 'Submetido com sucesso.',
+  quizInstructions: 'Instruções da Prova',
+  purposeLabel: 'Objetivo:',
+  defaultPurpose: (n) => `Responda a todas as ${n} pergunta(s) abaixo. As suas respostas são guardadas automaticamente à medida que avança.`,
+  conditionsLabel: 'Condições:',
+  defaultConditions: 'Permaneça nesta página até submeter. Assim que o tempo terminar, a prova é submetida automaticamente.',
+  startedAt: 'Iniciado:',
+  at: 'às',
+  question: 'Pergunta',
+  point: 'pt',
+  points: 'pts',
+  answered: 'respondidas',
+  left: 'restantes',
+  submitQuiz: 'Submeter Prova',
+  toggleMenu: 'Menu',
+  toggleInstructions: 'Mostrar/ocultar instruções',
+  loginTitle: 'Inicie a sua prova',
+  loginSubtitle: 'Insira o seu Número de Matrícula e o código de acesso partilhado pelo seu professor hoje.',
+  admissionIdLabel: 'Número de Matrícula',
+  accessCodeLabel: 'Código de acesso',
+  loginError: 'Não foi possível iniciar a prova — verifique o seu Número de Matrícula e o código de acesso.',
+  beginTest: 'Iniciar prova',
+  startingTest: 'A iniciar…',
+  startCbtSessionHeading: 'Iniciar uma sessão CBT',
+  selectClassOption: 'Selecionar turma',
+  selectStudentOption: 'Selecionar aluno',
+  selectTestOption: 'Selecionar prova',
+  couldNotStartTest: 'Não foi possível iniciar esta prova — verifique se está publicada e se este aluno está atribuído a ela.',
+  sessionEndedHeading: 'Sessão terminada',
+  startAnotherSessionBtn: 'Iniciar outra sessão',
+};
+
 const CBT_LABELS_BY_LOCALE: Record<SupportedLocale, CbtLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function cbtLabelsFor(locale: string): CbtLabels {

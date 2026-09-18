@@ -67,17 +67,36 @@ const FR: CareersLabels = {
   emailUs: 'Nous écrire',
 };
 
+const PT_WHY = [
+  { title: 'Problemas reais, não tarefas de enchimento', body: 'Cada funcionalidade que lançamos existe porque uma secretaria escolar, um leitor no portão, ou um encarregado de educação com um boletim precisava mesmo dela. Nunca vai passar um sprint a construir algo inventado apenas para preencher um roteiro.' },
+  { title: 'Engenharia que tem de resistir offline', body: 'A eletricidade falha a meio da época de matrículas, e a plataforma tem mesmo assim de continuar a funcionar. Se gosta de problemas com uma restrição real do mundo — não apenas uma especificação limpa — esta é esse tipo de equipa.' },
+  { title: 'Pequena o suficiente para importar', body: 'Somos uma equipa pequena, montada de forma deliberada. O que constrói chega a escolas reais em semanas, não depois de um ano de revisão em comité.' },
+];
+
+const PT_HOW_WE_HIRE = [
+  { title: 'Diga olá', body: 'Envie-nos uma mensagem sobre quem é e no que gostaria de trabalhar — sem candidatura formal, sem modelo de carta de apresentação para preencher.' },
+  { title: 'Uma conversa a sério', body: 'Conversamos sobre o que estamos a construir, onde encaixaria, e se é mesmo uma boa correspondência — tanto para si como para nós.' },
+  { title: 'Uma sessão de trabalho, não um teste no quadro branco', body: 'Se parecer haver correspondência, trabalhamos juntos em algo próximo de um problema real, para que tenha uma visão honesta do trabalho antes de se comprometer.' },
+];
+
+const PT: CareersLabels = {
+  kicker: 'Carreiras',
+  heroTitle: 'Construa o software que as escolas realmente precisam.',
+  heroBody: 'A Elorge Technologies Limited é uma equipa pequena e focada que constrói software de gestão escolar e infraestrutura de TI. Não somos uma grande empresa com um processo formal de recrutamento — mas se o que estamos a construir lhe faz sentido, gostaríamos de ouvir de si.',
+  whyHeading: 'Porque é que as pessoas trabalham aqui.',
+  whyElorge: PT_WHY,
+  hireKicker: 'Sem processo de caixa preta',
+  hireHeading: 'O que acontece realmente depois de nos contactar.',
+  howWeHire: PT_HOW_WE_HIRE,
+  openRolesHeading: 'Vagas abertas',
+  noOpenRolesBody: 'Não temos vagas específicas em aberto neste momento. Isso não significa que não estejamos interessados em conhecer boas pessoas — se a tecnologia educativa o entusiasma, escreva-nos na mesma. Mantemos uma lista de todas as pessoas que já nos escreveram, e é a ela que recorremos primeiro quando uma vaga abre.',
+  emailUs: 'Envie-nos um e-mail',
+};
+
 const CAREERS_LABELS_BY_LOCALE: Record<SupportedLocale, CareersLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function careersLabelsFor(locale: string): CareersLabels {

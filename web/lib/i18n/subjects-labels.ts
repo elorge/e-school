@@ -76,17 +76,35 @@ const FR: SubjectsLabels = {
   platformDefaults: (count) => `Valeurs par défaut de la plateforme (${count})`,
 };
 
+const PT: SubjectsLabels = {
+  pageTitle: 'Disciplinas',
+  loadFailed: 'Falha ao carregar disciplinas e áreas profissionais',
+  subjectCatalogHeading: 'Catálogo de disciplinas',
+  subjectCatalogHelp: 'A lista própria da sua escola — não partilhada com nenhuma outra escola. Adicione o que o seu currículo utilizar; não há um conjunto fixo.',
+  removeSubjectTitle: 'Remover disciplina',
+  noSubjectsYet: 'Ainda não foram adicionadas disciplinas.',
+  addSubjectPlaceholder: 'ex. Suaíli, Twi, Matemática Avançada',
+  addSubjectBtn: 'Adicionar disciplina',
+  subjectAddedNotice: (name) => `"${name}" adicionada ao seu catálogo de disciplinas.`,
+  couldNotAddSubject: 'Não foi possível adicionar a disciplina — pode já existir.',
+  subjectRemovedNotice: (name) => `Removida "${name}" e as suas atribuições de turma.`,
+  couldNotRemoveSubject: 'Não foi possível remover a disciplina',
+  careerFieldsHeading: 'Sugestões de áreas profissionais',
+  careerFieldsHelp: 'Alimenta a secção de "áreas sugeridas" do Resumo do Ano Letivo. As predefinições abaixo cobrem um currículo comum na região — associe qualquer disciplina que a sua escola lecione (como as que acabou de adicionar acima) às áreas profissionais que apoia, e o Resumo do Ano Letivo passará também a sugeri-las.',
+  subjectSelectLabel: 'Disciplina',
+  careerFieldPlaceholder: 'Área profissional, ex. Linguística',
+  linkBtn: 'Associar',
+  mappingLinkedNotice: (subject, field) => `Associada "${subject}" → "${field}" para as sugestões do Resumo do Ano Letivo.`,
+  couldNotAddMapping: 'Não foi possível adicionar esta associação',
+  couldNotRemoveMapping: 'Não foi possível remover esta associação',
+  yourMappingsHeading: 'As associações da sua escola',
+  platformDefaults: (count) => `Predefinições da plataforma (${count})`,
+};
+
 const SUBJECTS_LABELS_BY_LOCALE: Record<SupportedLocale, SubjectsLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function subjectsLabelsFor(locale: string): SubjectsLabels {

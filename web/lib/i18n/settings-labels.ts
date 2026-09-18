@@ -58,17 +58,29 @@ const FR: SettingsLabels = {
   uploadSignatureBtn: 'Téléverser la signature',
 };
 
+const PT: SettingsLabels = {
+  pageTitle: 'Definições',
+  languageHeading: 'Idioma',
+  languageHelp: 'Define o idioma dos boletins escolares, ecrãs de provas (CBT) e e-mails que a Elorge envia sobre a sua escola. O conteúdo escrito por professores — nomes de disciplinas, comentários, o nome da sua própria escola — nunca é traduzido; permanece exatamente como foi inserido.',
+  languageUpdatedNotice: 'Idioma atualizado — os novos boletins, ecrãs CBT e e-mails irão utilizá-lo. Tudo o que já foi gerado permanece como estava.',
+  languageUpdateError: 'Não foi possível atualizar o idioma. Por favor, tente novamente.',
+  logoHeading: 'Logótipo da escola',
+  logoHelp: 'Utilizado nos boletins, cartões de identificação e no calendário académico — nunca o logótipo da Elorge.',
+  logoUpdatedNotice: 'Logótipo da escola atualizado — passará a aparecer nos boletins, cartões de identificação e no calendário.',
+  logoUploadError: 'Não foi possível carregar o logótipo. Tente uma imagem mais pequena (menos de 5MB).',
+  uploadingBtn: 'A carregar…',
+  uploadLogoBtn: 'Carregar logótipo',
+  signatureHeading: 'Assinatura do Diretor(a) da Escola',
+  signatureHelp: 'Uma assinatura digitalizada ou fotografada, idealmente sobre fundo liso — aparece nos boletins impressos.',
+  signatureUpdatedNotice: 'Assinatura atualizada — passará a aparecer nos boletins.',
+  signatureUploadError: 'Não foi possível carregar a assinatura. Tente uma imagem mais pequena (menos de 5MB).',
+  uploadSignatureBtn: 'Carregar assinatura',
+};
+
 const SETTINGS_LABELS_BY_LOCALE: Record<SupportedLocale, SettingsLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function settingsLabelsFor(locale: string): SettingsLabels {

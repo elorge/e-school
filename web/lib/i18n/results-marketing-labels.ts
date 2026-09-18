@@ -69,17 +69,37 @@ const FR: ResultsMarketingLabels = {
   ctaButton: 'Rejoindre Elorge avec votre école',
 };
 
+const PT_HOW_IT_WORKS = [
+  { title: 'Aceda à página Elorge da sua escola', body: 'A sua escola fornece um endereço web específico para ela — algo como elorgeschools.org/asuaescola/results.' },
+  { title: 'Insira o Número de Matrícula e o PIN de resultado', body: 'Ambos são emitidos pela escola. Sem conta nem palavra-passe a criar — apenas os dois códigos ligados ao registo do seu filho/a.' },
+  { title: 'Veja um boletim verificado e com carimbo QR', body: 'Cada resultado tem um código QR que você ou qualquer outra pessoa pode digitalizar para confirmar que é o registo genuíno em arquivo — e não uma fotocópia duvidosa.' },
+];
+
+const PT_FAQS = [
+  { q: 'Como consulto o resultado escolar do meu filho/a online?', a: 'A sua escola fornece um link de resultados específico, além de um Número de Matrícula e um PIN de resultado para o seu filho/a. Insira ambos nessa página para ver um boletim verificado — sem necessidade de conta.' },
+  { q: 'O que é um PIN de resultado e onde o obtenho?', a: 'Um PIN de resultado é um código que a sua escola emite por período para desbloquear o boletim de um aluno online. Contacte a secretaria da sua escola se não tiver um.' },
+  { q: 'Como sei se um resultado é genuíno?', a: 'Todo boletim Elorge tem um carimbo QR. Ao digitalizá-lo, confirma-se que o resultado corresponde ao registo em arquivo na escola — para que um resultado não possa ser alterado ou falsificado posteriormente.' },
+  { q: 'A minha escola ainda não está na Elorge — posso mesmo assim consultar um resultado aqui?', a: 'Não — os resultados são específicos ao espaço de trabalho Elorge de cada escola. Se a sua escola ainda não aderiu, peça-lhe que o faça, ou partilhe esta página com a administração da sua escola.' },
+];
+
+const PT: ResultsMarketingLabels = {
+  kicker: 'Consultar um resultado',
+  heroTitle: 'Um resultado que não precisa de acreditar apenas na palavra de ninguém.',
+  heroBody: 'Cada boletim emitido através da Elorge tem um carimbo QR que um encarregado de educação pode digitalizar para confirmar a sua autenticidade. Eis como funciona realmente a consulta de um resultado.',
+  noteBody: 'Esta página explica como funciona a consulta de resultados — não é, em si, um portal de resultados. A sua escola específica fornece-lhe um link como elorgeschools.org/asuaescola/results, juntamente com um Número de Matrícula e um PIN para o seu filho/a.',
+  howItWorksHeading: 'Três passos, sem necessidade de conta.',
+  howItWorks: PT_HOW_IT_WORKS,
+  faqHeading: 'Perguntas frequentes sobre a consulta de um resultado.',
+  faqs: PT_FAQS,
+  ctaHeading: 'A sua escola já está na Elorge?',
+  ctaBody: 'Se a sua escola ainda não configurou resultados verificados, cartões de identificação e CBT, indique-lhes esta página.',
+  ctaButton: 'Traga a sua escola para a Elorge',
+};
+
 const RESULTS_MARKETING_LABELS_BY_LOCALE: Record<SupportedLocale, ResultsMarketingLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function resultsMarketingLabelsFor(locale: string): ResultsMarketingLabels {

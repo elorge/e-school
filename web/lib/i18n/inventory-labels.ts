@@ -91,17 +91,40 @@ const FR: InventoryLabels = {
   typeOut: 'Sortie',
 };
 
+const PT: InventoryLabels = {
+  pageTitle: 'Inventário',
+  lowStockHeading: 'Stock baixo',
+  leftUnit: (name, qty, unit, reorderLevel) => `${name} — restam ${qty} ${unit} (reabastecer em ${reorderLevel})`,
+  addItemHeading: 'Adicionar um item',
+  namePlaceholder: 'Nome',
+  categoryPlaceholder: 'Categoria',
+  unitPlaceholder: 'Unidade',
+  reorderAtPlaceholder: 'Reabastecer em',
+  addBtn: 'Adicionar',
+  couldNotCreateItem: 'Não foi possível criar o item',
+  allItemsHeading: 'Todos os itens',
+  onHand: (qty, unit) => `${qty} ${unit} em stock`,
+  perUnit: (money, unit) => `(${money} / ${unit})`,
+  qtyPlaceholder: 'Qtd',
+  stockInBtn: 'Entrada de stock',
+  stockOutBtn: 'Saída de stock',
+  couldNotRecordTransaction: 'Não foi possível registar a transação — verifique os níveis de stock',
+  recentTransactionsHeading: 'Transações recentes',
+  exportToExcelBtn: 'Exportar para Excel',
+  noTransactionsYet: 'Ainda não há transações registadas.',
+  colDate: 'Data',
+  colItem: 'Item',
+  colType: 'Tipo',
+  colQty: 'Qtd',
+  colBy: 'Por',
+  typeIn: 'Entrada',
+  typeOut: 'Saída',
+};
+
 const INVENTORY_LABELS_BY_LOCALE: Record<SupportedLocale, InventoryLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function inventoryLabelsFor(locale: string): InventoryLabels {

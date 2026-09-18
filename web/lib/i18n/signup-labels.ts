@@ -103,17 +103,44 @@ const FR: SignupLabels = {
   signIn: 'Se connecter',
 };
 
+const PT: SignupLabels = {
+  heading: 'Traga a sua escola para a Elorge',
+  subheading: 'Onde quer que a sua escola esteja, conte-nos um pouco sobre ela. A nossa equipa analisa cada pedido e ativa o seu espaço de trabalho, normalmente dentro de um dia útil.',
+  requestReceivedTitle: 'Pedido recebido.',
+  requestReceivedBody: (email) => `Enviaremos um e-mail para ${email} assim que o seu espaço de trabalho estiver pronto.`,
+  backToHome: 'Voltar ao início',
+  countryLabel: 'País',
+  selectYourCountry: 'Selecione o seu país',
+  billedInCurrency: (currency) => `A sua escola será faturada em ${currency}.`,
+  languageLabel: 'Idioma',
+  selectCountryFirst: 'Selecione primeiro o seu país',
+  languageHelp: 'Os boletins, ecrãs CBT e e-mails que enviamos serão neste idioma. Pode alterá-lo mais tarde.',
+  schoolNameLabel: 'Nome da escola',
+  workspaceNameLabel: 'Nome do espaço de trabalho (usado no seu endereço web)',
+  schoolCodeLabel: 'Código da escola (2 a 10 letras/números, usado nos números de matrícula)',
+  yourNameLabel: 'O seu nome (Administrador da Escola)',
+  yourEmailLabel: 'O seu e-mail',
+  choosePasswordLabel: 'Escolha uma palavra-passe',
+  confirmPasswordLabel: 'Confirme a palavra-passe',
+  phoneLabel: 'Telefone (opcional)',
+  passwordsDoNotMatch: 'As palavras-passe não coincidem.',
+  selectCountryError: 'Por favor, selecione o seu país.',
+  selectLanguageError: 'Por favor, selecione um idioma.',
+  genericError: 'Ocorreu um erro. Por favor, tente novamente.',
+  consentPrefix: 'Confirmo que a minha escola tem consentimento legal para submeter dados de alunos, e concordo com os',
+  termsLink: 'Termos',
+  andText: 'e a',
+  privacyLink: 'Política de Privacidade',
+  submitting: 'A submeter…',
+  requestAccess: 'Solicitar acesso',
+  alreadyHaveAccount: 'Já tem uma conta?',
+  signIn: 'Iniciar sessão',
+};
+
 const SIGNUP_LABELS_BY_LOCALE: Record<SupportedLocale, SignupLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function signupLabelsFor(locale: string): SignupLabels {

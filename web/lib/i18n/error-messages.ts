@@ -49,6 +49,23 @@ const FR: Record<string, MessageFn> = {
   PASSWORD_RESET_LINK_INVALID: () => 'Ce lien de réinitialisation est invalide ou a expiré.',
 };
 
+const PT: Record<string, MessageFn> = {
+  CBT_INVALID_ACCESS_CODE: () => 'Código de acesso inválido ou expirado.',
+  CBT_ADMISSION_ID_NOT_RECOGNIZED: () => 'Número de matrícula não reconhecido.',
+  CBT_WRONG_DAY: (p) => `Esta prova está agendada para ${p?.date} — o código de acesso só funciona nesse dia.`,
+  CBT_TEST_NOT_OPEN: () => 'Esta prova não está atualmente aberta.',
+  CBT_NOT_ASSIGNED: () => 'Este aluno não está atribuído a esta prova.',
+  CBT_ALREADY_SUBMITTED: () => 'Esta tentativa já foi submetida.',
+  PIN_TOO_MANY_ATTEMPTS: (p) => `Demasiadas tentativas falhadas. Tente novamente após ${formatTime(String(p?.lockedUntil), 'pt')}.`,
+  PIN_INVALID_CREDENTIALS: () => 'Número de matrícula ou PIN inválido.',
+  LESSON_NOTE_ADMISSION_ID_NOT_RECOGNIZED: () => 'Número de matrícula não reconhecido.',
+  LESSON_NOTE_NOT_FOUND: () => 'Esta nota de aula não está disponível para a sua turma.',
+  SIGNUP_WORKSPACE_NAME_TAKEN: () => 'Esse nome de espaço de trabalho já está em uso.',
+  SIGNUP_SCHOOL_CODE_TAKEN: () => 'Esse código de escola já está em uso.',
+  LOGIN_INVALID_CREDENTIALS: () => 'Credenciais inválidas.',
+  PASSWORD_RESET_LINK_INVALID: () => 'Este link de redefinição de palavra-passe é inválido ou expirou.',
+};
+
 function formatTime(iso: string, locale: string): string {
   try {
     return new Date(iso).toLocaleString(locale);
@@ -60,14 +77,7 @@ function formatTime(iso: string, locale: string): string {
 const ERROR_MESSAGES_BY_LOCALE: Record<SupportedLocale, Record<string, MessageFn>> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 /**

@@ -58,17 +58,29 @@ const FR: PinsLabels = {
   generatePinsBtn: 'Générer les codes PIN',
 };
 
+const PT: PinsLabels = {
+  pinsGeneratedHeading: 'PINs gerados',
+  printSheetBtn: 'Imprimir folha',
+  oneTimeWarning: 'Estes PINs são apresentados apenas uma vez e nunca são guardados em texto simples nem enviados por e-mail — anote-os ou imprima esta página agora.',
+  colStudent: 'Aluno',
+  colAdmissionIdPin: 'Número de Matrícula / PIN',
+  generateAnotherBatchBtn: 'Gerar outro lote',
+  pageTitle: 'Gerar PINs de Resultados',
+  couldNotGeneratePins: 'Não foi possível gerar os PINs — verifique o saldo da carteira',
+  termLabel: 'Período',
+  classLabel: 'Turma',
+  selectAllBtn: (count) => `Selecionar todos (${count})`,
+  pendingId: 'matrícula pendente',
+  selectedSummary: (count) => `${count} aluno(s) selecionado(s) — os alunos já cobrados neste período (via PIN ou CBT) não são cobrados novamente.`,
+  upTo: (amount) => `Até ${amount}`,
+  generating: 'A gerar…',
+  generatePinsBtn: 'Gerar PINs',
+};
+
 const PINS_LABELS_BY_LOCALE: Record<SupportedLocale, PinsLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function pinsLabelsFor(locale: string): PinsLabels {

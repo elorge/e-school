@@ -58,17 +58,29 @@ const FR: AccountingLabels = {
   exportToExcelBtn: 'Exporter vers Excel',
 };
 
+const PT: AccountingLabels = {
+  pageTitle: 'Contabilidade',
+  loadFailed: 'Falha ao carregar os dados contabilísticos',
+  fromLabel: 'De',
+  toLabel: 'Até',
+  incomeLabel: 'Receita (pagamentos de propinas)',
+  expensesLabel: 'Despesas',
+  netLabel: 'Líquido',
+  expensesByCategoryHeading: 'Despesas por categoria',
+  recordExpenseHeading: 'Registar uma despesa',
+  categoryPlaceholder: 'Categoria, ex. Salários',
+  descriptionPlaceholder: 'Descrição',
+  amountPlaceholder: (currency) => `Valor (${currency})`,
+  recordBtn: 'Registar',
+  couldNotRecordExpense: 'Não foi possível registar a despesa',
+  recentExpensesHeading: 'Despesas recentes',
+  exportToExcelBtn: 'Exportar para Excel',
+};
+
 const ACCOUNTING_LABELS_BY_LOCALE: Record<SupportedLocale, AccountingLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function accountingLabelsFor(locale: string): AccountingLabels {

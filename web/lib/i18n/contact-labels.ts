@@ -23,6 +23,12 @@ const FR_REASONS = [
   { title: 'Tarification et ce qui convient à votre école', body: "Comment fonctionnent le portefeuille et les frais par élève, et ce qu'une école de votre taille paierait réellement." },
 ];
 
+const PT_REASONS = [
+  { title: 'Configurar a sua escola', body: 'Integração, importação da sua lista de alunos existente, ou configuração do seu primeiro trimestre.' },
+  { title: 'Algo não está a funcionar bem', body: 'Uma sincronização que não foi concluída, um leitor que não lê um cartão, qualquer coisa que pareça estranha.' },
+  { title: 'Preços e o que se adequa à sua escola', body: 'Como funcionam a carteira e as taxas por aluno, e quanto uma escola do seu porte pagaria na prática.' },
+];
+
 const EN: ContactLabels = {
   kicker: 'Contact',
   heroTitle: "Let's talk.",
@@ -43,17 +49,20 @@ const FR: ContactLabels = {
   closingBody: "Pas de file d'attente de tickets, pas de boucle de chatbot — écrivez simplement et quelqu'un qui comprend vraiment la plateforme vous répondra.",
 };
 
+const PT: ContactLabels = {
+  kicker: 'Contacto',
+  heroTitle: 'Vamos conversar.',
+  heroBody: 'Perguntas sobre a configuração da sua escola, preços, ou qualquer outra coisa — contacte-nos diretamente. Uma pessoa real da nossa equipa lê todas as mensagens.',
+  chatOnWhatsApp: 'Conversar no WhatsApp',
+  reasonsHeading: 'Os motivos mais comuns pelos quais nos escrevem.',
+  reasons: PT_REASONS,
+  closingBody: 'Sem fila de tickets, sem ciclo de chatbot — basta escrever e alguém que compreende mesmo a plataforma responderá.',
+};
+
 const CONTACT_LABELS_BY_LOCALE: Record<SupportedLocale, ContactLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function contactLabelsFor(locale: string): ContactLabels {

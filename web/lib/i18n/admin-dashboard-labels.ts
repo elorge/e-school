@@ -103,17 +103,44 @@ const FR: AdminDashboardLabels = {
   enterResultsBtn: 'Saisir les résultats',
 };
 
+const PT: AdminDashboardLabels = {
+  pageTitle: 'Administração',
+  loadFailed: 'Falha ao carregar o painel',
+  loadStudentsFailed: 'Falha ao carregar os alunos desta turma',
+  walletBalance: 'Saldo da carteira',
+  amountLabel: (currency) => `Valor (${currency})`,
+  payerEmailLabel: 'E-mail do pagador',
+  fundWalletBtn: 'Carregar carteira',
+  couldNotStartPayment: 'Não foi possível iniciar o pagamento',
+  staffHeading: 'Pessoal',
+  inviteByEmailBtn: 'Convidar por e-mail',
+  setPasswordNowBtn: 'Definir palavra-passe agora',
+  fullNameLabel: 'Nome completo',
+  emailLabel: 'E-mail',
+  temporaryPasswordLabel: 'Palavra-passe temporária',
+  confirmPasswordLabel: 'Confirmar palavra-passe',
+  passwordsDoNotMatch: 'As palavras-passe não coincidem.',
+  savingBtn: 'A guardar…',
+  sendInviteBtn: 'Enviar convite',
+  createAccountBtn: 'Criar conta',
+  inviteSentNotice: (email) => `Convite enviado para ${email} — essa pessoa irá definir a sua própria palavra-passe para ativar a conta.`,
+  accountCreatedNotice: (email) => `Conta criada para ${email}. Partilhe a palavra-passe diretamente com essa pessoa — ser-lhe-á pedido que a altere no primeiro início de sessão.`,
+  couldNotCreateStaffAccount: 'Não foi possível criar a conta do pessoal',
+  reassignPlaceholder: 'Reatribuir as suas turmas/alunos a…',
+  confirmRemovalBtn: 'Confirmar remoção',
+  removeBtn: 'Remover',
+  couldNotRemoveStaffMember: 'Não foi possível remover este membro do pessoal',
+  studentsAndResultsHeading: 'Alunos e Resultados',
+  selectClass: 'Selecione uma turma',
+  noActiveStudents: 'Nenhum aluno ativo nesta turma.',
+  pendingId: 'matrícula pendente',
+  enterResultsBtn: 'Inserir resultados',
+};
+
 const ADMIN_DASHBOARD_LABELS_BY_LOCALE: Record<SupportedLocale, AdminDashboardLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function adminDashboardLabelsFor(locale: string): AdminDashboardLabels {

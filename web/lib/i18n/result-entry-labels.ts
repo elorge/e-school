@@ -61,17 +61,30 @@ const FR: ResultEntryLabels = {
   couldNotSaveError: "Impossible d'enregistrer ce résultat.",
 };
 
+const PT: ResultEntryLabels = {
+  enterResults: 'Inserir resultados',
+  termLabel: 'Período',
+  loading: 'A carregar…',
+  subjectScores: 'Notas por disciplina',
+  subjectPlaceholder: 'Disciplina',
+  addSubjectBtn: 'Adicionar disciplina',
+  teachersCommentLabel: 'Comentário do professor',
+  closeBtn: 'Fechar',
+  savingBtn: 'A guardar…',
+  saveResultBtn: 'Guardar resultado',
+  sessionExpiredError: 'Sessão expirada — por favor inicie sessão novamente.',
+  selectTermFirstError: 'Selecione primeiro um período.',
+  addAtLeastOneSubjectError: 'Adicione pelo menos uma disciplina.',
+  scoresRangeError: 'As notas devem estar entre 0 e 100.',
+  queuedNotice: 'Sem internet neste momento — guardado neste dispositivo, será sincronizado automaticamente.',
+  savedNotice: 'Guardado.',
+  couldNotSaveError: 'Não foi possível guardar este resultado.',
+};
+
 const RESULT_ENTRY_LABELS_BY_LOCALE: Record<SupportedLocale, ResultEntryLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function resultEntryLabelsFor(locale: string): ResultEntryLabels {

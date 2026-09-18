@@ -52,17 +52,25 @@ const FR: ResultsLabels = {
   couldNotLoadPrintable: (message) => `Impossible de charger le bulletin imprimable : ${message}`,
 };
 
+const PT: ResultsLabels = {
+  checkYourResult: 'Consulte o seu resultado',
+  admissionIdLabel: 'Número de matrícula',
+  pinLabel: 'PIN',
+  checking: 'A verificar…',
+  viewResult: 'Ver resultado',
+  genericError: 'Ocorreu um erro. Por favor, tente novamente.',
+  checkAnotherResult: 'Consultar outro resultado',
+  print: 'Imprimir',
+  downloadPdf: 'Descarregar PDF',
+  subjectScores: 'Notas por Disciplina',
+  loadingPrintable: 'A carregar boletim imprimível…',
+  couldNotLoadPrintable: (message) => `Não foi possível carregar o boletim imprimível: ${message}`,
+};
+
 const RESULTS_LABELS_BY_LOCALE: Record<SupportedLocale, ResultsLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function resultsLabelsFor(locale: string): ResultsLabels {

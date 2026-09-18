@@ -154,17 +154,61 @@ const FR: StaffRosterLabels = {
   yesRemove: 'Oui, retirer',
 };
 
+const PT: StaffRosterLabels = {
+  pageTitle: 'Pessoal',
+  loadClassesTermsFailed: 'Falha ao carregar turmas/períodos',
+  loadStudentsFailed: 'Falha ao carregar alunos',
+  classesAndStudentsHeading: 'Turmas e Alunos',
+  allClasses: 'Todas as turmas',
+  pendingId: 'matrícula pendente',
+  enterResultsTitle: 'Inserir resultados',
+  uploadPhotoTitle: 'Carregar fotografia',
+  useCameraTitle: 'Usar câmara',
+  removeFromClassTitle: 'Remover da turma',
+  photoUpdatedNotice: (name) => `Fotografia atualizada para ${name}.`,
+  photoUploadFailed: 'Falha ao carregar a fotografia',
+  bulkImportHeading: 'Importação em massa de alunos',
+  bulkImportHelp: 'Para integrar muitos alunos existentes de uma só vez — os nomes das turmas devem corresponder exatamente.',
+  downloadTemplateBtn: 'Descarregar modelo',
+  importingBtn: 'A importar…',
+  uploadFilledTemplateBtn: 'Carregar modelo preenchido',
+  importAddedNotice: (count, issues) => `${count} adicionado(s). ${issues}`,
+  importAddedSimpleNotice: (count) => `${count} aluno(s) adicionado(s).`,
+  importFailed: 'Falha na importação — verifique o formato do ficheiro',
+  registerStudentHeading: 'Matricular um aluno',
+  firstNameLabel: 'Primeiro nome',
+  lastNameLabel: 'Apelido',
+  admissionYearLabel: 'Ano de matrícula',
+  registerBtn: 'Matricular',
+  chooseClassFirstError: 'Escolha primeiro uma turma',
+  registeredOfflineNotice: 'Sem internet neste momento — aluno guardado neste dispositivo, será sincronizado automaticamente.',
+  registeredNotice: (admissionId) => `Matriculado — Número de Matrícula: ${admissionId}`,
+  couldNotRemoveStudent: 'Não foi possível remover o aluno',
+  resultsAndSyncHeading: 'Resultados e sincronização offline',
+  useIconToEnterResults: 'Use o ícone junto a um aluno acima para inserir ou editar os seus resultados de um período.',
+  stuckChangesHeading: 'Algumas alterações offline continuam a falhar — isto pode precisar de ser verificado, não apenas de mais tempo.',
+  stuckStudentsMessage: (count) => `${count} matrícula(s) de aluno alcançaram o servidor e ${count === 1 ? 'foi rejeitada' : 'foram rejeitadas'} repetidamente.`,
+  stuckResultsMessage: (count) => `${count} submissão(ões) de resultado alcançaram o servidor e ${count === 1 ? 'foi rejeitada' : 'foram rejeitadas'} repetidamente.`,
+  pendingStudentsMessage: (count) => `${count} aluno(s) guardado(s) offline, à espera de sincronização.`,
+  pendingResultsMessage: (count) => `${count} resultado(s) guardado(s) offline, à espera de sincronização.`,
+  syncingBtn: 'A sincronizar…',
+  syncNowBtn: 'Sincronizar agora',
+  syncedSomeNotice: (failed) => `Sincronizado o que foi possível — ${failed} item(ns) ainda não conseguiram alcançar o servidor e serão retentados mais tarde.`,
+  allSyncedNotice: 'Todas as alterações offline foram sincronizadas.',
+  syncFailedError: 'Falha na sincronização — verifique a sua ligação e tente novamente.',
+  everythingSynced: 'Tudo está sincronizado — sem alterações offline pendentes.',
+  removeStudentTitle: 'Remover aluno?',
+  removeStudentConfirmPrefix: 'Isto irá marcar ',
+  removeStudentConfirmSuffix: ' como retirado(a).',
+  noCancel: 'Não, cancelar',
+  removingBtn: 'A remover…',
+  yesRemove: 'Sim, remover',
+};
+
 const STAFF_ROSTER_LABELS_BY_LOCALE: Record<SupportedLocale, StaffRosterLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function staffRosterLabelsFor(locale: string): StaffRosterLabels {

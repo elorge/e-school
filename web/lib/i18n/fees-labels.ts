@@ -100,17 +100,43 @@ const FR: FeesLabels = {
   noOutstandingBalances: 'Aucun solde impayé.',
 };
 
+const PT: FeesLabels = {
+  pageTitle: 'Propinas',
+  termLabel: 'Período',
+  selectTerm: 'Selecione um período',
+  feeStructureHeading: () => 'Estrutura de propinas para este período',
+  feeStructureHeadingGeneric: 'Estrutura de propinas para este período',
+  oneClass: '(uma turma)',
+  allClasses: '(todas as turmas)',
+  feeNamePlaceholder: 'Nome da propina, ex. Mensalidade',
+  amountPlaceholder: (currency) => `Valor (${currency})`,
+  addBtn: 'Adicionar',
+  couldNotAddFeeItem: 'Não foi possível adicionar este item de propina',
+  generateInvoicesBtn: 'Gerar faturas para todos os alunos ativos neste período',
+  invoicesGeneratedNotice: (count) => `${count} nova(s) fatura(s) gerada(s).`,
+  couldNotGenerateInvoices: 'Não foi possível gerar as faturas',
+  invoicesHeading: (count) => `Faturas (${count})`,
+  exportToExcelBtn: 'Exportar para Excel',
+  cashAmountPlaceholder: (currency) => `Valor em ${currency}`,
+  recordCashBtn: 'Registar em dinheiro',
+  recordTransferBtn: 'Registar transferência',
+  statusPending: 'PENDENTE',
+  statusPartiallyPaid: 'PARCIALMENTE PAGO',
+  statusPaid: 'PAGO',
+  matchTransferHeading: 'Corresponder uma transferência bancária',
+  matchTransferHelp: 'Cole a descrição do seu alerta bancário — sugeriremos qual fatura ela provavelmente paga.',
+  narrationPlaceholder: 'ex. Transferência de Chioma Balogun',
+  findMatchesBtn: 'Procurar correspondências',
+  owes: (money) => `deve ${money}`,
+  matchPercent: (percent) => `${percent}% de correspondência`,
+  debtorsHeading: 'Devedores',
+  noOutstandingBalances: 'Sem saldos pendentes.',
+};
+
 const FEES_LABELS_BY_LOCALE: Record<SupportedLocale, FeesLabels> = {
   en: EN,
   fr: FR,
-  // TODO: translate to Portuguese. Falls back to English for now so
-  // Portuguese-speaking schools (e.g. Mozambique, Angola) get a
-  // working, correctly-worded product immediately rather than a
-  // rushed/incorrect machine translation of operational and
-  // financial terminology. Prioritize replacing this over the
-  // already-translated marketing/legal/nav/footer/login/report-card
-  // strings, which speak to prospective customers and parents first.
-  pt: EN,
+  pt: PT,
 };
 
 export function feesLabelsFor(locale: string): FeesLabels {
