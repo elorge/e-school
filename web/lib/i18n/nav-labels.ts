@@ -122,7 +122,37 @@ const PT: NavLabels = {
   myInfo: 'Minhas Informações',
 };
 
-const NAV_LABELS_BY_LOCALE: Record<SupportedLocale, NavLabels> = { en: EN, fr: FR, pt: PT };
+const ES: NavLabels = {
+  logOut: 'Cerrar sesión',
+  admin: 'Administración',
+  settings: 'Configuración',
+  auditLog: 'Registro de auditoría',
+  academic: 'Académico',
+  documents: 'Documentos',
+  finance: 'Finanzas',
+  checkResult: 'Consultar resultado',
+  lessons: 'Clases',
+  students: 'Alumnos',
+  lessonNotes: 'Notas de clase',
+  cbt: 'Exámenes (CBT)',
+  sessionWrap: 'Resumen del año escolar',
+  classes: 'Clases',
+  promoteStudents: 'Promover alumnos',
+  terms: 'Trimestres',
+  calendar: 'Calendario',
+  gradingWeights: 'Ponderación de calificaciones',
+  generatePins: 'Generar PINs',
+  fees: 'Cuotas escolares',
+  inventory: 'Inventario',
+  accounting: 'Contabilidad',
+  hr: 'Personal (RR. HH.)',
+  staffDirectory: 'Directorio del personal',
+  payroll: 'Nómina',
+  leave: 'Permisos',
+  myInfo: 'Mi información',
+};
+
+const NAV_LABELS_BY_LOCALE: Record<SupportedLocale, NavLabels> = { en: EN, fr: FR, pt: PT, es: ES };
 
 export function navLabelsFor(locale: string): NavLabels {
   return NAV_LABELS_BY_LOCALE[locale as SupportedLocale] ?? NAV_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

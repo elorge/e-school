@@ -370,10 +370,115 @@ const PT: HomeLabels = {
   finalCtaHeading: 'Pronto para ver isto a funcionar com os seus próprios dados?',
 };
 
+const ES_CORE_FEATURES = [
+  { title: 'Resultados que se verifican solos', body: 'Cada boleta lleva un sello QR que un padre puede escanear para confirmar que es real; se acabó dudar de una constancia.' },
+  { title: 'Carnés y asistencia en el portón', body: 'Emita un carné digital el día en que se matricula un alumno. Escanéelo en el portón, incluso si esa mañana no hay señal.' },
+  { title: 'Una billetera, no tres facturas', body: 'Recargue una vez, en su propia moneda. Los PINs de resultado y los exámenes por computadora usan el mismo cargo por alumno; nunca se cobra dos veces al mismo alumno en el mismo trimestre.' },
+  { title: 'Un calendario que cualquier docente puede imprimir', body: 'Arme un trimestre en minutos, y luego entregue a cada tutor/a de clase una copia imprimible; se acabó volver a escribir las mismas fechas a mano.' },
+];
+
+const ES_CBT_FEATURES = [
+  { title: 'Programado, no abierto indefinidamente', body: 'El código de acceso de un examen solo funciona el día programado, dentro de una ventana definida; no la semana siguiente, ni el mes siguiente.' },
+  { title: 'Funciona aunque el laboratorio pierda señal', body: 'Las respuestas se guardan primero en el dispositivo y se sincronizan en cuanto vuelve la conexión; una caída nunca hace perder el progreso de un alumno.' },
+  { title: 'Un colegio, sin necesidad de laboratorio', body: 'Los colegios sin un laboratorio de computación completo igual ingresan cada calificación a mano; nada aquí es obligatorio para usar el resto de la plataforma.' },
+];
+
+const ES_LESSON_NOTES_FEATURES = [
+  { title: 'Un formato que los docentes ya conocen', body: 'Un formato estructurado de nota de clase; no un simple cuadro de texto en blanco.' },
+  { title: 'Un clic al proyector', body: 'La misma nota se convierte en una presentación de diapositivas limpia a pantalla completa; no hay que armar diapositivas por separado.' },
+  { title: 'Pizarra integrada', body: 'Lápiz, borrador y colores, directamente sobre la diapositiva, para resolver un paso en vivo.' },
+];
+
+const ES_FINANCE_FEATURES = [
+  { title: 'Cuotas y facturación', body: 'Genere facturas por clase y por trimestre, registre pagos, y vea de un vistazo quién todavía debe.' },
+  { title: 'Inventario', body: 'Entradas y salidas de stock, con alertas automáticas de stock bajo antes de quedarse sin lo esencial.' },
+  { title: 'Contabilidad', body: 'Ingresos y gastos, por categoría, para cualquier período; exportados a Excel en un clic.' },
+];
+
+const ES_RUN_SCHOOL_FEATURES = [
+  { title: 'Importación masiva de alumnos', body: '¿Ya tiene 400 alumnos en papel o en otro sistema? Descargue una plantilla, complétela en Excel sin conexión, y súbala, con retroalimentación de errores fila por fila si algo necesita corrección.' },
+  { title: 'Promoción de fin de año en un clic', body: 'Suba a toda una clase de grado en unos pocos clics al final del año, en lugar de editar a cada alumno uno por uno.' },
+  { title: 'Invitaciones al personal, hechas correctamente', body: 'Invite a un docente por correo electrónico; establece su propia contraseña para activar la cuenta, o un administrador puede establecer una directamente con cambio obligatorio en el primer inicio de sesión.' },
+];
+
+const ES_INFRASTRUCTURE_FEATURES = [
+  { title: 'Impresión de carnés', body: 'Impresoras y tarjetas en blanco para convertir los carnés digitales que ya genera en carnés físicos.' },
+  { title: 'Lectores en el portón', body: 'Lectores de QR/código de barras adaptados al flujo de asistencia, con una guía de instalación incluida.' },
+  { title: 'Computadoras para laboratorio de CBT', body: 'Equipo de laboratorio de nivel inicial dimensionado para exámenes por computadora, para colegios aún no totalmente equipados.' },
+  { title: 'Configuración de red', body: 'Cableado estructurado y routers para que la promesa de "funciona incluso sin conexión" se cumpla en el wifi real de su campus.' },
+];
+
+const ES_FAQS = [
+  { q: '¿Cómo consulta un padre un resultado escolar en línea con Elorge?', a: 'Un padre visita la página de resultados del colegio, ingresa el número de matrícula del alumno y un PIN de resultado emitido por el colegio, y ve una boleta verificada y con sello QR; no se necesita cuenta.' },
+  { q: '¿Elorge admite exámenes por computadora (CBT)?', a: 'Sí. Los colegios con un laboratorio de computación pueden crear un banco de preguntas, publicar exámenes programados con un código de acceso que se comunica de forma oral, y las preguntas objetivas se califican al instante. Los colegios sin laboratorio pueden omitir el CBT por completo e ingresar las calificaciones a mano.' },
+  { q: '¿Pueden los docentes escribir y presentar notas de clase en Elorge?', a: 'Sí. Los docentes escriben notas de clase en un formato estructurado (objetivos, conocimientos previos, presentación, evaluación, tarea) y luego convierten cualquier nota en una presentación de diapositivas a pantalla completa para el proyector con un clic, con una pizarra integrada.' },
+  { q: '¿Elorge funciona sin acceso a internet?', a: 'Sí. Elorge se puede instalar como aplicación en el teléfono o la computadora y sigue funcionando durante los cortes: matriculando alumnos, ingresando calificaciones y presentando exámenes de CBT sin conexión, sincronizando todo en cuanto vuelve la conectividad.' },
+  { q: '¿Elorge es solo para colegios en Nigeria?', a: 'No. Elorge comenzó en Nigeria y ahora incorpora colegios en varios países, cada uno facturado en su propia moneda a través de Flutterwave; la estructura académica de su colegio (trimestres, semestres, o bimestres) y su lista de asignaturas también son completamente suyas, sin estar fijadas al plan de estudios de un país en particular.' },
+  { q: '¿Qué calendario académico asume Elorge: trimestres, semestres, u otra cosa?', a: 'El que su colegio realmente use. Un colegio puede funcionar con 2 semestres, 3 trimestres, 4 bimestres, o cualquier otra estructura, y nombrar los períodos como habitualmente lo hace; nada está fijado al calendario académico de un solo país.' },
+];
+
+const ES: HomeLabels = {
+  kicker: 'Software de Gestión Escolar Elorge Technologies',
+  heroTitle: 'Un registro que sus padres no tienen que creer solo por su palabra.',
+  heroSubtitle: 'Resultados, carnés, asistencia, cuotas, exámenes por computadora y finanzas escolares, todo en un solo lugar, funcionando como realmente opera su colegio: a veces con señal, a veces sin ella, dondequiera que esté su colegio.',
+  getStarted: 'Comenzar',
+  signIn: 'Iniciar sesión',
+  mockSchoolName: 'Colegio Greenwood',
+  mockTermLabel: '2025/2026 — Trimestre 2',
+  admissionIdLabel: 'Número de matrícula',
+  verifiedLabel: 'Verificado — escanee para confirmar en elorgeschools.org/verify',
+  coreFeaturesHeading: 'Todo lo que realmente hace una secretaría escolar, en un solo inicio de sesión.',
+  coreFeatures: ES_CORE_FEATURES,
+  globalKicker: 'No solo Nigeria',
+  globalHeading: 'Construido en Nigeria. Construido para funcionar en cualquier lugar.',
+  globalBody: 'El país, la moneda, el calendario académico y la lista de asignaturas de su colegio son completamente suyos; nada aquí supone el sistema de un solo país. Un colegio en cualquier lugar configura su propio espacio de trabajo y se factura en su propia moneda a través de Flutterwave.',
+  dontSeeCountry: '¿No ve su país?',
+  talkToUs: 'Escríbanos',
+  addingCorridors: '— estamos agregando corredores a medida que los colegios los solicitan.',
+  sessionWrapKicker: 'Resumen del Año Escolar',
+  sessionWrapHeading: 'Un año de calificaciones, convertido en un punto de partida para una conversación real.',
+  sessionWrapBody: 'Al final de un año académico, Elorge analiza en qué fue consistentemente fuerte un alumno (no un examen con suerte, todo un año) y destaca áreas que vale la pena explorar por eso. Las sugerencias de áreas profesionales tampoco están fijadas a un solo plan de estudios: un colegio que enseñe asignaturas fuera de los valores predeterminados incorporados vincula las suyas propias para obtener las mismas sugerencias. No es un veredicto, y lo decimos en cada texto: un punto de partida para una conversación entre padres y docentes, no un reemplazo de ella.',
+  sessionWrapCardYear: '2025/2026',
+  sessionWrapCardTerms: '3 trimestres registrados',
+  fieldsWorthExploring: 'Áreas que vale la pena explorar',
+  cbtKicker: 'Exámenes por computadora',
+  cbtHeading: 'Para colegios con un laboratorio de computación: las preguntas objetivas se califican solas.',
+  cbtBody: 'Cree un banco de preguntas a mano, o descargue una plantilla, complétela en Excel sin conexión, y súbala de una vez. Publique un examen con una fecha programada y un código de acceso que se comunica de forma oral; los alumnos inician sesión solo con su número de matrícula, sin cuentas que crear. Las calificaciones objetivas se corrigen al instante; un docente agrega la calificación de la parte teórica una vez que se completaron los envíos, y el resultado combinado va directo a la misma boleta, protegida por el mismo PIN del padre. Ningún sistema aparte que consultar.',
+  cbtFeatures: ES_CBT_FEATURES,
+  lessonNotesKicker: 'Notas de clase',
+  lessonNotesHeading: 'Escritas una vez, enseñadas en el pizarrón, leídas de nuevo en casa.',
+  lessonNotesBody: 'Los docentes escriben en un formato estructurado usado para la supervisión: objetivos, conocimientos previos, presentación, evaluación, tarea. Un clic la convierte en una presentación de diapositivas a pantalla completa para el proyector, con una pizarra superpuesta para resolver un problema en vivo. Publíquela, y quedará disponible para que los alumnos de esa clase la vuelvan a leer en casa, a su propio ritmo, restringida a su propia clase, no a internet abierto.',
+  lessonNotesFeatures: ES_LESSON_NOTES_FEATURES,
+  presentationLabel: 'Presentación',
+  presentationSubject: 'Matemática — 2.º de secundaria',
+  presentationTitle: 'Resolver para x:',
+  whiteboardActive: 'Pizarra activa',
+  offlineKicker: 'Sin conexión primero',
+  offlineHeading: 'Matricular a un alumno, ingresar una calificación, presentar un examen, sin ninguna señal.',
+  offlineBody: 'La electricidad se corta en plena temporada de matrículas, o el wifi del campus se cae sin aviso. Elorge se instala directamente desde su navegador, funciona como una aplicación real en su teléfono o computadora, y sigue funcionando durante el corte, sincronizando todo en cuanto vuelve la conexión.',
+  financeKicker: 'Más allá de lo académico',
+  financeHeading: 'Una oficina de finanzas, incorporada.',
+  financeBody: 'Defina las cuotas de un trimestre una vez, genere facturas para cada clase, y registre los pagos a medida que llegan, en efectivo o por transferencia, en su propia moneda. Controle suministros y equipos para saber antes de que se agoten. Vea ingresos frente a gastos para cualquier rango de fechas, exportable a Excel para su contador.',
+  financeFeatures: ES_FINANCE_FEATURES,
+  operationsHeading: 'La incorporación es rápida, incluso con cientos de alumnos ya existentes.',
+  runSchoolFeatures: ES_RUN_SCHOOL_FEATURES,
+  infrastructureKicker: 'Más allá del software',
+  infrastructureHeading: 'Elorge también es una empresa de infraestructura de TI: también podemos ayudar con el hardware.',
+  infrastructureBody: 'La plataforma funciona tenga o no tenga nada de esto, pero si está configurando carnés, un laboratorio de computación, o asistencia en el portón por primera vez, podemos orientarlo hacia el equipo correcto y ayudarlo a instalarlo.',
+  infrastructureFeatures: ES_INFRASTRUCTURE_FEATURES,
+  interestedInThis: '¿Le interesa algo de esto?',
+  advisePrefix: '— le aconsejaremos sobre lo que realmente se adapta a su colegio antes de recomendar nada.',
+  faqHeading: 'Preguntas frecuentes.',
+  faqs: ES_FAQS,
+  credibility: 'Construido para colegios que toman en serio sus registros, desde academias de un solo campus hasta colegios con varias sedes, en todos los países donde operamos.',
+  finalCtaHeading: '¿Listo para verlo funcionar con sus propios datos?',
+};
+
 const HOME_LABELS_BY_LOCALE: Record<SupportedLocale, HomeLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function homeLabelsFor(locale: string): HomeLabels {

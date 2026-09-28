@@ -4,9 +4,9 @@
  * UI strings, and system emails (see common/i18n/report-labels.ts and
  * modules/email/*). Adding a country to SUPPORTED_COUNTRIES (web/lib/
  * currency.ts) does NOT require adding a language here — it only needs
- * one of these two if its usual business language isn't English.
+ * one of these if its usual business language isn't English.
  */
-export const SUPPORTED_LOCALES = ['en', 'fr', 'pt'] as const;
+export const SUPPORTED_LOCALES = ['en', 'fr', 'pt', 'es'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const PLATFORM_DEFAULT_LOCALE: SupportedLocale = 'en';
@@ -21,7 +21,8 @@ export const PLATFORM_DEFAULT_LOCALE: SupportedLocale = 'en';
  * country's default is.
  *
  * Francophone West/Central African corridors map to 'fr', Lusophone
- * corridors (Mozambique, Angola) map to 'pt' — everywhere else on the
+ * corridors (Mozambique, Angola) map to 'pt', Equatorial Guinea (the
+ * only Spanish-speaking country in Africa) maps to 'es' — everywhere else on the
  * current Flutterwave-supported country list (SUPPORTED_COUNTRIES in
  * web/lib/currency.ts) conducts school business in English even where
  * other languages are also spoken locally.
@@ -37,6 +38,7 @@ export const LOCALE_BY_COUNTRY: Record<string, SupportedLocale> = {
   CI: 'fr',
   SN: 'fr',
   CM: 'fr',
+  GQ: 'es',
   MZ: 'pt',
   AO: 'pt',
   US: 'en',

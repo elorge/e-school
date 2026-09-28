@@ -89,7 +89,29 @@ const PT: SiteFooterLabels = {
   linkPrivacy: 'Política de Privacidade',
 };
 
-const SITE_FOOTER_LABELS_BY_LOCALE: Record<SupportedLocale, SiteFooterLabels> = { en: EN, fr: FR, pt: PT };
+const ES: SiteFooterLabels = {
+  tagline: 'Gestión escolar diseñada para colegios en África y más allá: registros, resultados y finanzas que funcionan incluso cuando internet no.',
+  productHeading: 'Producto',
+  companyHeading: 'Empresa',
+  getInTouchHeading: 'Contáctenos',
+  chatOnWhatsApp: 'Chatear por WhatsApp',
+  getStarted: 'Comenzar →',
+  copyright: 'Elorge Technologies Limited — Desarrollo de Software e Infraestructura de TI',
+  linkFeatures: 'Funciones',
+  linkSessionWrap: 'Resumen del Año Escolar',
+  linkCbt: 'Exámenes por Computadora',
+  linkFinance: 'Cuotas, Inventario y Contabilidad',
+  linkLessonNotes: 'Notas de Clase',
+  linkCheckResult: 'Consultar un Resultado',
+  linkOffline: 'Funciona sin conexión',
+  linkAbout: 'Nosotros',
+  linkCareers: 'Empleo',
+  linkContact: 'Contacto',
+  linkTerms: 'Términos de Servicio',
+  linkPrivacy: 'Política de Privacidad',
+};
+
+const SITE_FOOTER_LABELS_BY_LOCALE: Record<SupportedLocale, SiteFooterLabels> = { en: EN, fr: FR, pt: PT, es: ES };
 
 export function siteFooterLabelsFor(locale: string): SiteFooterLabels {
   return SITE_FOOTER_LABELS_BY_LOCALE[locale as SupportedLocale] ?? SITE_FOOTER_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

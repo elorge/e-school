@@ -137,10 +137,45 @@ const PT: AdminDashboardLabels = {
   enterResultsBtn: 'Inserir resultados',
 };
 
+const ES: AdminDashboardLabels = {
+  pageTitle: 'Administración',
+  loadFailed: 'Error al cargar el panel',
+  loadStudentsFailed: 'Error al cargar los alumnos de esta clase',
+  walletBalance: 'Saldo de la billetera',
+  amountLabel: (currency) => `Monto (${currency})`,
+  payerEmailLabel: 'Correo del pagador',
+  fundWalletBtn: 'Recargar billetera',
+  couldNotStartPayment: 'No se pudo iniciar el pago',
+  staffHeading: 'Personal',
+  inviteByEmailBtn: 'Invitar por correo electrónico',
+  setPasswordNowBtn: 'Establecer contraseña ahora',
+  fullNameLabel: 'Nombre completo',
+  emailLabel: 'Correo electrónico',
+  temporaryPasswordLabel: 'Contraseña temporal',
+  confirmPasswordLabel: 'Confirmar contraseña',
+  passwordsDoNotMatch: 'Las contraseñas no coinciden.',
+  savingBtn: 'Guardando…',
+  sendInviteBtn: 'Enviar invitación',
+  createAccountBtn: 'Crear cuenta',
+  inviteSentNotice: (email) => `Invitación enviada a ${email}: esa persona establecerá su propia contraseña para activar la cuenta.`,
+  accountCreatedNotice: (email) => `Cuenta creada para ${email}. Comparta la contraseña directamente con esa persona; se le pedirá que la cambie en su primer inicio de sesión.`,
+  couldNotCreateStaffAccount: 'No se pudo crear la cuenta del personal',
+  reassignPlaceholder: 'Reasignar sus clases/alumnos a…',
+  confirmRemovalBtn: 'Confirmar eliminación',
+  removeBtn: 'Quitar',
+  couldNotRemoveStaffMember: 'No se pudo quitar a este miembro del personal',
+  studentsAndResultsHeading: 'Alumnos y resultados',
+  selectClass: 'Seleccione una clase',
+  noActiveStudents: 'No hay alumnos activos en esta clase.',
+  pendingId: 'matrícula pendiente',
+  enterResultsBtn: 'Ingresar resultados',
+};
+
 const ADMIN_DASHBOARD_LABELS_BY_LOCALE: Record<SupportedLocale, AdminDashboardLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function adminDashboardLabelsFor(locale: string): AdminDashboardLabels {

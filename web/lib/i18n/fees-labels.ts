@@ -133,10 +133,44 @@ const PT: FeesLabels = {
   noOutstandingBalances: 'Sem saldos pendentes.',
 };
 
+const ES: FeesLabels = {
+  pageTitle: 'Cuotas',
+  termLabel: 'Trimestre',
+  selectTerm: 'Seleccione un trimestre',
+  feeStructureHeading: () => 'Estructura de cuotas para este trimestre',
+  feeStructureHeadingGeneric: 'Estructura de cuotas para este trimestre',
+  oneClass: '(una clase)',
+  allClasses: '(todas las clases)',
+  feeNamePlaceholder: 'Nombre de la cuota, p. ej. Matrícula',
+  amountPlaceholder: (currency) => `Monto (${currency})`,
+  addBtn: 'Agregar',
+  couldNotAddFeeItem: 'No se pudo agregar el concepto de cuota',
+  generateInvoicesBtn: 'Generar facturas para todos los alumnos activos este trimestre',
+  invoicesGeneratedNotice: (count) => `Se generaron ${count} factura(s) nueva(s).`,
+  couldNotGenerateInvoices: 'No se pudieron generar las facturas',
+  invoicesHeading: (count) => `Facturas (${count})`,
+  exportToExcelBtn: 'Exportar a Excel',
+  cashAmountPlaceholder: (currency) => `Monto en ${currency}`,
+  recordCashBtn: 'Registrar efectivo',
+  recordTransferBtn: 'Registrar transferencia',
+  statusPending: 'PENDIENTE',
+  statusPartiallyPaid: 'PARCIALMENTE PAGADO',
+  statusPaid: 'PAGADO',
+  matchTransferHeading: 'Emparejar una transferencia bancaria',
+  matchTransferHelp: 'Pegue el detalle de su alerta bancaria; le sugeriremos qué factura probablemente paga.',
+  narrationPlaceholder: 'p. ej. Transferencia de Chioma Balogun',
+  findMatchesBtn: 'Buscar coincidencias',
+  owes: (money) => `debe ${money}`,
+  matchPercent: (percent) => `${percent}% de coincidencia`,
+  debtorsHeading: 'Deudores',
+  noOutstandingBalances: 'Sin saldos pendientes.',
+};
+
 const FEES_LABELS_BY_LOCALE: Record<SupportedLocale, FeesLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function feesLabelsFor(locale: string): FeesLabels {

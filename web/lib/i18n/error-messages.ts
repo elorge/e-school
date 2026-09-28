@@ -66,6 +66,23 @@ const PT: Record<string, MessageFn> = {
   PASSWORD_RESET_LINK_INVALID: () => 'Este link de redefinição de palavra-passe é inválido ou expirou.',
 };
 
+const ES: Record<string, MessageFn> = {
+  CBT_INVALID_ACCESS_CODE: () => 'Código de acceso inválido o expirado.',
+  CBT_ADMISSION_ID_NOT_RECOGNIZED: () => 'Número de matrícula no reconocido.',
+  CBT_WRONG_DAY: (p) => `Este examen está programado para el ${p?.date}; el código de acceso solo funciona ese día.`,
+  CBT_TEST_NOT_OPEN: () => 'Este examen no está abierto actualmente.',
+  CBT_NOT_ASSIGNED: () => 'Este alumno no está asignado a este examen.',
+  CBT_ALREADY_SUBMITTED: () => 'Este intento ya fue enviado.',
+  PIN_TOO_MANY_ATTEMPTS: (p) => `Demasiados intentos fallidos. Vuelva a intentarlo después de ${formatTime(String(p?.lockedUntil), 'es')}.`,
+  PIN_INVALID_CREDENTIALS: () => 'Número de matrícula o PIN inválido.',
+  LESSON_NOTE_ADMISSION_ID_NOT_RECOGNIZED: () => 'Número de matrícula no reconocido.',
+  LESSON_NOTE_NOT_FOUND: () => 'Esta nota de clase no está disponible para su clase.',
+  SIGNUP_WORKSPACE_NAME_TAKEN: () => 'Ese nombre de espacio de trabajo ya está en uso.',
+  SIGNUP_SCHOOL_CODE_TAKEN: () => 'Ese código de colegio ya está en uso.',
+  LOGIN_INVALID_CREDENTIALS: () => 'Credenciales inválidas.',
+  PASSWORD_RESET_LINK_INVALID: () => 'Este enlace de restablecimiento de contraseña no es válido o ha caducado.',
+};
+
 function formatTime(iso: string, locale: string): string {
   try {
     return new Date(iso).toLocaleString(locale);
@@ -78,6 +95,7 @@ const ERROR_MESSAGES_BY_LOCALE: Record<SupportedLocale, Record<string, MessageFn
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 /**

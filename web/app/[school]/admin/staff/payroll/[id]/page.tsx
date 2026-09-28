@@ -2,10 +2,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
-import { CheckCircle2, Download, Landmark } from 'lucide-react';
+import { CheckCircle2, Download, Landmark, FileSpreadsheet } from 'lucide-react';
 import { formatMoney } from '@/lib/currency';
 import {
   approvePayrollRun,
@@ -14,6 +15,7 @@ import {
   downloadPayslipPdf,
   getDisbursementSchedule,
   downloadDisbursementScheduleCsv,
+  downloadPayrollRegisterXlsx,
   type PayrollRun,
 } from '@/lib/endpoints/payroll';
 import { ApiError } from '@/lib/api';
@@ -84,11 +86,25 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
     }
   }
 
+  async function handleDownloadRegister() {
+    try {
+      const blob = await downloadPayrollRegisterXlsx(params.school, params.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payroll-register-${run?.periodLabel.replace(/\s+/g, '-')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Could not generate the payroll register.');
+    }
+  }
+
   if (isLoading) return <LoadingScreen />;
   if (!run) return <p className="p-6 text-sm text-red-600">{error ?? 'Not found.'}</p>;
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']}>
+    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
       <main className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -98,16 +114,21 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
               {run.status}
             </p>
           </div>
-          {run.status === 'DRAFT' && (
-            <button onClick={handleApprove} className="flex items-center gap-1.5 rounded bg-ink px-4 py-1.5 text-sm text-white">
-              <CheckCircle2 size={15} /> Approve run
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={handleDownloadRegister} className="flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm">
+              <FileSpreadsheet size={15} /> Export payroll register (Excel)
             </button>
-          )}
-          {run.status !== 'DRAFT' && (
-            <button onClick={handleDownloadSchedule} className="flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm">
-              <Landmark size={15} /> Download bank schedule (CSV)
-            </button>
-          )}
+            {run.status === 'DRAFT' && (
+              <button onClick={handleApprove} className="flex items-center gap-1.5 rounded bg-ink px-4 py-1.5 text-sm text-white">
+                <CheckCircle2 size={15} /> Approve run
+              </button>
+            )}
+            {run.status !== 'DRAFT' && (
+              <button onClick={handleDownloadSchedule} className="flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm">
+                <Landmark size={15} /> Download bank schedule (CSV)
+              </button>
+            )}
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -140,7 +161,17 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
                 <tr key={p.id} className="border-t">
                   <td className="px-3 py-2">
                     <div className="font-medium">{p.user?.fullName}</div>
-                    <div className="text-xs text-ink/50">{p.staffProfile?.staffId}</div>
+                    <div className="text-xs text-ink/50">
+                      {p.staffProfile?.staffId}
+                      {run.status === 'DRAFT' && p.staffProfileId && (
+                        <>
+                          {' · '}
+                          <Link href={`/${params.school}/admin/staff/${p.staffProfileId}`} className="underline">
+                            edit pay
+                          </Link>
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2">{money(p.grossKobo, p.currency)}</td>
                   <td className="px-3 py-2">{money(p.deductionsKobo, p.currency)}</td>

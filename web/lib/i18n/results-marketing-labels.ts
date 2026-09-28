@@ -96,10 +96,38 @@ const PT: ResultsMarketingLabels = {
   ctaButton: 'Traga a sua escola para a Elorge',
 };
 
+const ES_HOW_IT_WORKS = [
+  { title: 'Vaya a la página Elorge de su colegio', body: 'Su colegio le da una dirección web propia, algo como elorgeschools.org/sucolegio/results.' },
+  { title: 'Ingrese el número de matrícula y el PIN de resultado', body: 'Ambos los emite el colegio. No hay que crear cuenta ni contraseña; solo los dos códigos vinculados al registro de su hijo/a.' },
+  { title: 'Vea una boleta verificada y con sello QR', body: 'Cada resultado lleva un código QR que usted o cualquier otra persona puede escanear para confirmar que es el registro genuino en archivo, no una fotocopia dudosa.' },
+];
+
+const ES_FAQS = [
+  { q: '¿Cómo consulto el resultado escolar de mi hijo/a en línea?', a: 'Su colegio le da un enlace de resultados propio, además de un número de matrícula y un PIN de resultado para su hijo/a. Ingrese ambos en esa página para ver una boleta verificada; no se necesita cuenta.' },
+  { q: '¿Qué es un PIN de resultado y dónde lo consigo?', a: 'Un PIN de resultado es un código que su colegio emite cada trimestre para desbloquear la boleta de un alumno en línea. Comuníquese con la secretaría de su colegio si no tiene uno.' },
+  { q: '¿Cómo sé si un resultado es genuino?', a: 'Cada boleta de Elorge lleva un sello QR. Al escanearlo se confirma que el resultado coincide con el registro en archivo del colegio, por lo que un resultado no puede alterarse ni falsificarse después.' },
+  { q: 'Mi colegio aún no está en Elorge; ¿puedo consultar un resultado aquí de todos modos?', a: 'No: los resultados son específicos del espacio de trabajo Elorge de cada colegio. Si su colegio aún no se ha registrado, pídaselo, o comparta esta página con la administración de su colegio.' },
+];
+
+const ES: ResultsMarketingLabels = {
+  kicker: 'Consultar un resultado',
+  heroTitle: 'Un resultado que no tiene que creer solo por la palabra de alguien.',
+  heroBody: 'Cada boleta emitida a través de Elorge lleva un sello QR que un padre puede escanear para confirmar que es real. Así es como funciona realmente la consulta de un resultado.',
+  noteBody: 'Esta página explica cómo funciona la consulta de resultados; no es en sí un portal de resultados. Su colegio específico le da un enlace como elorgeschools.org/sucolegio/results, junto con un número de matrícula y un PIN para su hijo/a.',
+  howItWorksHeading: 'Tres pasos, sin necesidad de cuenta.',
+  howItWorks: ES_HOW_IT_WORKS,
+  faqHeading: 'Preguntas frecuentes sobre la consulta de un resultado.',
+  faqs: ES_FAQS,
+  ctaHeading: '¿Su colegio ya está en Elorge?',
+  ctaBody: 'Si su colegio aún no ha configurado resultados verificados, carnés y CBT, indíqueles esta página.',
+  ctaButton: 'Sume a su colegio a Elorge',
+};
+
 const RESULTS_MARKETING_LABELS_BY_LOCALE: Record<SupportedLocale, ResultsMarketingLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function resultsMarketingLabelsFor(locale: string): ResultsMarketingLabels {

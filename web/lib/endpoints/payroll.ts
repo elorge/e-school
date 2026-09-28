@@ -95,6 +95,15 @@ export async function downloadDisbursementScheduleCsv(school: string, runId: str
   return res.blob();
 }
 
+/** Full per-staff breakdown (base/allowances/deductions/gross/net/status) for a run, as a downloadable .xlsx — distinct from the bank-only disbursement schedule above. */
+export async function downloadPayrollRegisterXlsx(school: string, runId: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const token = getToken();
+  const res = await fetch(`${API_URL}/${school}/payroll/runs/${runId}/register.xlsx`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error('Download failed');
+  return res.blob();
+}
+
 export async function downloadPayslipPdf(school: string, payslipId: string): Promise<Blob> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
   const token = getToken();

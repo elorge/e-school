@@ -153,10 +153,47 @@ const PT: CbtLabels = {
   startAnotherSessionBtn: 'Iniciar outra sessão',
 };
 
+const ES: CbtLabels = {
+  testSubmitted: 'Examen enviado',
+  submittedOffline:
+    'No hay conexión a internet en este momento; su envío se guardó en este dispositivo y terminará de sincronizarse automáticamente. Por favor, no cierre esta pestaña todavía.',
+  submittedOnline: 'Enviado con éxito.',
+  quizInstructions: 'Instrucciones del examen',
+  purposeLabel: 'Propósito:',
+  defaultPurpose: (n) => `Complete las ${n} pregunta(s) a continuación. Sus respuestas se guardan automáticamente mientras avanza.`,
+  conditionsLabel: 'Condiciones:',
+  defaultConditions: 'Permanezca en esta página hasta enviar. Cuando se acabe el tiempo, el examen se enviará automáticamente.',
+  startedAt: 'Iniciado:',
+  at: 'a las',
+  question: 'Pregunta',
+  point: 'pto',
+  points: 'ptos',
+  answered: 'respondidas',
+  left: 'restantes',
+  submitQuiz: 'Enviar examen',
+  toggleMenu: 'Menú',
+  toggleInstructions: 'Mostrar/ocultar instrucciones',
+  loginTitle: 'Comience su examen',
+  loginSubtitle: 'Ingrese su número de matrícula y el código de acceso que le compartió su docente hoy.',
+  admissionIdLabel: 'Número de matrícula',
+  accessCodeLabel: 'Código de acceso',
+  loginError: 'No se pudo iniciar el examen; verifique su número de matrícula y el código de acceso.',
+  beginTest: 'Comenzar examen',
+  startingTest: 'Iniciando…',
+  startCbtSessionHeading: 'Iniciar una sesión de CBT',
+  selectClassOption: 'Seleccionar clase',
+  selectStudentOption: 'Seleccionar alumno',
+  selectTestOption: 'Seleccionar examen',
+  couldNotStartTest: 'No se pudo iniciar este examen; verifique que esté publicado y que el alumno esté asignado a él.',
+  sessionEndedHeading: 'Sesión finalizada',
+  startAnotherSessionBtn: 'Iniciar otra sesión',
+};
+
 const CBT_LABELS_BY_LOCALE: Record<SupportedLocale, CbtLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function cbtLabelsFor(locale: string): CbtLabels {

@@ -847,6 +847,13 @@ model StaffProfile {
   staffId          String           @unique // e.g. "GRW/STAFF/0001" — same sequential pattern as Student.studentId, see StaffService.createAndAssignStaffId
   department       String?
   designation      String? // job title, e.g. "Mathematics Teacher", "Bursar"
+  // Grants this STAFF account HR-level access (staff directory, payroll,
+  // leave administration) without being a full SCHOOL_ADMIN. Only a
+  // SCHOOL_ADMIN can set/unset this — see StaffService.createProfile /
+  // update, which strip the field from the payload for any other actor.
+  // Enforced on the backend by HrOrRolesGuard (see common/guards) rather
+  // than by role alone, since Role has no dedicated HR value.
+  isHrManager      Boolean          @default(false)
   employmentType   EmploymentType   @default(FULL_TIME)
   employmentStatus EmploymentStatus @default(ACTIVE)
   dateOfEmployment DateTime?

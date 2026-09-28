@@ -22,6 +22,7 @@ export const TIMEZONE_BY_COUNTRY: Record<string, string> = {
   CI: 'Africa/Abidjan',
   SN: 'Africa/Dakar',
   CM: 'Africa/Douala',
+  GQ: 'Africa/Malabo',
   MZ: 'Africa/Maputo',
   AO: 'Africa/Luanda',
   US: 'America/New_York', // spans multiple zones — override per-school if needed

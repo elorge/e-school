@@ -18,9 +18,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Never intercept API calls — always go to network, let the app's own
-  // offline-queue logic handle failures.
-  if (url.pathname.startsWith('/api') || event.request.method !== 'GET') return;
+  // Only ever consider same-origin GET requests. This app's API calls go
+  // to a completely different origin than the frontend itself (see
+  // NEXT_PUBLIC_API_URL in lib/api.ts) — a "/api" path-prefix check (the
+  // previous approach here) never actually matches a cross-origin URL's
+  // pathname, so it silently failed to exclude them. Checking the origin
+  // directly excludes every API call regardless of path, while still
+  // letting same-origin page navigations fall back to the cached shell
+  // ('/') when offline, same as before.
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).catch(() => caches.match('/'))),

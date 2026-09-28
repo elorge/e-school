@@ -1,5 +1,5 @@
 // backend/src/modules/staff/dto/create-staff-profile.dto.ts
-import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { EmploymentType } from '@prisma/client';
 
 export interface SalaryLineItem {
@@ -90,4 +90,12 @@ export class CreateStaffProfileDto {
   @IsOptional()
   @IsArray()
   deductions?: SalaryLineItem[];
+
+  // Only ever honoured when the actor is a SCHOOL_ADMIN — see
+  // StaffService.createProfile, which strips this field for anyone else
+  // (an HR-flagged STAFF caller included) so HR access can only ever be
+  // granted by a real admin, never self-granted or peer-granted.
+  @IsOptional()
+  @IsBoolean()
+  isHrManager?: boolean;
 }

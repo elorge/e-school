@@ -59,6 +59,11 @@ export function listLeaveRequests(school: string, status?: LeaveStatus): Promise
   return apiFetch(`/${school}/leave/requests${qs}`);
 }
 
+/** One-click backfill for a school with no leave types yet — see LeaveService.seedDefaultTypes on the backend. Safe to call more than once. */
+export function seedDefaultLeaveTypes(school: string): Promise<LeaveType[]> {
+  return apiFetch(`/${school}/leave/types/seed-defaults`, { method: 'POST' });
+}
+
 export function reviewLeaveRequest(school: string, id: string, approve: boolean, reviewNote?: string): Promise<LeaveRequestRecord> {
   return apiFetch(`/${school}/leave/requests/${id}/review`, { method: 'POST', body: JSON.stringify({ approve, reviewNote }) });
 }

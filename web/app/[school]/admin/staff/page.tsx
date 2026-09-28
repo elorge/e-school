@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSchool } from '@/lib/school-context';
+import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
 import { Users, UserPlus } from 'lucide-react';
@@ -23,6 +24,12 @@ const EMPLOYMENT_TYPES: EmploymentType[] = ['FULL_TIME', 'PART_TIME', 'CONTRACT'
 export default function StaffDirectoryPage({ params }: { params: { school: string } }) {
   const school = useSchool();
   const money = (kobo: number) => formatMoney(kobo, school.currency, school.locale);
+  // Only a real SCHOOL_ADMIN can grant HR access at onboarding time — see
+  // StaffService.createProfile, which silently ignores isHrManager from
+  // any other caller (an HR-flagged staff member onboarding a colleague
+  // included), so that checkbox is hidden for them rather than shown and
+  // quietly doing nothing.
+  const viewerIsAdmin = getSessionUser()?.role === 'SCHOOL_ADMIN';
   const [isLoading, setIsLoading] = useState(true);
   const [profiles, setProfiles] = useState<StaffProfile[]>([]);
   const [unprofiled, setUnprofiled] = useState<Pick<User, 'id' | 'email' | 'fullName' | 'role'>[]>([]);
@@ -34,6 +41,7 @@ export default function StaffDirectoryPage({ params }: { params: { school: strin
     designation: '',
     employmentType: 'FULL_TIME' as EmploymentType,
     baseSalaryMajor: 0,
+    isHrManager: false,
   });
 
   async function load() {
@@ -63,8 +71,9 @@ export default function StaffDirectoryPage({ params }: { params: { school: strin
         designation: form.designation || undefined,
         employmentType: form.employmentType,
         baseSalaryKobo: majorToMinor(form.baseSalaryMajor, school.currency),
+        ...(viewerIsAdmin ? { isHrManager: form.isHrManager } : {}),
       });
-      setForm({ userId: '', department: '', designation: '', employmentType: 'FULL_TIME', baseSalaryMajor: 0 });
+      setForm({ userId: '', department: '', designation: '', employmentType: 'FULL_TIME', baseSalaryMajor: 0, isHrManager: false });
       setShowOnboard(false);
       load();
     } catch (err) {
@@ -75,7 +84,7 @@ export default function StaffDirectoryPage({ params }: { params: { school: strin
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']}>
+    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
       <main className="flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
@@ -150,6 +159,16 @@ export default function StaffDirectoryPage({ params }: { params: { school: strin
                 />
               </label>
             </div>
+            {viewerIsAdmin && (
+              <label className="flex items-center gap-2 rounded border bg-amber-50/60 px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isHrManager}
+                  onChange={(e) => setForm({ ...form, isHrManager: e.target.checked })}
+                />
+                <span>Grant HR access — Staff Directory, Payroll, and Leave approvals, without other admin permissions.</span>
+              </label>
+            )}
             <button type="submit" className="self-start rounded bg-ink px-4 py-1.5 text-sm text-white">
               Create HR profile
             </button>
@@ -176,7 +195,14 @@ export default function StaffDirectoryPage({ params }: { params: { school: strin
                       {p.staffId}
                     </Link>
                   </td>
-                  <td className="px-3 py-2">{p.user.fullName}</td>
+                  <td className="px-3 py-2">
+                    {p.user.fullName}
+                    {p.isHrManager && (
+                      <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
+                        HR
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2">{p.department ?? '—'}</td>
                   <td className="px-3 py-2">{p.designation ?? '—'}</td>
                   <td className="px-3 py-2">

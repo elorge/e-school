@@ -93,10 +93,37 @@ const PT: CareersLabels = {
   emailUs: 'Envie-nos um e-mail',
 };
 
+const ES_WHY = [
+  { title: 'Problemas reales, no tareas de relleno', body: 'Cada función que lanzamos existe porque una secretaría escolar, un lector en el portón o un padre con una boleta realmente la necesitaba. Nunca pasará un sprint construyendo algo inventado solo para llenar una hoja de ruta.' },
+  { title: 'Ingeniería que tiene que resistir sin conexión', body: 'La electricidad se corta en plena temporada de matrículas, y la plataforma tiene que seguir funcionando igual. Si le gustan los problemas con una restricción real del mundo, no solo una especificación limpia, este es ese tipo de equipo.' },
+  { title: 'Lo bastante pequeño para importar', body: 'Somos un equipo pequeño, formado deliberadamente. Lo que usted construye llega a colegios reales en semanas, no después de un año de revisión en comité.' },
+];
+
+const ES_HOW_WE_HIRE = [
+  { title: 'Salude', body: 'Envíenos una nota sobre quién es y en qué le gustaría trabajar; sin solicitud formal, sin una plantilla de carta de presentación que llenar.' },
+  { title: 'Una conversación real', body: 'Hablamos sobre lo que estamos construyendo, dónde encajaría usted, y si realmente hay compatibilidad, tanto para usted como para nosotros.' },
+  { title: 'Una sesión de trabajo, no una prueba de pizarra', body: 'Si parece haber compatibilidad, trabajamos juntos en algo cercano a un problema real, para que tenga una visión honesta del puesto antes de comprometerse.' },
+];
+
+const ES: CareersLabels = {
+  kicker: 'Empleo',
+  heroTitle: 'Construya el software que los colegios realmente necesitan.',
+  heroBody: 'Elorge Technologies Limited es un equipo pequeño y enfocado que construye software de gestión escolar e infraestructura de TI. No somos una gran empresa con un proceso de contratación formal, pero si lo que estamos construyendo le resuena, nos gustaría saber de usted.',
+  whyHeading: 'Por qué trabaja aquí la gente.',
+  whyElorge: ES_WHY,
+  hireKicker: 'Sin proceso de caja negra',
+  hireHeading: 'Lo que realmente pasa después de que nos escribe.',
+  howWeHire: ES_HOW_WE_HIRE,
+  openRolesHeading: 'Vacantes abiertas',
+  noOpenRolesBody: 'No tenemos vacantes específicas abiertas en este momento. Eso no significa que no nos interese conocer a buenas personas: si le entusiasma la tecnología educativa, escríbanos de todas formas. Mantenemos una lista de todas las personas que nos han escrito, y es a ella a la que recurrimos primero cuando se abre una vacante.',
+  emailUs: 'Escríbanos',
+};
+
 const CAREERS_LABELS_BY_LOCALE: Record<SupportedLocale, CareersLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function careersLabelsFor(locale: string): CareersLabels {

@@ -112,10 +112,38 @@ const PT: PasswordFlowLabels = {
   signIn: 'Iniciar sessão',
 };
 
+const ES: PasswordFlowLabels = {
+  resetYourPassword: 'Restablezca su contraseña',
+  forgotIntro: 'Ingrese su correo electrónico y le enviaremos un enlace para restablecerla.',
+  emailLabel: 'Correo electrónico',
+  sending: 'Enviando…',
+  sendResetLink: 'Enviar enlace de restablecimiento',
+  resetLinkSentNotice: 'Si ese correo está registrado, se ha enviado un enlace de restablecimiento.',
+  backToSignIn: 'Volver a iniciar sesión',
+  changePasswordHeading: 'Elija una nueva contraseña',
+  changePasswordIntro: 'Por seguridad, debe establecer una nueva contraseña antes de continuar.',
+  currentPasswordLabel: 'Contraseña actual (temporal)',
+  newPasswordLabel: 'Nueva contraseña',
+  confirmNewPasswordLabel: 'Confirmar nueva contraseña',
+  passwordsDoNotMatch: 'Las contraseñas no coinciden.',
+  saving: 'Guardando…',
+  changePasswordBtn: 'Cambiar contraseña',
+  couldNotChangePassword: 'No se pudo cambiar la contraseña',
+  chooseNewPasswordHeading: 'Elija una nueva contraseña',
+  newPasswordSetNotice: 'Su contraseña se actualizó. Ahora puede iniciar sesión.',
+  invalidLinkError: 'Este enlace de restablecimiento no es válido o ha caducado.',
+  resetPasswordBtn: 'Restablecer contraseña',
+  missingTokenError: 'A este enlace le falta un token de restablecimiento. Solicite uno nuevo.',
+  requestNewLink: 'Solicitar un nuevo enlace',
+  setNewPasswordBtn: 'Establecer nueva contraseña',
+  signIn: 'Iniciar sesión',
+};
+
 const PASSWORD_FLOW_LABELS_BY_LOCALE: Record<SupportedLocale, PasswordFlowLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function passwordFlowLabelsFor(locale: string): PasswordFlowLabels {

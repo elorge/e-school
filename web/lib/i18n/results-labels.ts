@@ -67,10 +67,26 @@ const PT: ResultsLabels = {
   couldNotLoadPrintable: (message) => `Não foi possível carregar o boletim imprimível: ${message}`,
 };
 
+const ES: ResultsLabels = {
+  checkYourResult: 'Consulte su resultado',
+  admissionIdLabel: 'Número de matrícula',
+  pinLabel: 'PIN',
+  checking: 'Verificando…',
+  viewResult: 'Ver resultado',
+  genericError: 'Ocurrió un error. Inténtelo de nuevo.',
+  checkAnotherResult: 'Consultar otro resultado',
+  print: 'Imprimir',
+  downloadPdf: 'Descargar PDF',
+  subjectScores: 'Calificaciones por asignatura',
+  loadingPrintable: 'Cargando boleta imprimible…',
+  couldNotLoadPrintable: (message) => `No se pudo cargar la boleta imprimible: ${message}`,
+};
+
 const RESULTS_LABELS_BY_LOCALE: Record<SupportedLocale, ResultsLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function resultsLabelsFor(locale: string): ResultsLabels {

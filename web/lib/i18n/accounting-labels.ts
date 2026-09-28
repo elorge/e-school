@@ -77,10 +77,30 @@ const PT: AccountingLabels = {
   exportToExcelBtn: 'Exportar para Excel',
 };
 
+const ES: AccountingLabels = {
+  pageTitle: 'Contabilidad',
+  loadFailed: 'Error al cargar los datos contables',
+  fromLabel: 'Desde',
+  toLabel: 'Hasta',
+  incomeLabel: 'Ingresos (pagos de cuotas)',
+  expensesLabel: 'Gastos',
+  netLabel: 'Neto',
+  expensesByCategoryHeading: 'Gastos por categoría',
+  recordExpenseHeading: 'Registrar un gasto',
+  categoryPlaceholder: 'Categoría, p. ej. Salarios',
+  descriptionPlaceholder: 'Descripción',
+  amountPlaceholder: (currency) => `Monto (${currency})`,
+  recordBtn: 'Registrar',
+  couldNotRecordExpense: 'No se pudo registrar el gasto',
+  recentExpensesHeading: 'Gastos recientes',
+  exportToExcelBtn: 'Exportar a Excel',
+};
+
 const ACCOUNTING_LABELS_BY_LOCALE: Record<SupportedLocale, AccountingLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function accountingLabelsFor(locale: string): AccountingLabels {

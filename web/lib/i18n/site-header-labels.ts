@@ -61,7 +61,22 @@ const PT: SiteHeaderLabels = {
   language: 'Idioma',
 };
 
-const SITE_HEADER_LABELS_BY_LOCALE: Record<SupportedLocale, SiteHeaderLabels> = { en: EN, fr: FR, pt: PT };
+const ES: SiteHeaderLabels = {
+  sectionFeatures: 'Funciones',
+  sectionSessionWrap: 'Resumen del Año Escolar',
+  sectionCbt: 'CBT',
+  sectionFinance: 'Finanzas',
+  sectionLessonNotes: 'Notas de Clase',
+  sectionOffline: 'Funciona sin conexión',
+  sectionInfrastructure: 'Equipo',
+  checkResult: 'Consultar Resultado',
+  signIn: 'Iniciar sesión',
+  getStarted: 'Comenzar',
+  toggleMenu: 'Alternar menú',
+  language: 'Idioma',
+};
+
+const SITE_HEADER_LABELS_BY_LOCALE: Record<SupportedLocale, SiteHeaderLabels> = { en: EN, fr: FR, pt: PT, es: ES };
 
 export function siteHeaderLabelsFor(locale: string): SiteHeaderLabels {
   return SITE_HEADER_LABELS_BY_LOCALE[locale as SupportedLocale] ?? SITE_HEADER_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

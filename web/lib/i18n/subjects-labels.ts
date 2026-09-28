@@ -101,10 +101,36 @@ const PT: SubjectsLabels = {
   platformDefaults: (count) => `Predefinições da plataforma (${count})`,
 };
 
+const ES: SubjectsLabels = {
+  pageTitle: 'Asignaturas',
+  loadFailed: 'Error al cargar asignaturas y áreas profesionales',
+  subjectCatalogHeading: 'Catálogo de asignaturas',
+  subjectCatalogHelp: 'La lista propia de su colegio; no se comparte con otros colegios. Agregue lo que use su plan de estudios; no hay un conjunto fijo.',
+  removeSubjectTitle: 'Quitar asignatura',
+  noSubjectsYet: 'Aún no se han agregado asignaturas.',
+  addSubjectPlaceholder: 'p. ej. Kiswahili, Twi, Matemática Avanzada',
+  addSubjectBtn: 'Agregar asignatura',
+  subjectAddedNotice: (name) => `"${name}" se agregó a su catálogo de asignaturas.`,
+  couldNotAddSubject: 'No se pudo agregar la asignatura; puede que ya exista.',
+  subjectRemovedNotice: (name) => `Se quitó "${name}" y sus asignaciones de clase.`,
+  couldNotRemoveSubject: 'No se pudo quitar la asignatura',
+  careerFieldsHeading: 'Sugerencias de áreas profesionales',
+  careerFieldsHelp: 'Alimenta la sección de "áreas sugeridas" del Resumen del Año Escolar. Los valores predeterminados abajo cubren un plan de estudios típico de la región; vincule cualquier asignatura que enseñe su colegio (como las que acaba de agregar arriba) con las áreas profesionales que respalda, y el Resumen del Año Escolar también empezará a sugerirlas.',
+  subjectSelectLabel: 'Asignatura',
+  careerFieldPlaceholder: 'Área profesional, p. ej. Lingüística',
+  linkBtn: 'Vincular',
+  mappingLinkedNotice: (subject, field) => `Se vinculó "${subject}" → "${field}" para las sugerencias del Resumen del Año Escolar.`,
+  couldNotAddMapping: 'No se pudo agregar esta vinculación',
+  couldNotRemoveMapping: 'No se pudo quitar esta vinculación',
+  yourMappingsHeading: 'Las vinculaciones de su colegio',
+  platformDefaults: (count) => `Valores predeterminados de la plataforma (${count})`,
+};
+
 const SUBJECTS_LABELS_BY_LOCALE: Record<SupportedLocale, SubjectsLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function subjectsLabelsFor(locale: string): SubjectsLabels {

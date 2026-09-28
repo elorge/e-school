@@ -67,6 +67,7 @@ export const SUPPORTED_COUNTRIES: CountryOption[] = [
   { code: 'CI', name: "Côte d'Ivoire", currency: 'XOF' },
   { code: 'SN', name: 'Senegal', currency: 'XOF' },
   { code: 'CM', name: 'Cameroon', currency: 'XAF' },
+  { code: 'GQ', name: 'Equatorial Guinea', currency: 'XAF' },
   { code: 'MZ', name: 'Mozambique', currency: 'MZN' },
   { code: 'AO', name: 'Angola', currency: 'AOA' },
   { code: 'US', name: 'United States', currency: 'USD' },

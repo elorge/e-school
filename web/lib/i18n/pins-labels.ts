@@ -77,10 +77,30 @@ const PT: PinsLabels = {
   generatePinsBtn: 'Gerar PINs',
 };
 
+const ES: PinsLabels = {
+  pinsGeneratedHeading: 'PINs generados',
+  printSheetBtn: 'Imprimir hoja',
+  oneTimeWarning: 'Estos PINs se muestran una sola vez y nunca se guardan en texto plano ni se envían por correo; anótelos o imprima esta página ahora.',
+  colStudent: 'Alumno',
+  colAdmissionIdPin: 'Matrícula / PIN',
+  generateAnotherBatchBtn: 'Generar otro lote',
+  pageTitle: 'Generar PINs de resultados',
+  couldNotGeneratePins: 'No se pudieron generar los PINs; verifique el saldo de la billetera',
+  termLabel: 'Trimestre',
+  classLabel: 'Clase',
+  selectAllBtn: (count) => `Seleccionar todos (${count})`,
+  pendingId: 'matrícula pendiente',
+  selectedSummary: (count) => `${count} alumno(s) seleccionado(s); a los alumnos ya cobrados este trimestre (vía PIN o CBT) no se les vuelve a cobrar.`,
+  upTo: (amount) => `Hasta ${amount}`,
+  generating: 'Generando…',
+  generatePinsBtn: 'Generar PINs',
+};
+
 const PINS_LABELS_BY_LOCALE: Record<SupportedLocale, PinsLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function pinsLabelsFor(locale: string): PinsLabels {

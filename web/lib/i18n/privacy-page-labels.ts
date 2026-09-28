@@ -126,7 +126,46 @@ const PT: PrivacyPageLabels = {
   contactPrefix: 'Questões sobre esta política:',
 };
 
-const PRIVACY_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, PrivacyPageLabels> = { en: EN, fr: FR, pt: PT };
+const ES_SECTIONS = [
+  {
+    heading: '1. Qué recopilamos',
+    body: 'Para operar Elorge Schools, los colegios participantes envían datos personales de alumnos (nombre, fecha de nacimiento/año de ingreso, clase, fotografía, resultados académicos, registros de asistencia) y de personal/tutores (nombre, correo electrónico, número de teléfono cuando se proporciona). También procesamos registros de pago vinculados a la billetera de un colegio, no directamente a padres individuales, salvo que el colegio ingrese el nombre/teléfono de un padre como parte de un registro de cuotas.',
+  },
+  {
+    heading: '2. Quién controla estos datos',
+    body: 'Cada colegio es el responsable del tratamiento de los registros de sus propios alumnos y personal según la ley de protección de datos aplicable en su propio país (por ejemplo, la Ley de Protección de Datos de Nigeria, o la ley equivalente donde opere su colegio); los colegios son responsables de contar con una base legal (consentimiento de padres/tutores o interés educativo legítimo) para enviarnos datos de alumnos. Elorge Technologies Limited actúa como encargado del tratamiento, almacenando y procesando estos datos por cuenta e instrucción del colegio.',
+  },
+  {
+    heading: '3. Cómo los usamos',
+    body: 'Los datos se usan únicamente para brindar las funciones de la plataforma: generación de resultados, carnés, registros de asistencia, facturas de cuotas y funciones relacionadas de gestión escolar. No vendemos datos de alumnos ni de personal a terceros, y no usamos datos de alumnos con fines publicitarios.',
+  },
+  {
+    heading: '4. Dónde se almacenan los datos',
+    body: 'Los datos de la aplicación se almacenan en Supabase (PostgreSQL). Las imágenes subidas (fotos de alumnos, logotipos del colegio, firmas) se almacenan en Cloudinary. Ambos son proveedores de infraestructura externos sujetos a sus propios compromisos de seguridad; ninguno está autorizado a usar estos datos para fines propios.',
+  },
+  {
+    heading: '5. Retención',
+    body: 'Los registros académicos se conservan mientras la cuenta de un colegio permanezca activa, más un período razonable tras el cierre de la cuenta para permitir que el colegio exporte o transfiera sus registros. Los datos de un colegio suspendido no se eliminan; la suspensión restringe el acceso, no destruye los datos.',
+  },
+  {
+    heading: '6. Los derechos de un tutor',
+    body: 'Un padre o tutor que desee corregir o eliminar los datos de un alumno debe comunicarse directamente con su colegio, ya que es el colegio quien controla esos datos. Los colegios pueden escribirnos a hello@elorgeschools.com para cualquier solicitud de tratamiento de datos con la que necesiten ayuda.',
+  },
+  {
+    heading: '7. Seguridad',
+    body: 'Las contraseñas se cifran (hash), nunca se almacenan en texto plano. Los PINs de resultados también se cifran. El acceso a los datos de cualquier colegio está restringido al personal autenticado de ese colegio, además del personal de la plataforma Elorge con fines de soporte.',
+  },
+];
+
+const ES: PrivacyPageLabels = {
+  title: 'Política de Privacidad',
+  lastUpdated: 'Última actualización: [DATE] — Elorge Technologies Limited',
+  sections: ES_SECTIONS,
+  contactHeading: '8. Contacto',
+  contactPrefix: 'Preguntas sobre esta política:',
+};
+
+const PRIVACY_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, PrivacyPageLabels> = { en: EN, fr: FR, pt: PT, es: ES };
 
 export function privacyPageLabelsFor(locale: string): PrivacyPageLabels {
   return PRIVACY_PAGE_LABELS_BY_LOCALE[locale as SupportedLocale] ?? PRIVACY_PAGE_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

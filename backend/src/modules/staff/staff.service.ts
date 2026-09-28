@@ -45,7 +45,7 @@ export class StaffService {
    * — moderate concurrency is all this needs since HR onboarding is a
    * low-frequency, admin-driven action, never a high-volume sync path.
    */
-  async createProfile(schoolId: string, schoolCode: string, dto: CreateStaffProfileDto, actorId: string) {
+  async createProfile(schoolId: string, schoolCode: string, dto: CreateStaffProfileDto, actorId: string, actorRole?: Role) {
     const targetUser = await this.prisma.user.findUnique({ where: { id: dto.userId } });
     if (!targetUser || targetUser.schoolId !== schoolId) {
       throw new NotFoundException('User does not belong to this school');
@@ -86,6 +86,10 @@ export class StaffService {
           baseSalaryKobo: dto.baseSalaryKobo ?? 0,
           allowances: (dto.allowances ?? []) as unknown as Prisma.InputJsonValue,
           deductions: (dto.deductions ?? []) as unknown as Prisma.InputJsonValue,
+          // Only a genuine SCHOOL_ADMIN can grant HR access — silently
+          // dropped for any other actor rather than rejecting the whole
+          // request, since the rest of the profile is still valid.
+          isHrManager: actorRole === Role.SCHOOL_ADMIN ? (dto.isHrManager ?? false) : false,
         },
         include: PROFILE_INCLUDE,
       });
@@ -123,7 +127,7 @@ export class StaffService {
     return profile;
   }
 
-  async update(schoolId: string, id: string, dto: UpdateStaffProfileDto, actorId: string) {
+  async update(schoolId: string, id: string, dto: UpdateStaffProfileDto, actorId: string, actorRole?: Role) {
     await this.findOne(schoolId, id);
 
     const profile = await this.prisma.staffProfile.update({
@@ -147,6 +151,10 @@ export class StaffService {
         baseSalaryKobo: dto.baseSalaryKobo,
         allowances: dto.allowances !== undefined ? (dto.allowances as unknown as Prisma.InputJsonValue) : undefined,
         deductions: dto.deductions !== undefined ? (dto.deductions as unknown as Prisma.InputJsonValue) : undefined,
+        // Same admin-only gate as createProfile — an HR-flagged STAFF
+        // caller can edit everything else on a profile but never touch
+        // this field, even their own.
+        isHrManager: actorRole === Role.SCHOOL_ADMIN ? dto.isHrManager : undefined,
       },
       include: PROFILE_INCLUDE,
     });

@@ -41,10 +41,21 @@ const PT: PromotionLabels = {
   promoteBtn: (count) => `Promover ${count} aluno(s)`,
 };
 
+const ES: PromotionLabels = {
+  pageTitle: 'Promoción de fin de año',
+  fromClass: 'Clase de origen',
+  toClass: 'Clase de destino',
+  chooseTargetError: 'Elija una clase de destino y al menos un alumno.',
+  promotedNotice: (count) => `Se promovieron ${count} alumno(s).`,
+  couldNotPromote: 'No se pudieron promover los alumnos',
+  promoteBtn: (count) => `Promover ${count} alumno(s)`,
+};
+
 const PROMOTION_LABELS_BY_LOCALE: Record<SupportedLocale, PromotionLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function promotionLabelsFor(locale: string): PromotionLabels {

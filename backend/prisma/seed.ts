@@ -1,8 +1,8 @@
 // backend/prisma/seed.ts
-import { PrismaClient, Role, StudentStatus, LedgerType, LedgerSource, LedgerStatus, FeePaymentMethod } from '@prisma/client';
+import { PrismaClient, Role, StudentStatus, LedgerType, LedgerSource, LedgerStatus, FeePaymentMethod, LeaveStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { SUBJECT_CAREER_FIELDS } from '../src/common/constants';
+import { SUBJECT_CAREER_FIELDS, DEFAULT_LEAVE_TYPES } from '../src/common/constants';
 import { timezoneForCountry } from '../src/common/utils/timezone.util';
 import { localeForCountry } from '../src/common/utils/locale.util';
 
@@ -85,7 +85,25 @@ async function seedDemoSchool() {
   const slug = 'greenwood-college';
   const existingSchool = await prisma.school.findUnique({ where: { slug } });
   if (existingSchool) {
-    console.log(`Demo school "${slug}" already exists — skipping full re-seed.`);
+    // Self-heal a demo school created before countryCode/currency existed
+    // as columns (or one whose DB never ran the
+    // 20260824013917_add_multi_currency_support backfill migration) —
+    // otherwise every page that builds a string like
+    // `Amount (${school.currency})` prints the literal word "undefined"
+    // into the UI. A full re-seed is still skipped either way: this only
+    // ever fills in genuinely-missing fields, never overwrites real data.
+    if (!existingSchool.countryCode || !existingSchool.currency) {
+      await prisma.school.update({
+        where: { id: existingSchool.id },
+        data: {
+          countryCode: existingSchool.countryCode || 'NG',
+          currency: existingSchool.currency || 'NGN',
+        },
+      });
+      console.log(`Demo school "${slug}" already existed but was missing countryCode/currency — backfilled to NG/NGN.`);
+    } else {
+      console.log(`Demo school "${slug}" already exists — skipping full re-seed.`);
+    }
     return;
   }
 
@@ -137,6 +155,54 @@ async function seedDemoSchool() {
   });
   console.log('Created SCHOOL_ADMIN (admin@greenwood.edu.ng / SchoolAdmin1234!)');
   console.log('Created STAFF (teacher@greenwood.edu.ng / Teacher1234!)');
+
+  // ── Leave types — standard set, same as SchoolsService.create seeds for
+  //    every new school going forward ───────────────────────────────────
+  const leaveTypeRecords = await Promise.all(
+    DEFAULT_LEAVE_TYPES.map((t) =>
+      prisma.leaveType.create({ data: { schoolId: school.id, name: t.name, defaultDaysPerYear: t.defaultDaysPerYear } }),
+    ),
+  );
+  console.log(`Created ${leaveTypeRecords.length} leave types`);
+
+  // ── HR profile for the teacher — without this, every staff-facing page
+  //    that looks up "my staff profile" (Payroll, Leave, My Info) has
+  //    nothing to find for this demo account. Given a base salary and a
+  //    couple of standard recurring lines so Payroll has real numbers to
+  //    show immediately, and flagged as the school's HR contact so the
+  //    HR dashboard has someone to demo it with. ──────────────────────
+  const teacherProfile = await prisma.staffProfile.create({
+    data: {
+      schoolId: school.id,
+      userId: teacher.id,
+      staffId: 'GRW/STAFF/0001',
+      department: 'Academics',
+      designation: 'Mathematics Teacher',
+      isHrManager: true,
+      dateOfEmployment: new Date('2024-09-01'),
+      baseSalaryKobo: 25_000_000, // ₦250,000
+      allowances: [{ name: 'Housing Allowance', amountKobo: 5_000_000 }],
+      deductions: [{ name: 'Pension (8%)', amountKobo: 2_000_000 }],
+    },
+  });
+  console.log('Created HR profile for teacher@greenwood.edu.ng (staff ID GRW/STAFF/0001, flagged as HR)');
+
+  // ── A sample leave request, so the leave workflow has something to
+  //    demo immediately instead of two empty lists ────────────────────
+  const annualLeave = leaveTypeRecords.find((t) => t.name === 'Annual Leave')!;
+  await prisma.leaveRequest.create({
+    data: {
+      schoolId: school.id,
+      staffProfileId: teacherProfile.id,
+      leaveTypeId: annualLeave.id,
+      startDate: new Date('2025-12-15'),
+      endDate: new Date('2025-12-19'),
+      daysCount: 5,
+      reason: 'Family visit during the Term 1 break.',
+      status: LeaveStatus.PENDING,
+    },
+  });
+  console.log('Created a sample PENDING leave request for the demo admin to approve/decline');
 
   // ── Class ──────────────────────────────────────────────────────────────
   const jss1 = await prisma.class.create({

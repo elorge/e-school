@@ -137,10 +137,45 @@ const PT: SignupLabels = {
   signIn: 'Iniciar sessão',
 };
 
+const ES: SignupLabels = {
+  heading: 'Sume a su colegio a Elorge',
+  subheading: 'Dondequiera que esté su colegio, cuéntenos un poco sobre él. Nuestro equipo revisa cada solicitud y activa su espacio de trabajo, generalmente dentro de un día hábil.',
+  requestReceivedTitle: 'Solicitud recibida.',
+  requestReceivedBody: (email) => `Le enviaremos un correo a ${email} en cuanto su espacio de trabajo esté listo.`,
+  backToHome: 'Volver al inicio',
+  countryLabel: 'País',
+  selectYourCountry: 'Seleccione su país',
+  billedInCurrency: (currency) => `A su colegio se le facturará en ${currency}.`,
+  languageLabel: 'Idioma',
+  selectCountryFirst: 'Seleccione primero su país',
+  languageHelp: 'Las boletas de calificaciones, las pantallas de CBT y los correos que enviemos estarán en este idioma. Puede cambiarlo más adelante.',
+  schoolNameLabel: 'Nombre del colegio',
+  workspaceNameLabel: 'Nombre del espacio de trabajo (se usa en su dirección web)',
+  schoolCodeLabel: 'Código del colegio (2 a 10 letras/números, usado en los números de matrícula)',
+  yourNameLabel: 'Su nombre (Administrador del colegio)',
+  yourEmailLabel: 'Su correo electrónico',
+  choosePasswordLabel: 'Elija una contraseña',
+  confirmPasswordLabel: 'Confirme la contraseña',
+  phoneLabel: 'Teléfono (opcional)',
+  passwordsDoNotMatch: 'Las contraseñas no coinciden.',
+  selectCountryError: 'Seleccione su país.',
+  selectLanguageError: 'Seleccione un idioma.',
+  genericError: 'Ocurrió un error. Inténtelo de nuevo.',
+  consentPrefix: 'Confirmo que mi colegio cuenta con el consentimiento legal para enviar datos de alumnos, y acepto los',
+  termsLink: 'Términos',
+  andText: 'y la',
+  privacyLink: 'Política de Privacidad',
+  submitting: 'Enviando…',
+  requestAccess: 'Solicitar acceso',
+  alreadyHaveAccount: '¿Ya tiene una cuenta?',
+  signIn: 'Iniciar sesión',
+};
+
 const SIGNUP_LABELS_BY_LOCALE: Record<SupportedLocale, SignupLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function signupLabelsFor(locale: string): SignupLabels {

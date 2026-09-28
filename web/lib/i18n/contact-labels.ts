@@ -59,10 +59,27 @@ const PT: ContactLabels = {
   closingBody: 'Sem fila de tickets, sem ciclo de chatbot — basta escrever e alguém que compreende mesmo a plataforma responderá.',
 };
 
+const ES_REASONS = [
+  { title: 'Configurar su colegio', body: 'Incorporación, importación de su lista de alumnos existente, o configuración de su primer trimestre.' },
+  { title: 'Algo no funciona bien', body: 'Una sincronización que no se completó, un lector que no lee una tarjeta, cualquier cosa que se vea rara.' },
+  { title: 'Precios y qué se adapta a su colegio', body: 'Cómo funcionan la billetera y las tarifas por alumno, y cuánto pagaría en la práctica un colegio de su tamaño.' },
+];
+
+const ES: ContactLabels = {
+  kicker: 'Contacto',
+  heroTitle: 'Hablemos.',
+  heroBody: 'Preguntas sobre la configuración de su colegio, precios, o cualquier otra cosa: escríbanos directamente. Una persona real de nuestro equipo lee cada mensaje.',
+  chatOnWhatsApp: 'Chatear por WhatsApp',
+  reasonsHeading: 'Sobre qué suele escribirnos la gente.',
+  reasons: ES_REASONS,
+  closingBody: 'Sin fila de tickets, sin bucle de chatbot: solo escriba y alguien que realmente entiende la plataforma le responderá.',
+};
+
 const CONTACT_LABELS_BY_LOCALE: Record<SupportedLocale, ContactLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function contactLabelsFor(locale: string): ContactLabels {

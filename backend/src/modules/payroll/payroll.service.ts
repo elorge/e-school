@@ -1,12 +1,13 @@
 // backend/src/modules/payroll/payroll.service.ts
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
+import * as XLSX from 'xlsx';
 import { EmploymentStatus, PayrollRunStatus, PayslipStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/services/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { GeneratePayrollRunDto } from './dto/generate-payroll-run.dto';
-import { formatMoney, minorToMajor } from '../../common/utils/currency.util';
+import { formatMoney, minorToMajor, decimalPlacesFor } from '../../common/utils/currency.util';
 import { SalaryLineItem } from '../staff/dto/create-staff-profile.dto';
 
 function sumLineItems(items: unknown): number {
@@ -202,6 +203,67 @@ export class PayrollService {
       );
     }
     return lines.join('\r\n');
+  }
+
+  /**
+   * Full payroll register for a run — every payslip's itemised
+   * allowances/deductions plus base/gross/net/status, one row per staff
+   * member, as a downloadable .xlsx. This is deliberately broader than
+   * buildDisbursementSchedule/toScheduleCsv (which only lists people still
+   * owed money, with just bank-transfer columns) — the register is the
+   * record-keeping/reporting artifact admins hand to auditors or import
+   * into their own accounting tool, so it includes everyone in the run
+   * regardless of payment status.
+   */
+  async exportRegisterXlsx(schoolId: string, runId: string): Promise<Buffer> {
+    const run = await this.getRun(schoolId, runId);
+    const divisor = 10 ** decimalPlacesFor(run.payslips[0]?.currency ?? 'NGN');
+
+    const itemNames = (items: unknown): string =>
+      Array.isArray(items) ? (items as SalaryLineItem[]).map((i) => `${i.name}: ${((i.amountKobo ?? 0) / divisor).toLocaleString()}`).join('; ') : '';
+
+    const rows = run.payslips.map((p) => {
+      const breakdown = p.breakdown as unknown as { allowances?: SalaryLineItem[]; deductions?: SalaryLineItem[] } | null;
+      return {
+        'Staff ID': p.staffProfile.staffId,
+        'Full Name': p.user.fullName,
+        Department: p.staffProfile.department ?? '',
+        Designation: p.staffProfile.designation ?? '',
+        'Base Salary': p.baseSalaryKobo / divisor,
+        Allowances: p.allowancesKobo / divisor,
+        'Allowance breakdown': itemNames(breakdown?.allowances),
+        Deductions: p.deductionsKobo / divisor,
+        'Deduction breakdown': itemNames(breakdown?.deductions),
+        Gross: p.grossKobo / divisor,
+        'Net Pay': p.netKobo / divisor,
+        Currency: p.currency,
+        Status: p.status,
+        'Paid At': p.paidAt ? p.paidAt.toISOString().slice(0, 10) : '',
+        'Payment Reference': p.paymentReference ?? '',
+      };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.json_to_sheet(rows);
+    sheet['!cols'] = [
+      { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 30 },
+      { wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 18 },
+    ];
+    XLSX.utils.book_append_sheet(workbook, sheet, run.periodLabel.slice(0, 31) || 'Payroll Register');
+
+    const summarySheet = XLSX.utils.json_to_sheet([
+      {
+        Period: run.periodLabel,
+        Status: run.status,
+        'Total Gross': run.totalGrossKobo / divisor,
+        'Total Deductions': run.totalDeductionsKobo / divisor,
+        'Total Net': run.totalNetKobo / divisor,
+        'Staff Count': run.payslips.length,
+      },
+    ]);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
 
   async approveRun(schoolId: string, id: string, approvedById: string) {

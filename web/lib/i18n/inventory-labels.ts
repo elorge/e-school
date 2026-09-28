@@ -121,10 +121,41 @@ const PT: InventoryLabels = {
   typeOut: 'Saída',
 };
 
+const ES: InventoryLabels = {
+  pageTitle: 'Inventario',
+  lowStockHeading: 'Stock bajo',
+  leftUnit: (name, qty, unit, reorderLevel) => `${name} — quedan ${qty} ${unit} (reabastecer en ${reorderLevel})`,
+  addItemHeading: 'Agregar un artículo',
+  namePlaceholder: 'Nombre',
+  categoryPlaceholder: 'Categoría',
+  unitPlaceholder: 'Unidad',
+  reorderAtPlaceholder: 'Reabastecer en',
+  addBtn: 'Agregar',
+  couldNotCreateItem: 'No se pudo crear el artículo',
+  allItemsHeading: 'Todos los artículos',
+  onHand: (qty, unit) => `${qty} ${unit} disponibles`,
+  perUnit: (money, unit) => `(${money} / ${unit})`,
+  qtyPlaceholder: 'Cant.',
+  stockInBtn: 'Entrada de stock',
+  stockOutBtn: 'Salida de stock',
+  couldNotRecordTransaction: 'No se pudo registrar la transacción; verifique los niveles de stock',
+  recentTransactionsHeading: 'Transacciones recientes',
+  exportToExcelBtn: 'Exportar a Excel',
+  noTransactionsYet: 'Aún no hay transacciones registradas.',
+  colDate: 'Fecha',
+  colItem: 'Artículo',
+  colType: 'Tipo',
+  colQty: 'Cant.',
+  colBy: 'Por',
+  typeIn: 'Entrada',
+  typeOut: 'Salida',
+};
+
 const INVENTORY_LABELS_BY_LOCALE: Record<SupportedLocale, InventoryLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function inventoryLabelsFor(locale: string): InventoryLabels {

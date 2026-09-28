@@ -61,10 +61,26 @@ const PT: TermsLabels = {
   allTermsHeading: 'Todos os períodos',
 };
 
+const ES: TermsLabels = {
+  pageTitle: 'Trimestres',
+  loadFailed: 'Error al cargar los trimestres',
+  createHeading: 'Crear un período',
+  createHelp: 'El año académico agrupa cada período, p. ej. "2025/2026", y es lo que alimenta el Resumen del Año Escolar. Como sea que su colegio llame a sus períodos (Trimestre, Semestre, Bimestre) y cuantos tenga por año, esto funciona; el número solo debe ser único dentro de un mismo año.',
+  academicSessionLabel: 'Año académico',
+  periodLabelLabel: 'Cómo llama usted a un período',
+  numberLabel: 'Número',
+  startDateLabel: 'Fecha de inicio',
+  endDateLabel: 'Fecha de fin',
+  createBtn: (periodLabel) => `Crear ${periodLabel || 'período'}`,
+  createError: 'No se pudo crear el período; verifique que el año/número no esté ya en uso',
+  allTermsHeading: 'Todos los períodos',
+};
+
 const TERMS_LABELS_BY_LOCALE: Record<SupportedLocale, TermsLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function termsLabelsFor(locale: string): TermsLabels {

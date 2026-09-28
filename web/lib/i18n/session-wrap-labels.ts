@@ -95,10 +95,34 @@ const PT: SessionWrapLabels = {
   genericError: 'Ocorreu um erro. Por favor, tente novamente.',
 };
 
+const ES: SessionWrapLabels = {
+  sessionWrap: 'Resumen del año escolar',
+  termsOnFile: (count) => `${count} trimestre(s) registrado(s)`,
+  fieldsWorthExploring: 'Áreas que vale la pena explorar',
+  pageTitle: 'Resumen del año escolar',
+  studentLabel: 'Alumno',
+  selectStudent: 'Seleccione un alumno',
+  academicSessionLabel: 'Año académico',
+  selectSession: 'Seleccione un año académico',
+  generate: 'Generar',
+  generating: 'Generando…',
+  loadFailed: 'Error al cargar alumnos/años académicos',
+  noResultsFound: 'Aún no se encontraron resultados para este alumno en ese año académico.',
+  downloadAsPdf: 'Descargar como PDF',
+  yourChildsSessionWrap: 'El Resumen del Año Escolar de su hijo/a',
+  publicIntro: 'Use el PIN de resultado actual de su hijo/a; verá todos los trimestres registrados hasta ahora este año, aunque sea solo uno.',
+  admissionIdLabel: 'Número de matrícula',
+  pinLabel: 'PIN',
+  checking: 'Verificando…',
+  viewSessionWrap: 'Ver Resumen del Año Escolar',
+  genericError: 'Ocurrió un error. Inténtelo de nuevo.',
+};
+
 const SESSION_WRAP_LABELS_BY_LOCALE: Record<SupportedLocale, SessionWrapLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function sessionWrapLabelsFor(locale: string): SessionWrapLabels {

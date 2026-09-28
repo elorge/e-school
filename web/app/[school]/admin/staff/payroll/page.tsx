@@ -71,7 +71,7 @@ export default function PayrollRunsPage({ params }: { params: { school: string }
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']}>
+    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
       <main className="flex flex-col gap-8">
         <h1 className="flex items-center gap-2 text-xl font-semibold">
           <Wallet size={20} />
@@ -102,7 +102,12 @@ export default function PayrollRunsPage({ params }: { params: { school: string }
           </button>
         </form>
         <p className="-mt-4 text-xs text-ink/50">
-          Generating a run snapshots every ACTIVE staff member&apos;s current salary/allowances/deductions into payslips for this period.
+          Generating a run snapshots every ACTIVE staff member&apos;s current salary/allowances/deductions into payslips for this
+          period. To set someone&apos;s recurring deductions (pension, tax, etc.) or allowances first, open their profile from the{' '}
+          <Link href={`/${params.school}/admin/staff`} className="underline">
+            Staff Directory
+          </Link>{' '}
+          and edit &ldquo;Recurring deductions&rdquo; there — changes only apply to runs generated afterwards.
         </p>
 
         <div className="overflow-x-auto rounded-lg border bg-white">

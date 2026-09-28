@@ -77,10 +77,30 @@ const PT: SettingsLabels = {
   uploadSignatureBtn: 'Carregar assinatura',
 };
 
+const ES: SettingsLabels = {
+  pageTitle: 'Configuración',
+  languageHeading: 'Idioma',
+  languageHelp: 'Define el idioma de las boletas de calificaciones, las pantallas de exámenes (CBT) y los correos que Elorge envía sobre su colegio. El contenido escrito por los docentes (nombres de asignaturas, comentarios, el nombre de su propio colegio) nunca se traduce; permanece exactamente como se ingresó.',
+  languageUpdatedNotice: 'Idioma actualizado: las nuevas boletas, pantallas de CBT y correos lo usarán. Todo lo ya generado permanece como estaba.',
+  languageUpdateError: 'No se pudo actualizar el idioma. Inténtelo de nuevo.',
+  logoHeading: 'Logotipo del colegio',
+  logoHelp: 'Se usa en las boletas de calificaciones, carnés y el calendario académico; nunca el logotipo de Elorge.',
+  logoUpdatedNotice: 'Logotipo del colegio actualizado: ahora aparecerá en las boletas, carnés y el calendario.',
+  logoUploadError: 'No se pudo subir el logotipo. Intente con una imagen más pequeña (menos de 5 MB).',
+  uploadingBtn: 'Subiendo…',
+  uploadLogoBtn: 'Subir logotipo',
+  signatureHeading: 'Firma del director/a',
+  signatureHelp: 'Una firma escaneada o fotografiada, idealmente sobre un fondo liso; aparece en las boletas impresas.',
+  signatureUpdatedNotice: 'Firma actualizada: ahora aparecerá en las boletas.',
+  signatureUploadError: 'No se pudo subir la firma. Intente con una imagen más pequeña (menos de 5 MB).',
+  uploadSignatureBtn: 'Subir firma',
+};
+
 const SETTINGS_LABELS_BY_LOCALE: Record<SupportedLocale, SettingsLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function settingsLabelsFor(locale: string): SettingsLabels {

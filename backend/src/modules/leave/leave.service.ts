@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/services/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateLeaveRequestDto, CreateLeaveTypeDto } from './dto/leave.dto';
+import { DEFAULT_LEAVE_TYPES } from '../../common/constants';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -24,6 +25,24 @@ export class LeaveService {
     return this.prisma.leaveType.create({
       data: { schoolId, name: dto.name, defaultDaysPerYear: dto.defaultDaysPerYear ?? 0 },
     });
+  }
+
+  /**
+   * Creates the standard leave-type set (see DEFAULT_LEAVE_TYPES) for a
+   * school. Called automatically on school creation (SchoolsService.create)
+   * and exposed as a manual "seed defaults" action for schools that
+   * predate this (e.g. an existing demo/seeded school with none yet).
+   * skipDuplicates makes this safe to call more than once — a school
+   * that already renamed/removed some types never gets them force-added
+   * back, since @@unique([schoolId, name]) means only genuinely-missing
+   * names get created.
+   */
+  async seedDefaultTypes(schoolId: string) {
+    await this.prisma.leaveType.createMany({
+      data: DEFAULT_LEAVE_TYPES.map((t) => ({ schoolId, name: t.name, defaultDaysPerYear: t.defaultDaysPerYear })),
+      skipDuplicates: true,
+    });
+    return this.listTypes(schoolId);
   }
 
   /** Lazily provisioned per staff/type/year — see StaffLeaveBalance docstring in schema.prisma. */

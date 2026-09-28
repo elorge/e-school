@@ -6,7 +6,7 @@ import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
 import { CalendarClock, Plus } from 'lucide-react';
-import { listLeaveTypes, createLeaveType, listLeaveRequests, reviewLeaveRequest, type LeaveType, type LeaveRequestRecord } from '@/lib/endpoints/leave';
+import { listLeaveTypes, createLeaveType, seedDefaultLeaveTypes, listLeaveRequests, reviewLeaveRequest, type LeaveType, type LeaveRequestRecord } from '@/lib/endpoints/leave';
 import { ApiError } from '@/lib/api';
 
 export default function AdminLeavePage({ params }: { params: { school: string } }) {
@@ -16,6 +16,7 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
   const [requests, setRequests] = useState<LeaveRequestRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [newType, setNewType] = useState({ name: '', defaultDaysPerYear: 0 });
+  const [seeding, setSeeding] = useState(false);
   const [noteByRequest, setNoteByRequest] = useState<Record<string, string>>({});
 
   async function load() {
@@ -55,13 +56,25 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
     }
   }
 
+  async function handleSeedDefaults() {
+    setSeeding(true);
+    try {
+      await seedDefaultLeaveTypes(params.school);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not add the standard leave types.');
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   if (isLoading) return <LoadingScreen />;
 
   const pending = requests.filter((r) => r.status === 'PENDING');
   const reviewed = requests.filter((r) => r.status !== 'PENDING');
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']}>
+    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
       <main className="flex flex-col gap-8">
         <h1 className="flex items-center gap-2 text-xl font-semibold">
           <CalendarClock size={20} />
@@ -78,7 +91,21 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
                 {t.name} — {t.defaultDaysPerYear} days/yr
               </span>
             ))}
-            {types.length === 0 && <p className="text-sm text-ink/50">No leave types yet.</p>}
+            {types.length === 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-ink/50">
+                  No leave types yet — add your own below, or start from the standard set (Annual, Sick, Compassionate, Maternity,
+                  Paternity, Study).
+                </p>
+                <button
+                  onClick={handleSeedDefaults}
+                  disabled={seeding}
+                  className="self-start rounded border px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  {seeding ? 'Adding…' : 'Add standard leave types'}
+                </button>
+              </div>
+            )}
           </div>
           <form onSubmit={handleCreateType} className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-sm">

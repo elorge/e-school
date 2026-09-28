@@ -118,7 +118,44 @@ const PT: TermsPageLabels = {
   sections: PT_SECTIONS,
 };
 
-const TERMS_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, TermsPageLabels> = { en: EN, fr: FR, pt: PT };
+const ES_SECTIONS = [
+  {
+    heading: '1. El servicio',
+    body: 'Elorge Schools ("la Plataforma") es un servicio de gestión escolar proporcionado por Elorge Technologies Limited ("Elorge", "nosotros") a colegios registrados ("usted", "el Colegio"). Al crear un espacio de trabajo para su colegio, usted acepta estos términos en nombre de su institución.',
+  },
+  {
+    heading: '2. Sus responsabilidades',
+    body: 'Usted es responsable de obtener el consentimiento legal de padres/tutores antes de enviar datos de alumnos a la Plataforma, de la exactitud de los resultados y registros ingresados por su personal, y de mantener seguras las credenciales de acceso del personal. Elorge no es responsable de los datos ingresados incorrectamente por su personal.',
+  },
+  {
+    heading: '3. La billetera y la facturación',
+    body: 'Ciertas funciones (generación de PIN de resultados, exámenes por computadora) usan un saldo prepago de la billetera, cobrado por alumno y por trimestre a la tarifa publicada de la plataforma. Los fondos de la billetera no son reembolsables, salvo cuando un cobro no logró entregar el servicio correspondiente (ver Reembolsos).',
+  },
+  {
+    heading: '4. Suspensión',
+    body: 'Elorge puede suspender el acceso del personal/administración de un Colegio por falta de pago o incumplimiento de estos términos. La suspensión no elimina datos, ni bloquea el acceso de un padre a los resultados ya generados de su hijo/a mediante un PIN válido.',
+  },
+  {
+    heading: '5. Disponibilidad',
+    body: 'La Plataforma se proporciona "tal cual". Buscamos una alta disponibilidad pero no garantizamos un servicio ininterrumpido. Las funciones sin conexión están diseñadas para reducir, no eliminar, el impacto de los problemas de conectividad.',
+  },
+  {
+    heading: '6. Propiedad de los datos',
+    body: 'Usted conserva la propiedad de todos los datos que envíe. Al finalizar la cuenta, puede solicitar una exportación de los datos de su colegio dentro de un período razonable antes de la eliminación.',
+  },
+  {
+    heading: '7. Cambios',
+    body: 'Podemos actualizar estos términos; el uso continuado después de un cambio constituye aceptación. Los cambios importantes se comunicarán a los administradores del colegio.',
+  },
+];
+
+const ES: TermsPageLabels = {
+  title: 'Términos de Servicio',
+  lastUpdated: 'Última actualización: [DATE] — Elorge Technologies Limited',
+  sections: ES_SECTIONS,
+};
+
+const TERMS_PAGE_LABELS_BY_LOCALE: Record<SupportedLocale, TermsPageLabels> = { en: EN, fr: FR, pt: PT, es: ES };
 
 export function termsPageLabelsFor(locale: string): TermsPageLabels {
   return TERMS_PAGE_LABELS_BY_LOCALE[locale as SupportedLocale] ?? TERMS_PAGE_LABELS_BY_LOCALE[PLATFORM_DEFAULT_LOCALE];

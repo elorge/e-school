@@ -155,10 +155,52 @@ const PT: CalendarLabels = {
   eventTypeLabels: EVENT_TYPE_PT,
 };
 
+const EVENT_TYPE_ES: Record<CalendarEventType, string> = {
+  TERM_START: 'INICIO DE TRIMESTRE',
+  TERM_END: 'FIN DE TRIMESTRE',
+  MIDTERM_BREAK: 'RECESO DE MEDIO TRIMESTRE',
+  EXAM_PERIOD: 'PERÍODO DE EXÁMENES',
+  RESUMPTION: 'REINICIO DE CLASES',
+  PTA_MEETING: 'REUNIÓN DE PADRES Y DOCENTES',
+  HOLIDAY: 'FERIADO',
+  CUSTOM: 'PERSONALIZADO',
+};
+
+const ES: CalendarLabels = {
+  pageTitle: 'Calendario académico',
+  termLabel: 'Trimestre',
+  selectTerm: 'Seleccione un trimestre',
+  generateDraftHeading: 'Generar un borrador de calendario del trimestre',
+  generateDraftHelp: 'Todavía no se guarda nada — revise el borrador abajo, edite o elimine entradas según sea necesario, y luego guarde solo los eventos que desee conservar.',
+  resumptionDateLabel: 'Fecha de reinicio de clases',
+  weeksInTermLabel: 'Semanas en el trimestre',
+  midtermBreakLabel: 'Receso de medio trimestre (semana n.º)',
+  examWeeksLabel: 'Semanas de exámenes (al final)',
+  generateDraftBtn: 'Generar borrador',
+  draftGeneratedNotice: 'Borrador generado abajo — revíselo y luego guarde los que desee conservar.',
+  couldNotGenerateDraft: 'No se pudo generar un borrador; verifique la fecha de inicio y el número de semanas',
+  titlePlaceholder: 'Título',
+  applyBtn: 'Aplicar',
+  cancelBtn: 'Cancelar',
+  toDate: (date) => ` hasta ${date}`,
+  editBtn: 'Editar',
+  deleteBtn: 'Eliminar',
+  saveBtn: 'Guardar',
+  editEventHeading: 'Editar evento',
+  addEventManuallyHeading: 'Agregar un evento manualmente',
+  saveChangesBtn: 'Guardar cambios',
+  addBtn: 'Agregar',
+  couldNotSaveChanges: 'No se pudieron guardar los cambios',
+  couldNotAddEvent: 'No se pudo agregar el evento',
+  thisTermsEventsHeading: 'Eventos de este trimestre',
+  eventTypeLabels: EVENT_TYPE_ES,
+};
+
 const CALENDAR_LABELS_BY_LOCALE: Record<SupportedLocale, CalendarLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function calendarLabelsFor(locale: string): CalendarLabels {

@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { login } from '@/lib/endpoints/auth';
+import { getMyStaffProfile } from '@/lib/endpoints/staff';
 import { ApiError } from '@/lib/api';
 import { useMarketingLocale } from '@/lib/marketing-locale';
 import { loginLabelsFor } from '@/lib/i18n/login-labels';
@@ -47,7 +48,20 @@ export default function LoginPage() {
       // renders in THAT school's own configured language — this login
       // page's language (the visitor's browser language) was only ever
       // a best guess for the few seconds before we knew who they were.
-      const destination = data.user.role === 'SCHOOL_ADMIN' ? 'admin' : 'staff';
+      let destination = data.user.role === 'SCHOOL_ADMIN' ? 'admin' : 'staff';
+      // An HR-flagged staff account lands on the HR dashboard rather than
+      // the generic teaching one — see app/[school]/staff/hr/page.tsx.
+      // Best-effort: if this lookup fails for any reason, they still get
+      // signed in normally, just onto the regular staff dashboard, and
+      // can navigate to /staff/hr manually (or via the nav's HR menu).
+      if (data.user.role === 'STAFF') {
+        try {
+          const profile = await getMyStaffProfile(data.user.schoolSlug);
+          if (profile.isHrManager) destination = 'staff/hr';
+        } catch {
+          // no staff profile yet, or a transient error — fall through to the regular staff dashboard
+        }
+      }
       window.location.href = `/${data.user.schoolSlug}/${destination}`;
     } catch (err) {
       if (err instanceof ApiError) {

@@ -30,6 +30,7 @@ export interface StaffProfile {
   bankAccountName: string | null;
   bankAccountNumber: string | null;
   photoUrl: string | null;
+  isHrManager: boolean;
   baseSalaryKobo: number;
   allowances: SalaryLineItem[] | null;
   deductions: SalaryLineItem[] | null;
@@ -77,6 +78,7 @@ export interface CreateStaffProfileBody {
   bankAccountName?: string;
   bankAccountNumber?: string;
   photoUrl?: string;
+  isHrManager?: boolean;
   baseSalaryKobo?: number;
   allowances?: SalaryLineItem[];
   deductions?: SalaryLineItem[];

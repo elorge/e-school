@@ -6,6 +6,7 @@ import { StaffIdCardsService } from './staff-id-cards.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AllowHr } from '../../common/decorators/allow-hr.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/auth.types';
 import { EmploymentStatus, Role } from '@prisma/client';
@@ -23,6 +24,7 @@ export class StaffController {
   ) {}
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Get('profiles/unassigned-users')
   listUnprofiledUsers(@Req() req: Request) {
     return this.staffService.listUnprofiledUsers(req.schoolId!);
@@ -35,33 +37,37 @@ export class StaffController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Get('profiles')
   listAll(@Req() req: Request, @Query('employmentStatus') employmentStatus?: EmploymentStatus) {
     return this.staffService.listAll(req.schoolId!, employmentStatus);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Post('profiles')
   async createProfile(@Req() req: Request, @Body() dto: CreateStaffProfileDto, @CurrentUser() user: AuthenticatedUser) {
     const school = await this.prisma.school.findUniqueOrThrow({ where: { id: req.schoolId! } });
-    return this.staffService.createProfile(req.schoolId!, school.code, dto, user.id);
+    return this.staffService.createProfile(req.schoolId!, school.code, dto, user.id, user.role);
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
   @Get('profiles/:id')
   async findOne(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     const profile = await this.staffService.findOne(req.schoolId!, id);
-    this.assertOwnerOrAdmin(profile, user);
+    await this.assertOwnerOrPrivileged(profile, user);
     return profile;
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Patch('profiles/:id')
   update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateStaffProfileDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.staffService.update(req.schoolId!, id, dto, user.id);
+    return this.staffService.update(req.schoolId!, id, dto, user.id, user.role);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Post('profiles/:id/id-card/issue')
   issueIdCard(@Req() req: Request, @Param('id') id: string) {
     return this.staffService.issueIdCard(req.schoolId!, id);
@@ -71,7 +77,7 @@ export class StaffController {
   @Get('profiles/:id/id-card/pdf')
   async downloadIdCard(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Res() res: Response) {
     const profile = await this.staffService.findOne(req.schoolId!, id);
-    this.assertOwnerOrAdmin(profile, user);
+    await this.assertOwnerOrPrivileged(profile, user);
     const pdfBuffer = await this.idCardsService.renderIdCardPdf(req.schoolId!, id);
     res.set({
       'Content-Type': 'application/pdf',
@@ -85,7 +91,7 @@ export class StaffController {
   @Get('profiles/:id/attendance')
   async listAttendance(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     const profile = await this.staffService.findOne(req.schoolId!, id);
-    this.assertOwnerOrAdmin(profile, user);
+    await this.assertOwnerOrPrivileged(profile, user);
     return this.staffService.listAttendance(req.schoolId!, id);
   }
 
@@ -100,10 +106,18 @@ export class StaffController {
     return this.staffService.logAttendance(req.schoolId!, id, body.direction ?? 'CLOCK_IN', body.occurredAt, body.clientReferenceId);
   }
 
-  /** A STAFF caller may only ever read their own profile/card/attendance — SCHOOL_ADMIN can read anyone's. */
-  private assertOwnerOrAdmin(profile: { userId: string }, user: AuthenticatedUser) {
-    if (user.role === Role.STAFF && profile.userId !== user.id) {
-      throw new ForbiddenException('You may only view your own staff record');
-    }
+  /**
+   * A STAFF caller may only ever read their own profile/card/attendance,
+   * UNLESS they're HR-flagged themselves, in which case they can read
+   * anyone's — same as SCHOOL_ADMIN. This is a DB check (not just the JWT
+   * role) because "am I HR" isn't something the token carries.
+   */
+  private async assertOwnerOrPrivileged(profile: { userId: string }, user: AuthenticatedUser) {
+    if (user.role === Role.SCHOOL_ADMIN) return;
+    if (profile.userId === user.id) return;
+    const callerProfile = await this.prisma.staffProfile.findUnique({ where: { userId: user.id }, select: { isHrManager: true } });
+    if (callerProfile?.isHrManager) return;
+    throw new ForbiddenException('You may only view your own staff record');
   }
 }
+

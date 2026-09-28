@@ -73,10 +73,29 @@ const PT: AuditLogLabels = {
   noReasonGiven: 'nenhum motivo indicado',
 };
 
+const ES: AuditLogLabels = {
+  pageTitle: 'Registro de auditoría',
+  description: 'Un registro de quién hizo qué: cada cambio de resultado, pago de cuota y crédito a la billetera de su colegio, con la fecha en que ocurrió.',
+  noActivity: 'Aún no hay actividad registrada.',
+  colWhen: 'Cuándo',
+  colAction: 'Acción',
+  colDetails: 'Detalles',
+  actionResultUpdated: 'Resultado actualizado',
+  actionFeePaymentRecorded: 'Pago de cuota registrado',
+  actionSchoolSuspended: 'Colegio suspendido',
+  actionSchoolReactivated: 'Colegio reactivado',
+  actionWalletCredited: 'Billetera acreditada',
+  scoresSavedFor: (studentId, termId) => `Calificaciones guardadas para el alumno ${studentId} (trimestre ${termId})`,
+  viaMethod: (amount, method) => `${amount} vía ${method}`,
+  creditReason: (amount, reason) => `${amount} — ${reason}`,
+  noReasonGiven: 'sin motivo indicado',
+};
+
 const AUDIT_LOG_LABELS_BY_LOCALE: Record<SupportedLocale, AuditLogLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function auditLogLabelsFor(locale: string): AuditLogLabels {

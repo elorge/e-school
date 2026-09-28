@@ -197,10 +197,67 @@ const PT: AboutLabels = {
   talkToUs: 'Fale connosco',
 };
 
+const ES_VALUES = [
+  { title: 'Registros que merecen confianza', body: 'Empezamos con una boleta verificable por QR por una sola razón: un padre no debería tener que creer solo por la palabra de un colegio en cuanto a un resultado. Todo lo demás que hemos construido se rige por esa misma exigencia.' },
+  { title: 'Diseñado para cómo funcionan realmente los colegios', body: 'La electricidad se corta en plena temporada de matrículas. La señal cae en el portón. Diseñamos para esa realidad desde el principio, no como un parche agregado después de que algo falló frente a un cliente, dondequiera que esté el colegio.' },
+  { title: 'Un equipo que contesta el teléfono', body: 'Somos un equipo pequeño, formado deliberadamente (educación, ingeniería, seguridad y derecho, todos en la misma sala), no una fila de soporte. Cuando un colegio escribe, responde alguien que realmente entiende la plataforma.' },
+];
+
+const ES_TEAM: Record<string, TeamMemberCopy> = {
+  'George Olumah': {
+    role: 'Fundador',
+    bio: 'George tiene una licenciatura en Matemática, está por concluir una licenciatura en Desarrollo de Software en BYU–Idaho, tiene una certificación en gestión de proyectos de UC Irvine, y estudió Gestión Empresarial en la Lagos Business School, Pan-Atlantic University. Construyó Elorge en torno a una convicción simple: los registros de un colegio (resultados, carnés, cuotas) merecen el mismo rigor que las aulas que los producen. Es más feliz resolviendo el problema poco atractivo que nadie más quería tocar.',
+  },
+  'Elohor Olumah': {
+    role: 'Cofundadora',
+    bio: 'Elohor tiene una maestría en Ingeniería de la Universidad de Benín. Pensadora profunda y deliberada, aporta la paciencia de una estratega a problemas que la mayoría quiere despachar rápido, rastreando una decisión hasta su raíz antes de siquiera proponer una solución. Ese instinto define cómo se construye Elorge: sólido por dentro, no solo rápido de lanzar.',
+  },
+  'Gordon Ekpuyama': {
+    role: 'Director General/CEO',
+    bio: 'Gordon tiene un doctorado en Educación de la Universidad de Ibadan. Pocas personas que construyen software escolar han pasado tanto tiempo dentro de la dinámica real de un aula, una sala de docentes y una secretaría escolar nigeriana, y eso se nota en lo exigente que es con que la plataforma refleje cómo funcionan realmente los colegios, no cómo el software suele suponer que funcionan.',
+  },
+  'Victor Oko': {
+    role: 'CTO',
+    bio: 'Victor tiene una maestría en Ciencia de Datos e IA de la Universidad de Hull. Ingeniero de software de IA con un profundo conocimiento de la arquitectura de sistemas, es el responsable de que Elorge funcione tal como se promete, incluso sin conexión, en un apagón, en un teléfono con tres barras y ninguna señal de sobra.',
+  },
+  'Shelter Orok': {
+    role: 'CISO',
+    bio: 'Shelter tiene una maestría en Ciberseguridad Aplicada de la Universidad Heriot-Watt y ha trabajado como analista de prevención de fraude. Gracias a él, el PIN de un padre, el registro de un alumno y las finanzas de un colegio permanecen exactamente tan privados como deben ser, y sería el primero en decírselo si no lo fueran.',
+  },
+  'Mamus Benita': {
+    role: 'Consultora Legal',
+    bio: 'Mamus tiene un LLM en Derecho de la Universidad de Benín. Mantiene los contratos, las prácticas de tratamiento de datos y los acuerdos con colegios de Elorge sobre bases legales sólidas, para que cada colegio con el que trabajamos sepa exactamente qué está firmando, y exactamente de qué somos responsables.',
+  },
+};
+
+const ES: AboutLabels = {
+  kicker: 'Sobre Elorge',
+  heroTitle: 'Un registro que sus padres no tienen que creer solo por su palabra.',
+  heroBody: 'Elorge Technologies Limited construye software para colegios que toman en serio sus registros: resultados que los padres pueden verificar, carnés que funcionan en el portón, y una billetera que no requiere un título en finanzas para entender, facturada en su propia moneda dondequiera que esté su colegio.',
+  whyWeExist: 'Por qué existimos',
+  storyHeading: 'Construimos la secretaría escolar que nadie tiene tiempo de construir por su cuenta.',
+  storyP1: 'Elorge comenzó con una pregunta única y terca: ¿por qué un padre debería tener alguna vez que dudar si una boleta es genuina? Esa pregunta llevó a un resultado verificable por QR, y una vez que resolvimos eso correctamente, se hizo evidente que faltaba el mismo rigor en todo lo demás del registro diario de un colegio: en el portón, en la oficina de cuotas, en un laboratorio de computación que pierde señal a mitad de un examen.',
+  storyP2: (countryCount) => `Comenzamos como una empresa de software nigeriana enfocada en infraestructura de TI y desarrollo para el sector educativo, y seguimos con sede allí. Lo que ha cambiado es para quién construimos: colegios en ${countryCount} países ahora operan con Elorge, cada uno facturado en su propia moneda, cada uno manteniendo su propio calendario académico y lista de asignaturas. Somos lo bastante pequeños como para que las personas que construyeron la plataforma sigan contestando el teléfono cuando llama un colegio, y lo bastante deliberados como para que cada función se gane su lugar porque una secretaría escolar real realmente la necesitaba.`,
+  inNumbers: 'En números',
+  stat1Body: 'inicio de sesión para resultados, carnés, cuotas y exámenes, sin sistemas separados que conciliar',
+  stat2Body: 'señal necesaria para matricular a un alumno, ingresar una calificación o presentar un examen',
+  stat3Body: 'países desde los que un colegio puede registrarse hoy, cada uno facturado en su propia moneda',
+  valuesHeading: 'A qué nos comprometemos.',
+  values: ES_VALUES,
+  teamKicker: 'Las personas detrás de esto',
+  teamHeading: 'Educación, ingeniería, seguridad y derecho, en la misma sala.',
+  linkedinAriaLabel: (name) => `${name} en LinkedIn`,
+  team: ES_TEAM,
+  closingHeading: '¿Quiere hablar directamente con el equipo?',
+  closingBody: 'Somos un equipo lo bastante pequeño como para que una conversación real siempre esté disponible, antes de registrarse, no solo después de que algo salga mal.',
+  talkToUs: 'Hable con nosotros',
+};
+
 const ABOUT_LABELS_BY_LOCALE: Record<SupportedLocale, AboutLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function aboutLabelsFor(locale: string): AboutLabels {

@@ -149,10 +149,48 @@ const PT: ClassesLabels = {
   addBtn: 'Adicionar',
 };
 
+const ES: ClassesLabels = {
+  pageTitle: 'Clases',
+  loadFailed: 'Error al cargar las clases/el personal',
+  subjectCatalogHeading: 'Catálogo de asignaturas',
+  subjectCatalogHelp: 'Lista de asignaturas de todo el colegio; agregue lo que use su plan de estudios, no hay un conjunto fijo. Asigne las pertinentes a cada clase a continuación.',
+  addSubjectPlaceholder: 'p. ej. Matemática Avanzada, Kiswahili, Twi',
+  addToCatalogBtn: 'Agregar al catálogo',
+  couldNotAddSubject: 'No se pudo agregar la asignatura; puede que ya exista',
+  careerFieldsHeading: 'Sugerencias de áreas profesionales',
+  careerFieldsHelp: 'Alimenta la sección de "áreas sugeridas" del Resumen del Año Escolar. Los valores predeterminados abajo cubren un plan de estudios típico de la región; vincule cualquier asignatura de su catálogo de arriba (como las que acaba de agregar) con las áreas profesionales que respalda, y el Resumen del Año Escolar también empezará a sugerirlas.',
+  subjectSelectLabel: 'Asignatura',
+  careerFieldPlaceholder: 'Área profesional, p. ej. Lingüística',
+  linkBtn: 'Vincular',
+  mappingLinkedNotice: (subject, field) => `Se vinculó "${subject}" → "${field}" para las sugerencias del Resumen del Año Escolar.`,
+  couldNotAddMapping: 'No se pudo agregar esta vinculación',
+  couldNotRemoveMapping: 'No se pudo quitar esta vinculación',
+  yourMappingsHeading: 'Las vinculaciones de su colegio',
+  platformDefaults: (count) => `Valores predeterminados de la plataforma (${count})`,
+  createClassHeading: 'Crear una clase',
+  classNameLabel: 'Nombre de la clase',
+  classNamePlaceholder: '2.º de secundaria',
+  classTeacherLabel: 'Tutor/a de clase (opcional; se puede asignar después)',
+  unassigned: '— sin asignar —',
+  createClassBtn: 'Crear clase',
+  couldNotCreateClass: 'No se pudo crear la clase',
+  allClassesHeading: 'Todas las clases',
+  classTeacherPrefix: 'tutor/a de clase:',
+  hideSubjectsBtn: 'Ocultar asignaturas',
+  manageSubjectsBtn: 'Gestionar asignaturas',
+  reassignTeacherPlaceholder: 'Reasignar docente…',
+  classTeacherUpdatedNotice: 'Tutor/a de clase actualizado/a.',
+  couldNotAssignTeacher: 'No se pudo asignar el/la docente',
+  noSubjectsAssignedYet: 'Aún no hay asignaturas asignadas.',
+  addASubjectPlaceholder: 'Agregar una asignatura…',
+  addBtn: 'Agregar',
+};
+
 const CLASSES_LABELS_BY_LOCALE: Record<SupportedLocale, ClassesLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function classesLabelsFor(locale: string): ClassesLabels {

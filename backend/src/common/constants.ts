@@ -57,6 +57,19 @@ export const PLATFORM_DEFAULT_COUNTRY_CODE = process.env.DEFAULT_COUNTRY_CODE ??
  * into subjectScores — keep this list growing as real usage reveals
  * naming variants (e.g. "Maths" vs "Mathematics").
  */
+// Every school starts with this standard set of LeaveType rows (see
+// LeaveService.seedDefaultTypes) so the leave module isn't an empty
+// shell on day one. A school can rename/add/remove types afterwards —
+// this is just a sensible starting point, not a fixed list.
+export const DEFAULT_LEAVE_TYPES: { name: string; defaultDaysPerYear: number }[] = [
+  { name: 'Annual Leave', defaultDaysPerYear: 21 },
+  { name: 'Sick Leave', defaultDaysPerYear: 10 },
+  { name: 'Compassionate Leave', defaultDaysPerYear: 5 },
+  { name: 'Maternity Leave', defaultDaysPerYear: 90 },
+  { name: 'Paternity Leave', defaultDaysPerYear: 5 },
+  { name: 'Study Leave', defaultDaysPerYear: 10 },
+];
+
 export const SUBJECT_CAREER_FIELDS: Record<string, string[]> = {
   Mathematics: ['Engineering', 'Computer Science', 'Data Science', 'Actuarial Science'],
   'Further Mathematics': ['Engineering', 'Computer Science', 'Data Science'],

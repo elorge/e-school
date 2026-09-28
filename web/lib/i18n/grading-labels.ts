@@ -93,10 +93,34 @@ const PT: GradingLabels = {
   saveError: 'Não foi possível guardar — verifique a turma/disciplina/período.',
 };
 
+const ES: GradingLabels = {
+  pageTitle: 'Ponderación de calificaciones',
+  description: 'Decida qué parte de la calificación final de una asignatura proviene de Prueba vs. Examen (o cualquier desglose que desee). Deje un trimestre sin seleccionar para establecer un valor predeterminado que se aplique a todos los trimestres, y luego anule trimestres individuales según sea necesario; la misma idea que dejar una asignatura sin seleccionar para establecer un valor predeterminado para toda la clase.',
+  selectClass: 'Seleccione una clase',
+  allSubjectsClassDefault: 'Todas las asignaturas (predeterminado de la clase)',
+  allTermsDefault: 'Todos los trimestres (predeterminado)',
+  coveragePrefix: (subjectSuffix) => `COBERTURA ${subjectSuffix}`,
+  allSubjectsClassDefaultSuffix: '— todas las asignaturas (predeterminado de la clase)',
+  levelTermSubject: 'Configurado para este trimestre',
+  levelSubjectDefault: 'Usando el predeterminado de esta asignatura',
+  levelTermClasswide: 'Usando la ponderación de la clase de este trimestre',
+  levelClassDefault: 'Usando el predeterminado de la clase',
+  levelUnweighted: 'Sin ponderar (ingreso directo de la calificación)',
+  componentNamePlaceholder: 'Nombre del componente (p. ej. Prueba)',
+  addComponentBtn: 'Agregar componente',
+  totalLabel: (total) => `Total: ${total}%`,
+  saveWeightingBtn: 'Guardar ponderación',
+  weightsSumError: (total) => `Las ponderaciones deben sumar 100; actualmente ${total}.`,
+  confirmNoWiderDefault: 'Esto solo se aplica al trimestre seleccionado. Otros trimestres de esta clase/asignatura aún no tienen un valor predeterminado, por lo que seguirán usando el ingreso directo y sin ponderar de las calificaciones hasta que también los configure (o establezca un predeterminado dejando el Trimestre en blanco). ¿Guardar de todos modos?',
+  savedNotice: 'Guardado. Los nuevos resultados de CBT y las calificaciones de componentes ingresadas manualmente para esta clase se ponderarán de esta forma a partir de ahora.',
+  saveError: 'No se pudo guardar; verifique la clase/asignatura/trimestre.',
+};
+
 const GRADING_LABELS_BY_LOCALE: Record<SupportedLocale, GradingLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function gradingLabelsFor(locale: string): GradingLabels {

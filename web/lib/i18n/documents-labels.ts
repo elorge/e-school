@@ -81,10 +81,31 @@ const PT: DocumentsLabels = {
   termCalendarPdfBtn: 'PDF do calendário do período',
 };
 
+const ES: DocumentsLabels = {
+  pageTitle: 'Documentos',
+  loadFailed: 'Error al cargar alumnos/trimestres',
+  genericDownloadError: 'No se pudo generar ese documento. Verifique su selección e inténtelo de nuevo.',
+  studentDocumentsHeading: 'Documentos del alumno',
+  studentLabel: 'Alumno',
+  selectStudent: 'Seleccione un alumno',
+  pendingId: 'matrícula pendiente',
+  termLabel: 'Trimestre',
+  selectTerm: 'Seleccione un trimestre',
+  issueIdCardBtn: 'Emitir carné',
+  couldNotIssueIdCard: 'No se pudo emitir el carné',
+  idCardPdfBtn: 'PDF del carné',
+  noIdCardYetError: 'Todavía no hay un carné registrado para este alumno; haga clic primero en "Emitir carné".',
+  reportCardPdfBtn: 'PDF de la boleta',
+  generating: 'Generando…',
+  termDocumentsHeading: 'Documentos del trimestre',
+  termCalendarPdfBtn: 'PDF del calendario del trimestre',
+};
+
 const DOCUMENTS_LABELS_BY_LOCALE: Record<SupportedLocale, DocumentsLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function documentsLabelsFor(locale: string): DocumentsLabels {

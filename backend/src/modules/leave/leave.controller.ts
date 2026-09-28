@@ -6,6 +6,7 @@ import { StaffService } from '../staff/staff.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AllowHr } from '../../common/decorators/allow-hr.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/auth.types';
 import { LeaveStatus, Role } from '@prisma/client';
@@ -26,9 +27,18 @@ export class LeaveController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Post('types')
   createType(@Req() req: Request, @Body() dto: CreateLeaveTypeDto) {
     return this.leaveService.createType(req.schoolId!, dto);
+  }
+
+  /** One-click backfill for a school that has no leave types yet (e.g. one seeded/created before defaults existed). Safe to call repeatedly — see LeaveService.seedDefaultTypes. */
+  @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
+  @Post('types/seed-defaults')
+  seedDefaultTypes(@Req() req: Request) {
+    return this.leaveService.seedDefaultTypes(req.schoolId!);
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
@@ -53,12 +63,14 @@ export class LeaveController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Get('requests')
   listRequests(@Req() req: Request, @Query('status') status?: LeaveStatus) {
     return this.leaveService.listRequests(req.schoolId!, status);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
+  @AllowHr()
   @Post('requests/:id/review')
   reviewRequest(@Req() req: Request, @Param('id') id: string, @Body() dto: ReviewLeaveRequestDto, @CurrentUser() user: AuthenticatedUser) {
     return this.leaveService.reviewRequest(req.schoolId!, id, dto.approve, user.id, dto.reviewNote);

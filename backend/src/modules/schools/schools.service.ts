@@ -7,7 +7,7 @@ import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../../common/services/audit.service';
 import { SignupRequestStatus } from '@prisma/client';
-import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO } from '../../common/constants';
+import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO, DEFAULT_LEAVE_TYPES } from '../../common/constants';
 import { timezoneForCountry } from '../../common/utils/timezone.util';
 import { localeForCountry } from '../../common/utils/locale.util';
 import { ERROR_CODES } from '../../common/i18n/error-codes';
@@ -87,6 +87,15 @@ export class SchoolsService {
       },
     });
     await this.walletService.grantWelcomeBonus(school.id, WELCOME_BONUS_KOBO);
+
+    // Every school starts with the standard leave-type set (Annual, Sick,
+    // Compassionate, Maternity, Paternity, Study) so the leave module has
+    // something to apply for from day one — see LeaveService.seedDefaultTypes
+    // for the same logic exposed as a manual backfill for older schools.
+    await this.prisma.leaveType.createMany({
+      data: DEFAULT_LEAVE_TYPES.map((t) => ({ schoolId: school.id, name: t.name, defaultDaysPerYear: t.defaultDaysPerYear })),
+      skipDuplicates: true,
+    });
 
     await this.emailService.sendSchoolWelcome({
       toEmail: data.adminEmail,

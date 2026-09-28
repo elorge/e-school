@@ -81,10 +81,31 @@ const PT: ResultEntryLabels = {
   couldNotSaveError: 'Não foi possível guardar este resultado.',
 };
 
+const ES: ResultEntryLabels = {
+  enterResults: 'Ingresar resultados',
+  termLabel: 'Trimestre',
+  loading: 'Cargando…',
+  subjectScores: 'Calificaciones por asignatura',
+  subjectPlaceholder: 'Asignatura',
+  addSubjectBtn: 'Agregar asignatura',
+  teachersCommentLabel: 'Comentario del docente',
+  closeBtn: 'Cerrar',
+  savingBtn: 'Guardando…',
+  saveResultBtn: 'Guardar resultado',
+  sessionExpiredError: 'Sesión caducada; inicie sesión nuevamente.',
+  selectTermFirstError: 'Seleccione primero un trimestre.',
+  addAtLeastOneSubjectError: 'Agregue al menos una asignatura.',
+  scoresRangeError: 'Las calificaciones deben estar entre 0 y 100.',
+  queuedNotice: 'No hay conexión a internet en este momento; se guardó en este dispositivo y se sincronizará automáticamente.',
+  savedNotice: 'Guardado.',
+  couldNotSaveError: 'No se pudo guardar este resultado.',
+};
+
 const RESULT_ENTRY_LABELS_BY_LOCALE: Record<SupportedLocale, ResultEntryLabels> = {
   en: EN,
   fr: FR,
   pt: PT,
+  es: ES,
 };
 
 export function resultEntryLabelsFor(locale: string): ResultEntryLabels {
