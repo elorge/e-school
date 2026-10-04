@@ -30,7 +30,7 @@ export interface LeaveRequestRecord {
   reviewedAt: string | null;
   createdAt: string;
   leaveType?: LeaveType;
-  staffProfile?: { staffId: string; user: { fullName: string; email: string } };
+  staffProfile?: { userId: string; staffId: string; user: { fullName: string; email: string } };
 }
 
 export function listLeaveTypes(school: string): Promise<LeaveType[]> {
@@ -46,7 +46,7 @@ export function myLeaveBalances(school: string, year?: number): Promise<LeaveBal
   return apiFetch(`/${school}/leave/balances/me${qs}`);
 }
 
-export function requestLeave(school: string, body: { leaveTypeId: string; startDate: string; endDate: string; reason?: string }): Promise<LeaveRequestRecord> {
+export function requestLeave(school: string, body: { leaveTypeId?: string; leaveTypeName?: string; startDate: string; endDate: string; reason?: string }): Promise<LeaveRequestRecord> {
   return apiFetch(`/${school}/leave/requests`, { method: 'POST', body: JSON.stringify(body) });
 }
 
@@ -57,6 +57,14 @@ export function myLeaveRequests(school: string): Promise<LeaveRequestRecord[]> {
 export function listLeaveRequests(school: string, status?: LeaveStatus): Promise<LeaveRequestRecord[]> {
   const qs = status ? `?status=${status}` : '';
   return apiFetch(`/${school}/leave/requests${qs}`);
+}
+
+export function updateLeaveType(school: string, id: string, body: { name?: string; defaultDaysPerYear?: number }): Promise<LeaveType> {
+  return apiFetch(`/${school}/leave/types/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+export function deleteLeaveType(school: string, id: string): Promise<{ deleted: boolean }> {
+  return apiFetch(`/${school}/leave/types/${id}`, { method: 'DELETE' });
 }
 
 /** One-click backfill for a school with no leave types yet — see LeaveService.seedDefaultTypes on the backend. Safe to call more than once. */

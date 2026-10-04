@@ -3,9 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
-import { getSessionUser } from '@/lib/session';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
+import StaffPhotoEditor from '@/components/StaffPhotoEditor';
 import { Contact, Plus, Trash2, Download } from 'lucide-react';
 import { formatMoney, majorToMinor, minorToMajor } from '@/lib/currency';
 import {
@@ -77,11 +77,6 @@ function LineItemEditor({
 export default function StaffProfileDetailPage({ params }: { params: { school: string; id: string } }) {
   const school = useSchool();
   const money = (kobo: number) => formatMoney(kobo, school.currency, school.locale);
-  // Only a real SCHOOL_ADMIN can grant/revoke HR access — the backend
-  // silently ignores the field from any other caller (see
-  // StaffService.update), so an HR-flagged staff viewer never even sees
-  // the checkbox rather than seeing one that quietly does nothing.
-  const viewerIsAdmin = getSessionUser()?.role === 'SCHOOL_ADMIN';
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<StaffProfile | null>(null);
   const [attendance, setAttendance] = useState<StaffAttendanceRecord[]>([]);
@@ -121,13 +116,16 @@ export default function StaffProfileDetailPage({ params }: { params: { school: s
         address: profile.address ?? undefined,
         nextOfKinName: profile.nextOfKinName ?? undefined,
         nextOfKinPhone: profile.nextOfKinPhone ?? undefined,
+        nextOfKinRelationship: profile.nextOfKinRelationship ?? undefined,
+        maritalStatus: profile.maritalStatus ?? undefined,
+        stateOfOrigin: profile.stateOfOrigin ?? undefined,
+        qualifications: profile.qualifications ?? undefined,
         bankName: profile.bankName ?? undefined,
         bankAccountName: profile.bankAccountName ?? undefined,
         bankAccountNumber: profile.bankAccountNumber ?? undefined,
         baseSalaryKobo: profile.baseSalaryKobo,
         allowances: profile.allowances ?? [],
         deductions: profile.deductions ?? [],
-        ...(viewerIsAdmin ? { isHrManager: profile.isHrManager } : {}),
       });
       setProfile(updated);
       setSavedAt(Date.now());
@@ -161,7 +159,7 @@ export default function StaffProfileDetailPage({ params }: { params: { school: s
   if (!profile) return <p className="p-6 text-sm text-red-600">{error ?? 'Not found.'}</p>;
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
+    <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -175,13 +173,22 @@ export default function StaffProfileDetailPage({ params }: { params: { school: s
               <Contact size={15} /> Issue ID card
             </button>
             <button onClick={handleDownloadCard} className="flex items-center gap-1.5 rounded bg-ink px-3 py-1.5 text-sm text-white">
-              <Download size={15} /> Download card
+              <Download size={15} /> Print card
             </button>
           </div>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
         {savedAt && <p className="text-sm text-green-700">Saved.</p>}
+
+        <div className="rounded-lg border bg-white p-4">
+          <StaffPhotoEditor
+            school={params.school}
+            staffProfileId={profile.id}
+            photoUrl={profile.photoUrl}
+            onChanged={(url) => setProfile({ ...profile, photoUrl: url })}
+          />
+        </div>
 
         <form onSubmit={handleSave} className="flex flex-col gap-5 rounded-lg border bg-white p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -254,6 +261,26 @@ export default function StaffProfileDetailPage({ params }: { params: { school: s
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
+              Next of kin — relationship
+              <input
+                className="rounded border px-2 py-1.5"
+                value={profile.nextOfKinRelationship ?? ''}
+                onChange={(e) => setProfile({ ...profile, nextOfKinRelationship: e.target.value })}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Marital status
+              <input className="rounded border px-2 py-1.5" value={profile.maritalStatus ?? ''} onChange={(e) => setProfile({ ...profile, maritalStatus: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              State of origin
+              <input className="rounded border px-2 py-1.5" value={profile.stateOfOrigin ?? ''} onChange={(e) => setProfile({ ...profile, stateOfOrigin: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              Qualifications
+              <input className="rounded border px-2 py-1.5" value={profile.qualifications ?? ''} onChange={(e) => setProfile({ ...profile, qualifications: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
               Bank name
               <input className="rounded border px-2 py-1.5" value={profile.bankName ?? ''} onChange={(e) => setProfile({ ...profile, bankName: e.target.value })} />
             </label>
@@ -285,20 +312,6 @@ export default function StaffProfileDetailPage({ params }: { params: { school: s
               />
             </label>
           </div>
-
-          {viewerIsAdmin && (
-            <label className="flex items-center gap-2 rounded border bg-amber-50/60 px-3 py-2 text-sm">
-              <input
-                type="checkbox"
-                checked={profile.isHrManager}
-                onChange={(e) => setProfile({ ...profile, isHrManager: e.target.checked })}
-              />
-              <span>
-                Grant HR access — lets this staff member manage the Staff Directory, Payroll, and Leave approvals as if they were a
-                school admin, without any other admin permissions.
-              </span>
-            </label>
-          )}
 
           <LineItemEditor
             title="Recurring allowances"

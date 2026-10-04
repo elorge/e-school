@@ -71,7 +71,7 @@ export default function PayrollRunsPage({ params }: { params: { school: string }
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
+    <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-8">
         <h1 className="flex items-center gap-2 text-xl font-semibold">
           <Wallet size={20} />

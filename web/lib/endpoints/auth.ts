@@ -40,7 +40,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 /** SCHOOL_ADMIN inviting a teacher — no password set here; the teacher activates via an emailed link. */
-export async function inviteStaff(body: { email: string; fullName: string }) {
+export async function inviteStaff(body: { email: string; fullName: string; role?: 'STAFF' | 'SCHOOL_ADMIN' }) {
   return apiFetch('/auth/invite-staff', {
     method: 'POST',
     body: JSON.stringify(body),

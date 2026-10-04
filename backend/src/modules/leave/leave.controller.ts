@@ -1,16 +1,15 @@
 // backend/src/modules/leave/leave.controller.ts
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { LeaveService } from './leave.service';
 import { StaffService } from '../staff/staff.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { AllowHr } from '../../common/decorators/allow-hr.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/auth.types';
 import { LeaveStatus, Role } from '@prisma/client';
-import { CreateLeaveRequestDto, CreateLeaveTypeDto, ReviewLeaveRequestDto } from './dto/leave.dto';
+import { CreateLeaveRequestDto, CreateLeaveTypeDto, ReviewLeaveRequestDto, UpdateLeaveTypeDto } from './dto/leave.dto';
 
 @UseGuards(TenantGuard, RolesGuard)
 @Controller(':school/leave')
@@ -27,15 +26,25 @@ export class LeaveController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Post('types')
   createType(@Req() req: Request, @Body() dto: CreateLeaveTypeDto) {
     return this.leaveService.createType(req.schoolId!, dto);
   }
 
+  @Roles(Role.SCHOOL_ADMIN)
+  @Patch('types/:id')
+  updateType(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateLeaveTypeDto) {
+    return this.leaveService.updateType(req.schoolId!, id, dto);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
+  @Delete('types/:id')
+  deleteType(@Req() req: Request, @Param('id') id: string) {
+    return this.leaveService.deleteType(req.schoolId!, id);
+  }
+
   /** One-click backfill for a school that has no leave types yet (e.g. one seeded/created before defaults existed). Safe to call repeatedly — see LeaveService.seedDefaultTypes. */
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Post('types/seed-defaults')
   seedDefaultTypes(@Req() req: Request) {
     return this.leaveService.seedDefaultTypes(req.schoolId!);
@@ -52,7 +61,7 @@ export class LeaveController {
   @Post('requests')
   async requestLeave(@Req() req: Request, @Body() dto: CreateLeaveRequestDto, @CurrentUser() user: AuthenticatedUser) {
     const profile = await this.staffService.findByUserId(req.schoolId!, user.id);
-    return this.leaveService.requestLeave(req.schoolId!, profile.id, dto);
+    return this.leaveService.requestLeave(req.schoolId!, profile.id, user.id, dto);
   }
 
   @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
@@ -63,14 +72,12 @@ export class LeaveController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Get('requests')
   listRequests(@Req() req: Request, @Query('status') status?: LeaveStatus) {
     return this.leaveService.listRequests(req.schoolId!, status);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Post('requests/:id/review')
   reviewRequest(@Req() req: Request, @Param('id') id: string, @Body() dto: ReviewLeaveRequestDto, @CurrentUser() user: AuthenticatedUser) {
     return this.leaveService.reviewRequest(req.schoolId!, id, dto.approve, user.id, dto.reviewNote);

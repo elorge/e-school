@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from 'react';
 import { getSessionUser } from '@/lib/session';
-import { getMyStaffProfile } from '@/lib/endpoints/staff';
 import type { Role } from '@/lib/types';
 import LoadingScreen from './LoadingScreen';
 
@@ -11,23 +10,13 @@ import LoadingScreen from './LoadingScreen';
  * Wraps a page and actually blocks it — not just hides a nav link — for
  * roles that aren't allowed. A hidden link stops someone from clicking
  * their way in; it does nothing for a bookmark, a shared URL, or the
- * browser back button. This is the real gate.
+ * browser back button. This is the real gate (the backend enforces the
+ * same rule independently).
  *
- * Pass `allowHr` on a page whose backend routes carry @AllowHr() (Staff
- * Directory, Payroll, Leave administration) so a STAFF account flagged
- * as HR (StaffProfile.isHrManager) isn't bounced off a page their API
- * calls would otherwise succeed on. Has no effect on SCHOOL_ADMIN, and
- * no effect on a STAFF account that isn't HR-flagged.
+ * There is no separate HR role: the SCHOOL_ADMIN handles all HR work and
+ * is the final approver; STAFF pages only ever show the caller's own data.
  */
-export default function RequireRole({
-  allow,
-  allowHr = false,
-  children,
-}: {
-  allow: Role[];
-  allowHr?: boolean;
-  children: React.ReactNode;
-}) {
+export default function RequireRole({ allow, children }: { allow: Role[]; children: React.ReactNode }) {
   const [status, setStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
 
   useEffect(() => {
@@ -40,27 +29,11 @@ export default function RequireRole({
       setStatus('allowed');
       return;
     }
-    if (allowHr && user.role === 'STAFF' && user.schoolSlug) {
-      getMyStaffProfile(user.schoolSlug)
-        .then((profile) => {
-          if (profile.isHrManager) {
-            setStatus('allowed');
-          } else {
-            deny(user.schoolSlug);
-          }
-        })
-        .catch(() => deny(user.schoolSlug));
-      return;
-    }
-    deny(user.schoolSlug);
+    setStatus('denied');
+    const fallback = user.schoolSlug ? `/${user.schoolSlug}/staff` : '/login';
+    setTimeout(() => (window.location.href = fallback), 1500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function deny(schoolSlug: string | null) {
-    setStatus('denied');
-    const fallback = schoolSlug ? `/${schoolSlug}/staff` : '/login';
-    setTimeout(() => (window.location.href = fallback), 1500);
-  }
 
   if (status === 'checking') return <LoadingScreen />;
   if (status === 'denied') {

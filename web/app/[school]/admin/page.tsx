@@ -38,6 +38,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
   const [resultModalStudent, setResultModalStudent] = useState<Student | null>(null);
   const [staffMode, setStaffMode] = useState<'invite' | 'direct'>('invite');
   const [newStaff, setNewStaff] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
+  const [newAccountRole, setNewAccountRole] = useState<'STAFF' | 'SCHOOL_ADMIN'>('STAFF');
   const [isCreatingStaff, setIsCreatingStaff] = useState(false);
 
   async function loadData() {
@@ -101,7 +102,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
     setIsCreatingStaff(true);
     try {
       if (staffMode === 'invite') {
-        await inviteStaff({ fullName: newStaff.fullName, email: newStaff.email });
+        await inviteStaff({ fullName: newStaff.fullName, email: newStaff.email, role: newAccountRole });
         setNotice(t.inviteSentNotice(newStaff.email));
       } else {
         if (newStaff.password !== newStaff.confirmPassword) {
@@ -109,7 +110,7 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
           setIsCreatingStaff(false);
           return;
         }
-        await createUser({ fullName: newStaff.fullName, email: newStaff.email, password: newStaff.password, role: 'STAFF' });
+        await createUser({ fullName: newStaff.fullName, email: newStaff.email, password: newStaff.password, role: newAccountRole });
         setNotice(t.accountCreatedNotice(newStaff.email));
       }
       setNewStaff({ fullName: '', email: '', password: '', confirmPassword: '' });
@@ -223,6 +224,13 @@ export default function SchoolAdminPage({ params }: { params: { school: string }
               onChange={(e) => setNewStaff((f) => ({ ...f, email: e.target.value }))}
               required
             />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Account type
+            <select className="rounded border px-2 py-1.5" value={newAccountRole} onChange={(e) => setNewAccountRole(e.target.value as 'STAFF' | 'SCHOOL_ADMIN')}>
+              <option value="STAFF">Staff</option>
+              <option value="SCHOOL_ADMIN">School admin (can approve others)</option>
+            </select>
           </label>
           {staffMode === 'direct' && (
             <>

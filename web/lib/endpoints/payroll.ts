@@ -22,7 +22,15 @@ export interface Payslip {
   paymentReference: string | null;
   createdAt: string;
   user?: { id: string; fullName: string; email: string };
-  staffProfile?: { staffId: string; department: string | null; designation: string | null };
+  staffProfile?: {
+    staffId: string;
+    department: string | null;
+    designation: string | null;
+    phone?: string | null;
+    bankName?: string | null;
+    bankAccountName?: string | null;
+    bankAccountNumber?: string | null;
+  };
   payrollRun?: { periodLabel: string; periodStart: string; periodEnd: string; status: PayrollRunStatus };
 }
 
@@ -85,6 +93,20 @@ export function getDisbursementSchedule(
   runId: string,
 ): Promise<{ rows: DisbursementScheduleRow[]; missingBankDetails: { fullName: string; staffId: string }[] }> {
   return apiFetch(`/${school}/payroll/runs/${runId}/schedule`);
+}
+
+/** Bank schedule as Excel: who to pay (bank, account number, amount), who is missing bank details, who is already paid. */
+export async function downloadDisbursementScheduleXlsx(school: string, runId: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const token = getToken();
+  const res = await fetch(`${API_URL}/${school}/payroll/runs/${runId}/schedule.xlsx`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error('Download failed');
+  return res.blob();
+}
+
+/** Marks everyone on the bank schedule as paid with one shared reference. */
+export function markAllPaid(school: string, runId: string, paymentReference?: string): Promise<{ paid: number; skipped: { fullName: string; staffId: string; reason: string }[] }> {
+  return apiFetch(`/${school}/payroll/runs/${runId}/pay-all`, { method: 'POST', body: JSON.stringify({ paymentReference }) });
 }
 
 export async function downloadDisbursementScheduleCsv(school: string, runId: string): Promise<Blob> {

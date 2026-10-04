@@ -30,6 +30,9 @@ export interface NavLabels {
   payroll: string;
   leave: string;
   myInfo: string;
+  myLeave: string;
+  myPayslips: string;
+  idCards: string;
 }
 
 const EN: NavLabels = {
@@ -60,6 +63,9 @@ const EN: NavLabels = {
   payroll: 'Payroll',
   leave: 'Leave',
   myInfo: 'My Info',
+  myLeave: "My Leave",
+  myPayslips: "My Payslips",
+  idCards: "ID Cards",
 };
 
 const FR: NavLabels = {
@@ -90,6 +96,9 @@ const FR: NavLabels = {
   payroll: 'Paie',
   leave: 'Congés',
   myInfo: 'Mes informations',
+  myLeave: "Mes congés",
+  myPayslips: "Mes bulletins de paie",
+  idCards: "Cartes d'identité",
 };
 
 const PT: NavLabels = {
@@ -120,6 +129,9 @@ const PT: NavLabels = {
   payroll: 'Folha de Pagamento',
   leave: 'Licenças',
   myInfo: 'Minhas Informações',
+  myLeave: "Minhas Licenças",
+  myPayslips: "Meus Recibos",
+  idCards: "Cartões de Identificação",
 };
 
 const ES: NavLabels = {
@@ -150,6 +162,9 @@ const ES: NavLabels = {
   payroll: 'Nómina',
   leave: 'Permisos',
   myInfo: 'Mi información',
+  myLeave: "Mis permisos",
+  myPayslips: "Mis nóminas",
+  idCards: "Carnés de identificación",
 };
 
 const NAV_LABELS_BY_LOCALE: Record<SupportedLocale, NavLabels> = { en: EN, fr: FR, pt: PT, es: ES };

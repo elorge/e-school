@@ -1,9 +1,10 @@
 // backend/src/modules/leave/dto/leave.dto.ts
-import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, IsUUID, Min, MaxLength, MinLength } from 'class-validator';
 
 export class CreateLeaveTypeDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(60)
   name!: string;
 
   @IsOptional()
@@ -12,9 +13,30 @@ export class CreateLeaveTypeDto {
   defaultDaysPerYear?: number;
 }
 
+export class UpdateLeaveTypeDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(60)
+  name?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  defaultDaysPerYear?: number;
+}
+
 export class CreateLeaveRequestDto {
+  // Either pick an existing type, or type a new one in leaveTypeName. Only the admin can rename/delete types.
+  @IsOptional()
   @IsUUID()
-  leaveTypeId!: string;
+  leaveTypeId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(60)
+  leaveTypeName?: string;
 
   @IsDateString()
   startDate!: string;
@@ -24,6 +46,7 @@ export class CreateLeaveRequestDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   reason?: string;
 }
 

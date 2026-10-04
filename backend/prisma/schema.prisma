@@ -67,6 +67,7 @@ model School {
 
   staffProfiles         StaffProfile[]
   staffIdCards          StaffIdCard[]
+  staffIdCardRequests   StaffIdCardRequest[]
   staffAttendanceRecords StaffAttendanceRecord[]
   payrollRuns           PayrollRun[]
   payslips              Payslip[]
@@ -847,13 +848,6 @@ model StaffProfile {
   staffId          String           @unique // e.g. "GRW/STAFF/0001" — same sequential pattern as Student.studentId, see StaffService.createAndAssignStaffId
   department       String?
   designation      String? // job title, e.g. "Mathematics Teacher", "Bursar"
-  // Grants this STAFF account HR-level access (staff directory, payroll,
-  // leave administration) without being a full SCHOOL_ADMIN. Only a
-  // SCHOOL_ADMIN can set/unset this — see StaffService.createProfile /
-  // update, which strip the field from the payload for any other actor.
-  // Enforced on the backend by HrOrRolesGuard (see common/guards) rather
-  // than by role alone, since Role has no dedicated HR value.
-  isHrManager      Boolean          @default(false)
   employmentType   EmploymentType   @default(FULL_TIME)
   employmentStatus EmploymentStatus @default(ACTIVE)
   dateOfEmployment DateTime?
@@ -863,6 +857,10 @@ model StaffProfile {
   address          String?
   nextOfKinName    String?
   nextOfKinPhone   String?
+  nextOfKinRelationship String?
+  maritalStatus    String?
+  stateOfOrigin    String?
+  qualifications   String? // free text: degrees / certifications, e.g. "B.Ed Mathematics, TRCN registered"
   bankName         String?
   bankAccountName  String?
   bankAccountNumber String?
@@ -881,6 +879,7 @@ model StaffProfile {
   updatedAt DateTime @updatedAt
 
   idCards           StaffIdCard[]
+  idCardRequests    StaffIdCardRequest[]
   payslips          Payslip[]
   leaveRequests     LeaveRequest[]
   leaveBalances     StaffLeaveBalance[]
@@ -905,6 +904,35 @@ model StaffIdCard {
   issuedAt       DateTime     @default(now())
 
   @@map("staff_id_cards")
+}
+
+enum IdCardRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// A staff member's request for a (first or replacement) ID card. Approving
+/// it issues a StaffIdCard (see StaffService.reviewIdCardRequest), which is
+/// what the PDF renderer actually reads — the request row is just the
+/// approval trail.
+model StaffIdCardRequest {
+  id             String                  @id @default(uuid())
+  schoolId       String
+  school         School                  @relation(fields: [schoolId], references: [id])
+  staffProfileId String
+  staffProfile   StaffProfile            @relation(fields: [staffProfileId], references: [id])
+  reason         String? // e.g. "First card", "Lost", "Damaged"
+  status         IdCardRequestStatus     @default(PENDING)
+  reviewedById   String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  createdAt      DateTime                @default(now())
+
+  @@index([schoolId, status])
+  @@index([staffProfileId, status])
+  @@map("staff_id_card_requests")
 }
 
 enum StaffAttendanceDirection {

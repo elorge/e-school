@@ -5,9 +5,10 @@ import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
-import { CalendarClock, Plus } from 'lucide-react';
-import { listLeaveTypes, createLeaveType, seedDefaultLeaveTypes, listLeaveRequests, reviewLeaveRequest, type LeaveType, type LeaveRequestRecord } from '@/lib/endpoints/leave';
+import { CalendarClock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { listLeaveTypes, createLeaveType, updateLeaveType, deleteLeaveType, seedDefaultLeaveTypes, listLeaveRequests, reviewLeaveRequest, type LeaveType, type LeaveRequestRecord } from '@/lib/endpoints/leave';
 import { ApiError } from '@/lib/api';
+import { getSessionUser } from '@/lib/session';
 
 export default function AdminLeavePage({ params }: { params: { school: string } }) {
   const school = useSchool();
@@ -17,6 +18,7 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
   const [error, setError] = useState<string | null>(null);
   const [newType, setNewType] = useState({ name: '', defaultDaysPerYear: 0 });
   const [seeding, setSeeding] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; name: string; defaultDaysPerYear: number } | null>(null);
   const [noteByRequest, setNoteByRequest] = useState<Record<string, string>>({});
 
   async function load() {
@@ -47,6 +49,28 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
     }
   }
 
+  async function handleSaveType(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    try {
+      await updateLeaveType(params.school, editing.id, { name: editing.name, defaultDaysPerYear: editing.defaultDaysPerYear });
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update this leave type.');
+    }
+  }
+
+  async function handleDeleteType(t: LeaveType) {
+    if (!window.confirm(`Delete "${t.name}"? This cannot be undone.`)) return;
+    try {
+      await deleteLeaveType(params.school, t.id);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not delete this leave type.');
+    }
+  }
+
   async function handleReview(id: string, approve: boolean) {
     try {
       await reviewLeaveRequest(params.school, id, approve, noteByRequest[id]);
@@ -70,11 +94,12 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
 
   if (isLoading) return <LoadingScreen />;
 
+  const myUserId = getSessionUser()?.id;
   const pending = requests.filter((r) => r.status === 'PENDING');
   const reviewed = requests.filter((r) => r.status !== 'PENDING');
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
+    <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-8">
         <h1 className="flex items-center gap-2 text-xl font-semibold">
           <CalendarClock size={20} />
@@ -87,8 +112,14 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
           <p className="text-sm font-medium">Leave types</p>
           <div className="flex flex-wrap gap-2">
             {types.map((t) => (
-              <span key={t.id} className="rounded-full bg-black/5 px-3 py-1 text-xs">
-                {t.name} — {t.defaultDaysPerYear} days/yr
+              <span key={t.id} className="flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1 text-xs">
+                {t.name} — {t.defaultDaysPerYear > 0 ? `${t.defaultDaysPerYear} days/yr` : 'no yearly limit'}
+                <button type="button" title="Edit" onClick={() => setEditing({ id: t.id, name: t.name, defaultDaysPerYear: t.defaultDaysPerYear })} className="text-ink/50 hover:text-ink">
+                  <Pencil size={12} />
+                </button>
+                <button type="button" title="Delete" onClick={() => handleDeleteType(t)} className="text-red-500 hover:text-red-700">
+                  <Trash2 size={12} />
+                </button>
               </span>
             ))}
             {types.length === 0 && (
@@ -107,13 +138,28 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
               </div>
             )}
           </div>
+          {editing && (
+            <form onSubmit={handleSaveType} className="flex flex-wrap items-end gap-2 rounded border bg-amber-50/60 p-3">
+              <label className="flex flex-col gap-1 text-sm">
+                Name
+                <input className="rounded border px-2 py-1.5" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Days/year
+                <input type="number" min={0} className="w-28 rounded border px-2 py-1.5" value={editing.defaultDaysPerYear} onChange={(e) => setEditing({ ...editing, defaultDaysPerYear: Number(e.target.value) })} />
+              </label>
+              <button type="submit" className="rounded bg-ink px-3 py-1.5 text-sm text-white">Save</button>
+              <button type="button" onClick={() => setEditing(null)} className="rounded border px-3 py-1.5 text-sm">Cancel</button>
+              <p className="w-full text-xs text-ink/50">A new allowance applies to balances created from now on; staff who already have a balance this year keep theirs.</p>
+            </form>
+          )}
           <form onSubmit={handleCreateType} className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-sm">
               Name
               <input className="rounded border px-2 py-1.5" value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Default days/year
+              Default days/year (0 = no limit)
               <input
                 type="number"
                 min={0}
@@ -135,27 +181,31 @@ export default function AdminLeavePage({ params }: { params: { school: string } 
             <div key={r.id} className="flex flex-col gap-2 rounded-lg border bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="font-medium">{r.staffProfile?.user.fullName}</p>
+                  <p className="font-medium">{r.staffProfile?.user.fullName} <span className="text-xs font-normal text-ink/40">{r.staffProfile?.staffId}</span></p>
                   <p className="text-xs text-ink/50">
                     {r.leaveType?.name} · {new Date(r.startDate).toLocaleDateString(school.locale)} –{' '}
                     {new Date(r.endDate).toLocaleDateString(school.locale)} · {r.daysCount} day(s)
                   </p>
                   {r.reason && <p className="mt-1 text-sm text-ink/70">&ldquo;{r.reason}&rdquo;</p>}
                 </div>
+                {r.staffProfile?.userId === myUserId ? (
+                  <p className="max-w-[14rem] text-xs text-amber-700">Your own request — another school admin must approve it.</p>
+                ) : (
                 <div className="flex items-center gap-2">
-                  <input
-                    className="w-40 rounded border px-2 py-1 text-xs"
-                    placeholder="Note (optional)"
-                    value={noteByRequest[r.id] ?? ''}
-                    onChange={(e) => setNoteByRequest({ ...noteByRequest, [r.id]: e.target.value })}
-                  />
-                  <button onClick={() => handleReview(r.id, true)} className="rounded bg-green-600 px-3 py-1.5 text-xs text-white">
-                    Approve
-                  </button>
-                  <button onClick={() => handleReview(r.id, false)} className="rounded bg-red-600 px-3 py-1.5 text-xs text-white">
-                    Decline
-                  </button>
-                </div>
+                    <input
+                      className="w-40 rounded border px-2 py-1 text-xs"
+                      placeholder="Note (optional)"
+                      value={noteByRequest[r.id] ?? ''}
+                      onChange={(e) => setNoteByRequest({ ...noteByRequest, [r.id]: e.target.value })}
+                    />
+                    <button onClick={() => handleReview(r.id, true)} className="rounded bg-green-600 px-3 py-1.5 text-xs text-white">
+                      Approve
+                    </button>
+                    <button onClick={() => handleReview(r.id, false)} className="rounded bg-red-600 px-3 py-1.5 text-xs text-white">
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

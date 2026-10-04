@@ -4,10 +4,11 @@ import { LeaveStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/services/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { CreateLeaveRequestDto, CreateLeaveTypeDto } from './dto/leave.dto';
+import { CreateLeaveRequestDto, CreateLeaveTypeDto, UpdateLeaveTypeDto } from './dto/leave.dto';
 import { DEFAULT_LEAVE_TYPES } from '../../common/constants';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MAX_LEAVE_TYPES = 30;
 
 @Injectable()
 export class LeaveService {
@@ -17,14 +18,47 @@ export class LeaveService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  listTypes(schoolId: string) {
-    return this.prisma.leaveType.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
+  /**
+   * Lists the school's leave types. A school with none at all (e.g. one
+   * created before defaults existed) is seeded with the standard set on the
+   * spot, so Sick / Study / Maternity etc. are never missing from the picker.
+   */
+  async listTypes(schoolId: string) {
+    const types = await this.prisma.leaveType.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
+    if (types.length > 0) return types;
+    return this.seedDefaultTypes(schoolId);
   }
 
-  createType(schoolId: string, dto: CreateLeaveTypeDto) {
-    return this.prisma.leaveType.create({
-      data: { schoolId, name: dto.name, defaultDaysPerYear: dto.defaultDaysPerYear ?? 0 },
-    });
+  async createType(schoolId: string, dto: CreateLeaveTypeDto) {
+    const name = dto.name.trim();
+    const clash = await this.prisma.leaveType.findFirst({ where: { schoolId, name: { equals: name, mode: 'insensitive' } } });
+    if (clash) throw new ConflictException(`"${clash.name}" already exists`);
+    return this.prisma.leaveType.create({ data: { schoolId, name, defaultDaysPerYear: dto.defaultDaysPerYear ?? 0 } });
+  }
+
+  async updateType(schoolId: string, id: string, dto: UpdateLeaveTypeDto) {
+    const type = await this.prisma.leaveType.findFirst({ where: { id, schoolId } });
+    if (!type) throw new NotFoundException('Leave type not found');
+    const name = dto.name?.trim();
+    if (name && name.toLowerCase() !== type.name.toLowerCase()) {
+      const clash = await this.prisma.leaveType.findFirst({ where: { schoolId, name: { equals: name, mode: 'insensitive' }, NOT: { id } } });
+      if (clash) throw new ConflictException(`"${clash.name}" already exists`);
+    }
+    // Only newly-created balances use the new default; balances already issued this year keep their allotment.
+    return this.prisma.leaveType.update({ where: { id }, data: { name, defaultDaysPerYear: dto.defaultDaysPerYear } });
+  }
+
+  /** A type that has ever been requested stays (history must keep its label); an unused one can be removed. */
+  async deleteType(schoolId: string, id: string) {
+    const type = await this.prisma.leaveType.findFirst({ where: { id, schoolId } });
+    if (!type) throw new NotFoundException('Leave type not found');
+    const used = await this.prisma.leaveRequest.count({ where: { leaveTypeId: id } });
+    if (used > 0) throw new ConflictException('This leave type has requests on record and cannot be deleted');
+    await this.prisma.$transaction([
+      this.prisma.staffLeaveBalance.deleteMany({ where: { leaveTypeId: id } }),
+      this.prisma.leaveType.delete({ where: { id } }),
+    ]);
+    return { deleted: true };
   }
 
   /**
@@ -42,7 +76,12 @@ export class LeaveService {
       data: DEFAULT_LEAVE_TYPES.map((t) => ({ schoolId, name: t.name, defaultDaysPerYear: t.defaultDaysPerYear })),
       skipDuplicates: true,
     });
-    return this.listTypes(schoolId);
+    return this.prisma.leaveType.findMany({ where: { schoolId }, orderBy: { name: 'asc' } });
+  }
+
+  /** Other school admins who can review a request raised by `userId`. */
+  private otherAdmins(schoolId: string, userId: string) {
+    return this.prisma.user.findMany({ where: { schoolId, role: Role.SCHOOL_ADMIN, id: { not: userId } }, select: { id: true } });
   }
 
   /** Lazily provisioned per staff/type/year — see StaffLeaveBalance docstring in schema.prisma. */
@@ -69,24 +108,99 @@ export class LeaveService {
     });
   }
 
-  async requestLeave(schoolId: string, staffProfileId: string, dto: CreateLeaveRequestDto) {
-    const leaveType = await this.prisma.leaveType.findFirst({ where: { id: dto.leaveTypeId, schoolId } });
-    if (!leaveType) throw new NotFoundException('Leave type not found');
+  /**
+   * Staff pick a listed type or type their own. Guardrails so the list stays clean:
+   *  - a typed name is matched case-insensitively against existing types first
+   *    ("sick leave" never duplicates "Sick Leave"), ignoring extra spaces;
+   *  - it must look like a leave name (letters, numbers, spaces and - & / ' ( ) only);
+   *  - it may not be a person's name (that is how "Elohor Olumah" ended up as a type);
+   *  - a genuinely new name is created with 0 days/yr (no cap) and every admin is
+   *    told, so they can set an allowance, rename it, or delete it afterwards.
+   */
+  private async resolveLeaveType(schoolId: string, dto: CreateLeaveRequestDto) {
+    if (dto.leaveTypeId) {
+      const existing = await this.prisma.leaveType.findFirst({ where: { id: dto.leaveTypeId, schoolId } });
+      if (!existing) throw new NotFoundException('Leave type not found');
+      return existing;
+    }
 
-    const startDate = new Date(dto.startDate);
-    const endDate = new Date(dto.endDate);
-    if (endDate < startDate) throw new BadRequestException('endDate cannot be before startDate');
-    const daysCount = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
+    const name = dto.leaveTypeName?.trim().replace(/\s+/g, ' ');
+    if (!name) throw new BadRequestException('Choose a leave type or type one in');
+    if (!/^[\p{L}\p{N}][\p{L}\p{N} \-&/'()]*$/u.test(name)) {
+      throw new BadRequestException("Leave type may only contain letters, numbers, spaces and - & / ' ( )");
+    }
 
-    const request = await this.prisma.leaveRequest.create({
-      data: { schoolId, staffProfileId, leaveTypeId: dto.leaveTypeId, startDate, endDate, daysCount, reason: dto.reason },
-    });
+    const match = await this.prisma.leaveType.findFirst({ where: { schoolId, name: { equals: name, mode: 'insensitive' } } });
+    if (match) return match;
 
+    const isPersonName = await this.prisma.user.findFirst({ where: { schoolId, fullName: { equals: name, mode: 'insensitive' } }, select: { id: true } });
+    if (isPersonName) throw new BadRequestException('That looks like a person\'s name, not a type of leave (e.g. Sick Leave, Study Leave)');
+
+    const typeCount = await this.prisma.leaveType.count({ where: { schoolId } });
+    if (typeCount >= MAX_LEAVE_TYPES) throw new BadRequestException('This school already has the maximum number of leave types — pick one from the list');
+
+    const created = await this.prisma.leaveType.create({ data: { schoolId, name, defaultDaysPerYear: 0 } });
     const admins = await this.prisma.user.findMany({ where: { schoolId, role: Role.SCHOOL_ADMIN }, select: { id: true } });
     await this.notifications.notifyUsers(
       admins.map((a) => a.id),
+      'New leave type added by staff',
+      `"${created.name}" was added with no yearly limit. Set its allowance, rename it or delete it on the Leave page.`,
+      '/admin/staff/leave',
+    );
+    return created;
+  }
+
+  async requestLeave(schoolId: string, staffProfileId: string, requesterUserId: string, dto: CreateLeaveRequestDto) {
+    const requester = await this.prisma.user.findUnique({ where: { id: requesterUserId }, select: { role: true } });
+    // An admin's own request needs ANOTHER admin to approve it — refuse up front rather than leave it stuck forever.
+    if (requester?.role === Role.SCHOOL_ADMIN && (await this.otherAdmins(schoolId, requesterUserId)).length === 0) {
+      throw new ConflictException('Your leave must be approved by another school admin, and this school has only one. Add a second admin first (Admin dashboard → Staff → "Invite as admin"), then submit again.');
+    }
+
+    const leaveType = await this.resolveLeaveType(schoolId, dto);
+
+    const startDate = new Date(dto.startDate);
+    const endDate = new Date(dto.endDate);
+    if (endDate < startDate) throw new BadRequestException('End date cannot be before start date');
+    const daysCount = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
+
+    // No double-booking: a new request may not overlap one that is pending or approved.
+    const overlap = await this.prisma.leaveRequest.findFirst({
+      where: {
+        staffProfileId,
+        status: { in: [LeaveStatus.PENDING, LeaveStatus.APPROVED] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
+    });
+    if (overlap) throw new ConflictException('You already have a pending or approved leave request covering some of these dates');
+
+    // Balance check — only for types with a yearly allowance (0 = uncapped, e.g. Unpaid Leave).
+    // Pending requests count against the balance so someone can't queue up more than they have.
+    if (leaveType.defaultDaysPerYear > 0) {
+      const year = startDate.getUTCFullYear();
+      const balance = await this.prisma.$transaction((tx: Prisma.TransactionClient) => this.getOrCreateBalance(tx, staffProfileId, leaveType.id, schoolId, year));
+      const pending = await this.prisma.leaveRequest.aggregate({
+        _sum: { daysCount: true },
+        where: { staffProfileId, leaveTypeId: leaveType.id, status: LeaveStatus.PENDING, startDate: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } },
+      });
+      const remaining = balance.daysAllotted - balance.daysUsed - (pending._sum.daysCount ?? 0);
+      if (daysCount > remaining) {
+        throw new BadRequestException(`You only have ${Math.max(remaining, 0)} day(s) of ${leaveType.name} left; this request is for ${daysCount}.`);
+      }
+    }
+
+    const request = await this.prisma.leaveRequest.create({
+      data: { schoolId, staffProfileId, leaveTypeId: leaveType.id, startDate, endDate, daysCount, reason: dto.reason?.trim() || undefined },
+      include: { staffProfile: { include: { user: { select: { fullName: true } } } } },
+    });
+
+    // Tell every admin except the requester (an admin never reviews their own request).
+    const admins = await this.otherAdmins(schoolId, requesterUserId);
+    await this.notifications.notifyUsers(
+      admins.map((a) => a.id),
       'New leave request',
-      `A ${leaveType.name} request for ${daysCount} day(s) is awaiting your review.`,
+      `${request.staffProfile.user.fullName} requested ${daysCount} day(s) of ${leaveType.name}.`,
       '/admin/staff/leave',
     );
 
@@ -110,15 +224,18 @@ export class LeaveService {
   }
 
   async reviewRequest(schoolId: string, requestId: string, approve: boolean, reviewerId: string, reviewNote: string | undefined) {
-    const request = await this.prisma.leaveRequest.findFirst({ where: { id: requestId, schoolId }, include: { leaveType: true } });
+    const request = await this.prisma.leaveRequest.findFirst({ where: { id: requestId, schoolId }, include: { leaveType: true, staffProfile: { select: { userId: true } } } });
     if (!request) throw new NotFoundException('Leave request not found');
     if (request.status !== LeaveStatus.PENDING) {
       throw new ConflictException('This request has already been reviewed');
     }
+    if (request.staffProfile.userId === reviewerId) {
+      throw new ForbiddenException('You cannot approve or decline your own leave — another school admin must review it');
+    }
 
     const updated = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (approve) {
-        const year = request.startDate.getFullYear();
+        const year = request.startDate.getUTCFullYear();
         const balance = await this.getOrCreateBalance(tx, request.staffProfileId, request.leaveTypeId, schoolId, year);
         await tx.staffLeaveBalance.update({ where: { id: balance.id }, data: { daysUsed: balance.daysUsed + request.daysCount } });
       }

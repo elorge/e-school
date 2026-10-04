@@ -5,7 +5,6 @@ import { PayrollService } from './payroll.service';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { AllowHr } from '../../common/decorators/allow-hr.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/auth.types';
 import { Role } from '@prisma/client';
@@ -17,21 +16,18 @@ export class PayrollController {
   constructor(private readonly payrollService: PayrollService) {}
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Post('runs')
   generateRun(@Req() req: Request, @Body() dto: GeneratePayrollRunDto, @CurrentUser() user: AuthenticatedUser) {
     return this.payrollService.generateRun(req.schoolId!, dto, user.id);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Get('runs')
   listRuns(@Req() req: Request) {
     return this.payrollService.listRuns(req.schoolId!);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Get('runs/:id')
   getRun(@Req() req: Request, @Param('id') id: string) {
     return this.payrollService.getRun(req.schoolId!, id);
@@ -39,7 +35,6 @@ export class PayrollController {
 
   /** Preview before download — surfaces staff missing bank details so the admin can fix those first rather than discovering it as a gap in the CSV. */
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Get('runs/:id/schedule')
   async getSchedule(@Req() req: Request, @Param('id') id: string) {
     const { rows, missingBankDetails } = await this.payrollService.buildDisbursementSchedule(req.schoolId!, id);
@@ -47,7 +42,6 @@ export class PayrollController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Get('runs/:id/schedule.csv')
   async downloadSchedule(@Req() req: Request, @Param('id') id: string, @Res() res: Response) {
     const { run, rows } = await this.payrollService.buildDisbursementSchedule(req.schoolId!, id);
@@ -59,9 +53,21 @@ export class PayrollController {
     res.send(csv);
   }
 
+  /** The bank schedule as Excel: who to pay, bank, account number, amount — plus who is missing bank details and who is already paid. */
+  @Roles(Role.SCHOOL_ADMIN)
+  @Get('runs/:id/schedule.xlsx')
+  async downloadScheduleXlsx(@Req() req: Request, @Param('id') id: string, @Res() res: Response) {
+    const run = await this.payrollService.getRun(req.schoolId!, id);
+    const buffer = await this.payrollService.exportScheduleXlsx(req.schoolId!, id);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="bank-schedule-${run.periodLabel.replace(/\s+/g, '-')}.xlsx"`,
+    });
+    res.send(buffer);
+  }
+
   /** Full per-staff payroll breakdown (base, allowances, deductions, gross, net, status) for a run — the record-keeping export, distinct from the bank-transfer-only disbursement schedule above. */
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Get('runs/:id/register.xlsx')
   async downloadRegister(@Req() req: Request, @Param('id') id: string, @Res() res: Response) {
     const run = await this.payrollService.getRun(req.schoolId!, id);
@@ -74,21 +80,25 @@ export class PayrollController {
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Post('runs/:id/approve')
   approveRun(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.payrollService.approveRun(req.schoolId!, id, user.id);
   }
 
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
   @Delete('runs/:id')
   deleteRun(@Req() req: Request, @Param('id') id: string) {
     return this.payrollService.deleteRun(req.schoolId!, id);
   }
 
+  /** Mark everyone on the bank schedule as paid in one go (shared payment reference). */
   @Roles(Role.SCHOOL_ADMIN)
-  @AllowHr()
+  @Post('runs/:id/pay-all')
+  markAllPaid(@Req() req: Request, @Param('id') id: string, @Body() body: { paymentReference?: string }, @CurrentUser() user: AuthenticatedUser) {
+    return this.payrollService.markAllPaid(req.schoolId!, id, body.paymentReference, user.id);
+  }
+
+  @Roles(Role.SCHOOL_ADMIN)
   @Post('payslips/:id/pay')
   markPaid(@Req() req: Request, @Param('id') id: string, @Body() body: { paymentReference?: string }, @CurrentUser() user: AuthenticatedUser) {
     return this.payrollService.markPaid(req.schoolId!, id, body.paymentReference, user.id);

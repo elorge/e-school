@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react';
 import { useSchool } from '@/lib/school-context';
 import { getSessionUser } from '@/lib/session';
-import { getMyStaffProfile } from '@/lib/endpoints/staff';
 import { listClasses } from '@/lib/endpoints/classes';
 import {
   listStudents,
@@ -101,17 +100,6 @@ export default function StaffPage({ params }: { params: { school: string } }) {
   useEffect(() => {
     loadClasses();
     refreshPendingCounts();
-    // An HR-flagged account's real dashboard is /staff/hr (see login's
-    // redirect) — this covers anyone who lands here anyway, e.g. via a
-    // bookmark from before they were made HR, or a stale link.
-    const user = getSessionUser();
-    if (user?.role === 'STAFF') {
-      getMyStaffProfile(params.school)
-        .then((p) => {
-          if (p.isHrManager) window.location.href = `/${params.school}/staff/hr`;
-        })
-        .catch(() => {});
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

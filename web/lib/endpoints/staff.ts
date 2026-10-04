@@ -26,11 +26,14 @@ export interface StaffProfile {
   address: string | null;
   nextOfKinName: string | null;
   nextOfKinPhone: string | null;
+  nextOfKinRelationship: string | null;
+  maritalStatus: string | null;
+  stateOfOrigin: string | null;
+  qualifications: string | null;
   bankName: string | null;
   bankAccountName: string | null;
   bankAccountNumber: string | null;
   photoUrl: string | null;
-  isHrManager: boolean;
   baseSalaryKobo: number;
   allowances: SalaryLineItem[] | null;
   deductions: SalaryLineItem[] | null;
@@ -58,6 +61,36 @@ export function getMyStaffProfile(school: string): Promise<StaffProfile> {
   return apiFetch(`/${school}/staff/profiles/me`);
 }
 
+/** The personal details a staff member may edit about themselves. Pay, role, department and status are admin-only and not accepted by the API. An empty string clears a field. */
+export interface UpdateMyStaffProfileBody {
+  phone?: string;
+  address?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  maritalStatus?: string;
+  stateOfOrigin?: string;
+  qualifications?: string;
+  nextOfKinName?: string;
+  nextOfKinPhone?: string;
+  nextOfKinRelationship?: string;
+  bankName?: string;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+}
+
+export function updateMyStaffProfile(school: string, body: UpdateMyStaffProfileBody): Promise<StaffProfile> {
+  return apiFetch(`/${school}/staff/profiles/me`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+/** Excel of every staff member's bank details, for the admin to pay from. */
+export async function downloadStaffBankDetailsXlsx(school: string): Promise<Blob> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const token = getToken();
+  const res = await fetch(`${API_URL}/${school}/staff/profiles/bank-details.xlsx`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error('Download failed');
+  return res.blob();
+}
+
 export function getStaffProfile(school: string, id: string): Promise<StaffProfile> {
   return apiFetch(`/${school}/staff/profiles/${id}`);
 }
@@ -74,11 +107,14 @@ export interface CreateStaffProfileBody {
   address?: string;
   nextOfKinName?: string;
   nextOfKinPhone?: string;
+  nextOfKinRelationship?: string;
+  maritalStatus?: string;
+  stateOfOrigin?: string;
+  qualifications?: string;
   bankName?: string;
   bankAccountName?: string;
   bankAccountNumber?: string;
   photoUrl?: string;
-  isHrManager?: boolean;
   baseSalaryKobo?: number;
   allowances?: SalaryLineItem[];
   deductions?: SalaryLineItem[];
@@ -110,4 +146,56 @@ async function downloadPdf(path: string): Promise<Blob> {
 
 export function downloadStaffIdCardPdf(school: string, staffProfileId: string): Promise<Blob> {
   return downloadPdf(`/${school}/staff/profiles/${staffProfileId}/id-card/pdf`);
+}
+
+
+// ─── ID card requests ────────────────────────────────────────────────
+
+export type IdCardRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface IdCardRequest {
+  id: string;
+  staffProfileId: string;
+  reason: string | null;
+  status: IdCardRequestStatus;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  staffProfile?: {
+    id: string;
+    userId: string;
+    staffId: string;
+    photoUrl: string | null;
+    designation: string | null;
+    department: string | null;
+    user: { fullName: string; email: string };
+  };
+}
+
+export interface MyIdCardStatus {
+  profileId: string;
+  hasPhoto: boolean;
+  card: { issuedAt: string } | null;
+  requests: IdCardRequest[];
+}
+
+export function getMyIdCardStatus(school: string): Promise<MyIdCardStatus> {
+  return apiFetch(`/${school}/staff/id-card-requests/me`);
+}
+
+export function requestStaffIdCard(school: string, reason?: string): Promise<IdCardRequest> {
+  return apiFetch(`/${school}/staff/id-card-requests`, { method: 'POST', body: JSON.stringify({ reason }) });
+}
+
+export function cancelStaffIdCardRequest(school: string, id: string): Promise<IdCardRequest> {
+  return apiFetch(`/${school}/staff/id-card-requests/${id}/cancel`, { method: 'POST' });
+}
+
+export function listIdCardRequests(school: string, status?: IdCardRequestStatus): Promise<IdCardRequest[]> {
+  const qs = status ? `?status=${status}` : '';
+  return apiFetch(`/${school}/staff/id-card-requests${qs}`);
+}
+
+export function reviewIdCardRequest(school: string, id: string, approve: boolean, reviewNote?: string): Promise<IdCardRequest> {
+  return apiFetch(`/${school}/staff/id-card-requests/${id}/review`, { method: 'POST', body: JSON.stringify({ approve, reviewNote }) });
 }

@@ -53,7 +53,7 @@ export class AuthController {
     if (!caller.schoolId) {
       throw new ForbiddenException('School Admin account has no associated school');
     }
-    return this.authService.inviteStaff(caller.schoolId, body.email, body.fullName, RESET_URL_BASE);
+    return this.authService.inviteStaff(caller.schoolId, body.email, body.fullName, RESET_URL_BASE, body.role === 'SCHOOL_ADMIN' ? Role.SCHOOL_ADMIN : Role.STAFF);
   }
 
   @UseGuards(RolesGuard)
@@ -68,7 +68,9 @@ export class AuthController {
       // first login, unlike the invite-link flow above where the
       // teacher sets their own password before the account is ever
       // usable at all.
-      return this.authService.createUser(body.email, body.password, body.fullName, Role.STAFF, caller.schoolId, true);
+      // STAFF by default; a school admin may also create a second SCHOOL_ADMIN (never a platform role).
+      const role = body.role === Role.SCHOOL_ADMIN ? Role.SCHOOL_ADMIN : Role.STAFF;
+      return this.authService.createUser(body.email, body.password, body.fullName, role, caller.schoolId, true);
     }
 
     const isPlatformRole = body.role === Role.SUPER_ADMIN || body.role === Role.FINANCE_OPS;

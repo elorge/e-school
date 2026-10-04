@@ -1,5 +1,5 @@
 // backend/src/modules/staff/dto/update-staff-profile.dto.ts
-import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { EmploymentType, EmploymentStatus } from '@prisma/client';
 import { SalaryLineItem } from './create-staff-profile.dto';
 
@@ -50,6 +50,22 @@ export class UpdateStaffProfileDto {
 
   @IsOptional()
   @IsString()
+  nextOfKinRelationship?: string;
+
+  @IsOptional()
+  @IsString()
+  maritalStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  stateOfOrigin?: string;
+
+  @IsOptional()
+  @IsString()
+  qualifications?: string;
+
+  @IsOptional()
+  @IsString()
   bankName?: string;
 
   @IsOptional()
@@ -77,8 +93,4 @@ export class UpdateStaffProfileDto {
   @IsArray()
   deductions?: SalaryLineItem[];
 
-  // Admin-only in practice — see CreateStaffProfileDto.isHrManager.
-  @IsOptional()
-  @IsBoolean()
-  isHrManager?: boolean;
 }

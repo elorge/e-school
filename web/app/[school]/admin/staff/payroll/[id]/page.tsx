@@ -1,12 +1,13 @@
 // web/app/[school]/admin/staff/payroll/[id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSchool } from '@/lib/school-context';
 import LoadingScreen from '@/components/LoadingScreen';
 import RequireRole from '@/components/RequireRole';
-import { CheckCircle2, Download, Landmark, FileSpreadsheet } from 'lucide-react';
+import { CheckCircle2, Download, Landmark, FileSpreadsheet, ChevronDown } from 'lucide-react';
+import PayslipBreakdown from '@/components/PayslipBreakdown';
 import { formatMoney } from '@/lib/currency';
 import {
   approvePayrollRun,
@@ -15,6 +16,8 @@ import {
   downloadPayslipPdf,
   getDisbursementSchedule,
   downloadDisbursementScheduleCsv,
+  downloadDisbursementScheduleXlsx,
+  markAllPaid,
   downloadPayrollRegisterXlsx,
   type PayrollRun,
 } from '@/lib/endpoints/payroll';
@@ -26,7 +29,10 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
   const [isLoading, setIsLoading] = useState(true);
   const [run, setRun] = useState<PayrollRun | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [referenceByPayslip, setReferenceByPayslip] = useState<Record<string, string>>({});
+  const [bulkReference, setBulkReference] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
   const [missingBankDetails, setMissingBankDetails] = useState<{ fullName: string; staffId: string }[]>([]);
 
   async function load() {
@@ -72,6 +78,37 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
     window.open(URL.createObjectURL(blob), '_blank');
   }
 
+  async function handleDownloadScheduleXlsx() {
+    try {
+      const blob = await downloadDisbursementScheduleXlsx(params.school, params.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bank-schedule-${run?.periodLabel.replace(/\s+/g, '-')}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Could not generate the bank schedule.');
+    }
+  }
+
+  async function handleMarkAllPaid() {
+    if (!window.confirm('Mark everyone on the bank schedule as paid? Use this after your bank transfer has gone through.')) return;
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await markAllPaid(params.school, params.id, bulkReference || undefined);
+      setNotice(
+        `${result.paid} staff marked as paid.` +
+          (result.skipped.length ? ` ${result.skipped.length} skipped (missing bank details): ${result.skipped.map((x) => x.fullName).join(', ')}.` : ''),
+      );
+      setBulkReference('');
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not mark the payslips as paid.');
+    }
+  }
+
   async function handleDownloadSchedule() {
     try {
       const blob = await downloadDisbursementScheduleCsv(params.school, params.id);
@@ -104,7 +141,7 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
   if (!run) return <p className="p-6 text-sm text-red-600">{error ?? 'Not found.'}</p>;
 
   return (
-    <RequireRole allow={['SCHOOL_ADMIN']} allowHr>
+    <RequireRole allow={['SCHOOL_ADMIN']}>
       <main className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -124,14 +161,34 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
               </button>
             )}
             {run.status !== 'DRAFT' && (
-              <button onClick={handleDownloadSchedule} className="flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm">
-                <Landmark size={15} /> Download bank schedule (CSV)
-              </button>
+              <>
+                <button onClick={handleDownloadScheduleXlsx} className="flex items-center gap-1.5 rounded bg-ink px-3 py-1.5 text-sm text-white">
+                  <Landmark size={15} /> Download bank schedule (Excel)
+                </button>
+                <button onClick={handleDownloadSchedule} className="flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm" title="Plain CSV for bank bulk-upload tools">
+                  CSV
+                </button>
+              </>
             )}
           </div>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {notice && <p className="text-sm text-green-700">{notice}</p>}
+        {run.status !== 'DRAFT' && (run.payslips ?? []).some((p) => p.status !== 'PAID') && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3 text-sm">
+            <span className="text-ink/70">Paid everyone through your bank?</span>
+            <input
+              className="w-48 rounded border px-2 py-1 text-xs"
+              placeholder="Batch reference (optional)"
+              value={bulkReference}
+              onChange={(e) => setBulkReference(e.target.value)}
+            />
+            <button onClick={handleMarkAllPaid} className="rounded bg-green-600 px-3 py-1.5 text-xs text-white">
+              Mark all on schedule as paid
+            </button>
+          </div>
+        )}
         {run.status === 'DRAFT' && (
           <p className="text-sm text-amber-700">
             This run is a draft — staff can&apos;t see their payslips yet. Approve it once the numbers look right.
@@ -152,13 +209,15 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
                 <th className="px-3 py-2">Gross</th>
                 <th className="px-3 py-2">Deductions</th>
                 <th className="px-3 py-2">Net</th>
+                <th className="px-3 py-2">Bank</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {(run.payslips ?? []).map((p) => (
-                <tr key={p.id} className="border-t">
+                <Fragment key={p.id}>
+                <tr className="border-t">
                   <td className="px-3 py-2">
                     <div className="font-medium">{p.user?.fullName}</div>
                     <div className="text-xs text-ink/50">
@@ -174,12 +233,34 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
                     </div>
                   </td>
                   <td className="px-3 py-2">{money(p.grossKobo, p.currency)}</td>
-                  <td className="px-3 py-2">{money(p.deductionsKobo, p.currency)}</td>
+                  <td className="px-3 py-2">
+                    <button onClick={() => setOpenId(openId === p.id ? null : p.id)} className="flex items-center gap-1 text-left" title="Show itemised breakdown">
+                      {money(p.deductionsKobo, p.currency)}
+                      <ChevronDown size={13} className={`text-ink/40 ${openId === p.id ? 'rotate-180' : ''}`} />
+                    </button>
+                  </td>
                   <td className="px-3 py-2 font-medium">{money(p.netKobo, p.currency)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {p.staffProfile?.bankName && p.staffProfile?.bankAccountNumber ? (
+                      <>
+                        <div>{p.staffProfile.bankName}</div>
+                        <div className="font-mono text-ink/60">{p.staffProfile.bankAccountNumber}</div>
+                        <div className="text-ink/50">{p.staffProfile.bankAccountName}</div>
+                      </>
+                    ) : (
+                      <span className="text-amber-700">Missing</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs ${p.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                       {p.status}
                     </span>
+                    {p.status === 'PAID' && p.paidAt && (
+                      <div className="mt-1 text-xs text-ink/50">
+                        {new Date(p.paidAt).toLocaleDateString(school.locale)}
+                        {p.paymentReference ? ` · ${p.paymentReference}` : ''}
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
@@ -202,13 +283,21 @@ export default function PayrollRunDetailPage({ params }: { params: { school: str
                     </div>
                   </td>
                 </tr>
+                {openId === p.id && (
+                  <tr className="bg-black/[0.02]">
+                    <td colSpan={7} className="px-3 py-3">
+                      <PayslipBreakdown payslip={p} locale={school.locale} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
         </div>
         <p className="text-xs text-ink/50">
           &ldquo;Mark paid&rdquo; records that you&apos;ve moved the money outside the platform (bank transfer, cash, etc.) and logs it as
-          a Salaries expense in Accounting — it doesn&apos;t move any money itself. The bank schedule CSV lists everyone still owed
+          a Salaries expense in Accounting — it doesn&apos;t move any money itself. The bank schedule (Excel or CSV) lists everyone still owed
           money in this run with their bank details and net pay, ready to upload to your bank&apos;s own bulk-transfer tool — it
           doesn&apos;t send anything either.
         </p>

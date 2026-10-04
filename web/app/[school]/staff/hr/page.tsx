@@ -5,11 +5,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSchool } from '@/lib/school-context';
 import { getSessionUser } from '@/lib/session';
-import { getMyStaffProfile, listStaffProfiles } from '@/lib/endpoints/staff';
+import { getMyStaffProfile, listStaffProfiles, listIdCardRequests } from '@/lib/endpoints/staff';
 import { listLeaveRequests } from '@/lib/endpoints/leave';
 import { listPayrollRuns, type PayrollRun } from '@/lib/endpoints/payroll';
 import LoadingScreen from '@/components/LoadingScreen';
-import { Users, Wallet, CalendarDays, ArrowRight } from 'lucide-react';
+import { Users, Wallet, CalendarDays, ArrowRight, Contact } from 'lucide-react';
 
 /**
  * The dashboard an HR-flagged STAFF account lands on instead of the
@@ -26,6 +26,7 @@ export default function HrDashboardPage({ params }: { params: { school: string }
   const [status, setStatus] = useState<'checking' | 'allowed' | 'denied'>('checking');
   const [staffCount, setStaffCount] = useState(0);
   const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
+  const [pendingCardCount, setPendingCardCount] = useState(0);
   const [latestRun, setLatestRun] = useState<PayrollRun | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,11 +54,13 @@ export default function HrDashboardPage({ params }: { params: { school: string }
     if (status !== 'allowed') return;
     (async () => {
       try {
-        const [staff, pendingLeave, runs] = await Promise.all([
+        const [staff, pendingLeave, runs, pendingCards] = await Promise.all([
           listStaffProfiles(params.school),
           listLeaveRequests(params.school, 'PENDING'),
           listPayrollRuns(params.school),
+          listIdCardRequests(params.school, 'PENDING'),
         ]);
+        setPendingCardCount(pendingCards.length);
         setStaffCount(staff.length);
         setPendingLeaveCount(pendingLeave.length);
         setLatestRun(runs[0] ?? null);
@@ -84,7 +87,7 @@ export default function HrDashboardPage({ params }: { params: { school: string }
       </div>
       {error && <p className="text-sm text-amber-700">{error}</p>}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href={`/${params.school}/admin/staff`} className="card flex flex-col gap-2 transition hover:shadow-md">
           <div className="flex items-center justify-between">
             <Users size={20} className="text-brand-blue" />
@@ -101,6 +104,15 @@ export default function HrDashboardPage({ params }: { params: { school: string }
           </div>
           <p className="text-2xl font-semibold">{pendingLeaveCount}</p>
           <p className="text-sm text-ink/60">Leave request(s) awaiting your review</p>
+        </Link>
+
+        <Link href={`/${params.school}/admin/staff/id-cards`} className="card flex flex-col gap-2 transition hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <Contact size={20} className="text-brand-blue" />
+            <ArrowRight size={15} className="text-ink/30" />
+          </div>
+          <p className="text-2xl font-semibold">{pendingCardCount}</p>
+          <p className="text-sm text-ink/60">ID card request(s) awaiting approval</p>
         </Link>
 
         <Link href={`/${params.school}/admin/staff/payroll`} className="card flex flex-col gap-2 transition hover:shadow-md">

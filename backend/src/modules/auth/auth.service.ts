@@ -110,18 +110,18 @@ async createUser(email: string, password: string, fullName: string, role: Role, 
   }
 
   /**
-   * Creates a STAFF account with a random, never-disclosed password —
+   * Creates a STAFF (or, when a school admin asks, a second SCHOOL_ADMIN) account with a random, never-disclosed password —
    * the account is genuinely unusable until the teacher completes
    * activation via the emailed link, which lands on the SAME
    * reset-password page/flow as a normal forgotten-password reset.
    * Nothing new to build on the frontend for this to work.
    */
-  async inviteStaff(schoolId: string, email: string, fullName: string, resetUrlBase: string) {
+  async inviteStaff(schoolId: string, email: string, fullName: string, resetUrlBase: string, role: Role = Role.STAFF) {
     const unusablePassword = randomBytes(24).toString('hex');
     const passwordHash = await bcrypt.hash(unusablePassword, 10);
 
     const user = await this.prisma.user.create({
-      data: { email, passwordHash, fullName, role: Role.STAFF, schoolId },
+      data: { email, passwordHash, fullName, role, schoolId },
       select: { id: true, email: true, fullName: true, role: true, schoolId: true, createdAt: true },
     });
 

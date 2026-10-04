@@ -20,7 +20,7 @@ const RUN_INCLUDE = {
     include: {
       user: { select: { id: true, fullName: true, email: true } },
       staffProfile: {
-        select: { staffId: true, department: true, designation: true, bankName: true, bankAccountName: true, bankAccountNumber: true },
+        select: { staffId: true, department: true, designation: true, phone: true, bankName: true, bankAccountName: true, bankAccountNumber: true },
       },
     },
   },
@@ -62,12 +62,22 @@ export class PayrollService {
     if (staff.length === 0) {
       throw new BadRequestException('No active staff members to generate payroll for');
     }
+    if (new Date(dto.periodEnd) < new Date(dto.periodStart)) {
+      throw new BadRequestException('Period end cannot be before period start');
+    }
+    // One run per pay period: refuse a second live run with the same label so staff never get two payslips for one month.
+    const duplicate = await this.prisma.payrollRun.findFirst({
+      where: { schoolId, periodLabel: { equals: dto.periodLabel.trim(), mode: 'insensitive' }, status: { not: PayrollRunStatus.CANCELLED } },
+    });
+    if (duplicate) {
+      throw new ConflictException(`A payroll run for "${duplicate.periodLabel}" already exists (${duplicate.status.toLowerCase()}). Delete the draft first if you need to regenerate it.`);
+    }
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const run = await tx.payrollRun.create({
         data: {
           schoolId,
-          periodLabel: dto.periodLabel,
+          periodLabel: dto.periodLabel.trim(),
           periodStart: new Date(dto.periodStart),
           periodEnd: new Date(dto.periodEnd),
           createdById,
@@ -264,6 +274,121 @@ export class PayrollService {
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
 
     return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  /**
+   * The bank schedule as Excel — what an admin opens to pay people. Sheet 1 lists everyone still
+   * owed money who has complete bank details (staff id, name, bank, account number, account name,
+   * net amount, narration, contact). Sheet 2 lists who can't be paid yet because bank details are
+   * missing, so nobody is silently skipped. Sheet 3 lists who is already paid, with date and
+   * reference. Totals row at the bottom of sheet 1.
+   */
+  async exportScheduleXlsx(schoolId: string, runId: string): Promise<Buffer> {
+    const run = await this.getRun(schoolId, runId);
+    if (run.status === PayrollRunStatus.DRAFT) {
+      throw new ConflictException('Approve this payroll run before generating a bank disbursement schedule');
+    }
+    const currency = run.payslips[0]?.currency ?? 'NGN';
+    const divisor = 10 ** decimalPlacesFor(currency);
+
+    const toPay: Record<string, string | number>[] = [];
+    const missing: Record<string, string>[] = [];
+    const paid: Record<string, string | number>[] = [];
+    let total = 0;
+
+    run.payslips.forEach((p) => {
+      const sp = p.staffProfile;
+      if (p.status === PayslipStatus.PAID) {
+        paid.push({
+          'Staff ID': sp.staffId,
+          'Full Name': p.user.fullName,
+          'Net Pay': p.netKobo / divisor,
+          'Paid On': p.paidAt ? p.paidAt.toISOString().slice(0, 10) : '',
+          'Payment Reference': p.paymentReference ?? '',
+        });
+        return;
+      }
+      if (!sp.bankName || !sp.bankAccountNumber || !sp.bankAccountName) {
+        missing.push({
+          'Staff ID': sp.staffId,
+          'Full Name': p.user.fullName,
+          Email: p.user.email,
+          Phone: sp.phone ?? '',
+          'Bank Name': sp.bankName ?? '',
+          'Account Number': sp.bankAccountNumber ?? '',
+          'Account Name': sp.bankAccountName ?? '',
+        });
+        return;
+      }
+      total += p.netKobo;
+      toPay.push({
+        'Staff ID': sp.staffId,
+        'Full Name': p.user.fullName,
+        'Bank Name': sp.bankName,
+        'Account Number': sp.bankAccountNumber, // kept as text below so leading zeros survive
+        'Account Name': sp.bankAccountName,
+        'Net Amount': p.netKobo / divisor,
+        Currency: p.currency,
+        Narration: `Salary - ${run.periodLabel}`,
+        Department: sp.department ?? '',
+        Designation: sp.designation ?? '',
+        Email: p.user.email,
+        Phone: sp.phone ?? '',
+        Status: p.status,
+      });
+    });
+
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.json_to_sheet(toPay);
+    // Account numbers must stay text: Excel would otherwise drop leading zeros (common on Nigerian NUBAN numbers).
+    toPay.forEach((_row, i) => {
+      const cell = sheet[XLSX.utils.encode_cell({ r: i + 1, c: 3 })];
+      if (cell) {
+        cell.t = 's';
+        cell.z = '@';
+      }
+    });
+    if (toPay.length > 0) {
+      XLSX.utils.sheet_add_aoa(sheet, [['', '', '', 'TOTAL', '', total / divisor, currency]], { origin: -1 });
+    }
+    sheet['!cols'] = [{ wch: 14 }, { wch: 24 }, { wch: 20 }, { wch: 16 }, { wch: 24 }, { wch: 14 }, { wch: 9 }, { wch: 26 }, { wch: 16 }, { wch: 20 }, { wch: 26 }, { wch: 16 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(workbook, sheet, 'To pay');
+
+    const missingSheet = XLSX.utils.json_to_sheet(missing.length ? missing : [{ Note: 'Everyone still owed has complete bank details.' }]);
+    missingSheet['!cols'] = [{ wch: 14 }, { wch: 24 }, { wch: 26 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(workbook, missingSheet, 'Missing bank details');
+
+    const paidSheet = XLSX.utils.json_to_sheet(paid.length ? paid : [{ Note: 'No one in this run has been marked paid yet.' }]);
+    paidSheet['!cols'] = [{ wch: 14 }, { wch: 24 }, { wch: 14 }, { wch: 12 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(workbook, paidSheet, 'Already paid');
+
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  /**
+   * Marks every payslip that is on the bank schedule (unpaid + complete bank details) as paid with one
+   * shared reference — for when the admin has uploaded the schedule to the bank and the batch went through.
+   * Each one goes through markPaid so the Salaries expense, staff notification and audit entry are identical
+   * to paying them one by one. Anyone with missing bank details is left alone and reported back.
+   */
+  async markAllPaid(schoolId: string, runId: string, paymentReference: string | undefined, actorId: string) {
+    const run = await this.getRun(schoolId, runId);
+    if (run.status === PayrollRunStatus.DRAFT) {
+      throw new ConflictException('Approve the payroll run before marking any payslip as paid');
+    }
+    let paid = 0;
+    const skipped: { fullName: string; staffId: string; reason: string }[] = [];
+    for (const p of run.payslips) {
+      if (p.status === PayslipStatus.PAID) continue;
+      const sp = p.staffProfile;
+      if (!sp.bankName || !sp.bankAccountNumber || !sp.bankAccountName) {
+        skipped.push({ fullName: p.user.fullName, staffId: sp.staffId, reason: 'Missing bank details' });
+        continue;
+      }
+      await this.markPaid(schoolId, p.id, paymentReference, actorId);
+      paid += 1;
+    }
+    return { paid, skipped };
   }
 
   async approveRun(schoolId: string, id: string, approvedById: string) {

@@ -36,3 +36,7 @@ export function uploadSchoolSignature(school: string, file: File) {
 export function uploadStudentPhoto(school: string, studentId: string, file: File) {
   return uploadFile(`/${school}/uploads/student-photo/${studentId}`, file);
 }
+
+export function uploadStaffPhoto(school: string, staffProfileId: string, file: File) {
+  return uploadFile(`/${school}/uploads/staff-photo/${staffProfileId}`, file);
+}

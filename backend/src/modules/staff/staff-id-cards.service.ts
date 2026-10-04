@@ -42,9 +42,10 @@ export class StaffIdCardsService {
     ]);
     if (!idCard) throw new NotFoundException('No ID card has been issued for this staff member yet');
 
-    const [logoBuffer, photoBuffer, qrDataUrl] = await Promise.all([
+    const [logoBuffer, photoBuffer, signatureBuffer, qrDataUrl] = await Promise.all([
       school.logoUrl ? this.fetchImageBuffer(school.logoUrl) : Promise.resolve(null),
       profile.photoUrl ? this.fetchImageBuffer(profile.photoUrl) : Promise.resolve(null),
+      school.signatureUrl ? this.fetchImageBuffer(school.signatureUrl) : Promise.resolve(null),
       QRCode.toDataURL(idCard.qrCode, { margin: 0, width: 100 }),
     ]);
     const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
@@ -101,8 +102,19 @@ export class StaffIdCardsService {
 
       doc.moveTo(88, 74).lineTo(CARD_WIDTH - 10, 74).strokeColor('#e5e5e5').stroke();
 
+      // Head of school's signature (School.signatureUrl, set under Admin → Settings)
+      if (signatureBuffer) {
+        try {
+          doc.image(signatureBuffer, 92, CARD_HEIGHT - 52, { fit: [70, 22] });
+        } catch (err) {
+          this.logger.warn(`Signature for school ${schoolId} was not a valid image: ${err}`);
+        }
+      }
+      doc.moveTo(88, CARD_HEIGHT - 28).lineTo(165, CARD_HEIGHT - 28).strokeColor('#999').lineWidth(0.4).stroke();
+      doc.fontSize(5).font('Helvetica').fillColor('#666').text('Head of School', 88, CARD_HEIGHT - 26, { width: 77, align: 'center' });
+
       doc.image(qrImageBuffer, CARD_WIDTH - 55, CARD_HEIGHT - 55, { width: 44 });
-      doc.fontSize(5).fillColor('#999').text(labels.scanForAttendance, 88, CARD_HEIGHT - 30, { width: 90 });
+      doc.fontSize(5).fillColor('#999').text(labels.scanForAttendance, 88, CARD_HEIGHT - 16, { width: 90 });
 
       doc.rect(0, CARD_HEIGHT - 4, CARD_WIDTH, 4).fill('#F2A900');
 

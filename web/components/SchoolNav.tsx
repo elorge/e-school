@@ -10,7 +10,6 @@ import PendingSyncBadge from './PendingSyncBadge';
 import NotificationBell from './NotificationBell';
 import { useSchool } from '@/lib/school-context';
 import { navLabelsFor } from '@/lib/i18n/nav-labels';
-import { getMyStaffProfile } from '@/lib/endpoints/staff';
 import { LayoutDashboard, GraduationCap, FileText, Wallet, Search, LogOut, ChevronDown, BookOpen, Settings, History, Users, Contact, Menu, X } from 'lucide-react';
 
 function DropdownMenu({
@@ -23,25 +22,43 @@ function DropdownMenu({
   items: { href: string; text: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [alignRight, setAlignRight] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    // pointerdown covers mouse AND touch (tablets); Escape closes from the keyboard.
+    function handleClickOutside(e: PointerEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('pointerdown', handleClickOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, []);
+
+  // If the 11rem menu would run off the right edge of a narrow window, open it leftwards instead of getting clipped.
+  useEffect(() => {
+    if (!open || !ref.current) return;
+    const left = ref.current.getBoundingClientRect().left;
+    setAlignRight(left + 176 > window.innerWidth - 8);
+  }, [open]);
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1.5 whitespace-nowrap">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="flex items-center gap-1.5 whitespace-nowrap">
         <Icon size={15} />
         {label}
         <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-2 flex w-44 flex-col rounded-lg border bg-white py-1 shadow-lg">
+        <div
+          className={`absolute top-full z-40 mt-2 flex max-h-[calc(100dvh-7rem)] w-44 flex-col overflow-y-auto overscroll-contain rounded-lg border bg-white py-1 shadow-lg ${alignRight ? 'right-0' : 'left-0'}`}
+        >
           {items.map((item) => (
             <Link key={item.href} href={item.href} className="px-3 py-2 hover:bg-black/5" onClick={() => setOpen(false)}>
               {item.text}
@@ -64,21 +81,12 @@ export default function SchoolNav({
 }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isHr, setIsHr] = useState(false);
   const school = useSchool();
   const t = navLabelsFor(school.locale);
 
   useEffect(() => {
     const sessionUser = getSessionUser();
     setUser(sessionUser);
-    // Only a STAFF account can carry the isHrManager flag — SCHOOL_ADMIN
-    // already sees everything HR does, and platform-wide roles never hit
-    // this nav at all (see PlatformNav for those).
-    if (sessionUser?.role === 'STAFF' && sessionUser.schoolSlug) {
-      getMyStaffProfile(sessionUser.schoolSlug)
-        .then((p) => setIsHr(!!p.isHrManager))
-        .catch(() => setIsHr(false));
-    }
   }, []);
 
   // Close the mobile menu automatically on any navigation away from it —
@@ -90,6 +98,21 @@ export default function SchoolNav({
     window.addEventListener('popstate', handleRouteChange);
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
+
+  // While the mobile menu is open, stop the page behind it from scrolling (the menu scrolls itself),
+  // and close it if the window grows to desktop width where the link row takes over.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const mq = window.matchMedia('(min-width: 640px)');
+    const closeOnDesktop = () => mq.matches && setMobileOpen(false);
+    mq.addEventListener('change', closeOnDesktop);
+    return () => {
+      document.body.style.overflow = previous;
+      mq.removeEventListener('change', closeOnDesktop);
+    };
+  }, [mobileOpen]);
 
   function handleLogout() {
     clearToken();
@@ -129,6 +152,13 @@ export default function SchoolNav({
     { href: `/${slug}/admin/staff`, text: t.staffDirectory },
     { href: `/${slug}/admin/staff/payroll`, text: t.payroll },
     { href: `/${slug}/admin/staff/leave`, text: t.leave },
+    { href: `/${slug}/admin/staff/id-cards`, text: t.idCards },
+  ];
+  // Every staff member's own self-service pages (apply for leave, view payslips, ID card + photo).
+  const selfServiceItems = [
+    { href: `/${slug}/staff/me`, text: t.myInfo },
+    { href: `/${slug}/staff/leave`, text: t.myLeave },
+    { href: `/${slug}/staff/payroll`, text: t.myPayslips },
   ];
 
   return (
@@ -190,13 +220,8 @@ export default function SchoolNav({
           </Link>
         )}
         {isSchoolAdmin && <DropdownMenu label={t.finance} icon={Wallet} items={financeItems} />}
-        {(isSchoolAdmin || isHr) && <DropdownMenu label={t.hr} icon={Users} items={hrItems} />}
-        {isStaffOrAdmin && (
-          <Link href={`/${slug}/staff/me`} className="flex items-center gap-1.5 whitespace-nowrap">
-            <Contact size={15} />
-            {t.myInfo}
-          </Link>
-        )}
+        {isSchoolAdmin && <DropdownMenu label={t.hr} icon={Users} items={hrItems} />}
+        {isStaffOrAdmin && <DropdownMenu label={t.myInfo} icon={Contact} items={selfServiceItems} />}
         <Link href={`/${slug}/results`} className="flex items-center gap-1.5 whitespace-nowrap">
           <Search size={15} />
           {t.checkResult}
@@ -209,7 +234,7 @@ export default function SchoolNav({
 
       {/* Mobile menu panel — everything stacked vertically, grouped under section headers instead of nested hover dropdowns (those don't work well with touch). */}
       {mobileOpen && (
-        <div className="flex flex-col gap-1 border-t border-black/5 pt-3 text-sm sm:hidden">
+        <div className="flex max-h-[calc(100dvh-4.5rem)] flex-col gap-1 overflow-y-auto overscroll-contain border-t border-black/5 pb-6 pt-3 text-sm sm:hidden">
           {isSchoolAdmin && (
             <Link href={`/${slug}/admin`} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded px-2 py-2 hover:bg-black/5">
               <LayoutDashboard size={16} /> {t.admin}
@@ -230,11 +255,7 @@ export default function SchoolNav({
               <FileText size={16} /> {t.documents}
             </Link>
           )}
-          {isStaffOrAdmin && (
-            <Link href={`/${slug}/staff/me`} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded px-2 py-2 hover:bg-black/5">
-              <Contact size={16} /> {t.myInfo}
-            </Link>
-          )}
+          {isStaffOrAdmin && <MobileSection label={t.myInfo} icon={Contact} items={selfServiceItems} onNavigate={() => setMobileOpen(false)} />}
           <Link href={`/${slug}/results`} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded px-2 py-2 hover:bg-black/5">
             <Search size={16} /> {t.checkResult}
           </Link>
@@ -246,7 +267,7 @@ export default function SchoolNav({
             <MobileSection label={t.academic} icon={GraduationCap} items={academicItems} onNavigate={() => setMobileOpen(false)} />
           )}
           {isSchoolAdmin && <MobileSection label={t.finance} icon={Wallet} items={financeItems} onNavigate={() => setMobileOpen(false)} />}
-          {(isSchoolAdmin || isHr) && <MobileSection label={t.hr} icon={Users} items={hrItems} onNavigate={() => setMobileOpen(false)} />}
+          {isSchoolAdmin && <MobileSection label={t.hr} icon={Users} items={hrItems} onNavigate={() => setMobileOpen(false)} />}
 
           {user && (
             <button

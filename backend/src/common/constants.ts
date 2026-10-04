@@ -68,6 +68,8 @@ export const DEFAULT_LEAVE_TYPES: { name: string; defaultDaysPerYear: number }[]
   { name: 'Maternity Leave', defaultDaysPerYear: 90 },
   { name: 'Paternity Leave', defaultDaysPerYear: 5 },
   { name: 'Study Leave', defaultDaysPerYear: 10 },
+  // 0 = no yearly cap (the balance check only applies to types with an allowance above 0).
+  { name: 'Unpaid Leave', defaultDaysPerYear: 0 },
 ];
 
 export const SUBJECT_CAREER_FIELDS: Record<string, string[]> = {

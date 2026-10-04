@@ -169,8 +169,7 @@ async function seedDemoSchool() {
   //    that looks up "my staff profile" (Payroll, Leave, My Info) has
   //    nothing to find for this demo account. Given a base salary and a
   //    couple of standard recurring lines so Payroll has real numbers to
-  //    show immediately, and flagged as the school's HR contact so the
-  //    HR dashboard has someone to demo it with. ──────────────────────
+  //    show immediately. ──────────────────────
   const teacherProfile = await prisma.staffProfile.create({
     data: {
       schoolId: school.id,
@@ -178,14 +177,13 @@ async function seedDemoSchool() {
       staffId: 'GRW/STAFF/0001',
       department: 'Academics',
       designation: 'Mathematics Teacher',
-      isHrManager: true,
       dateOfEmployment: new Date('2024-09-01'),
       baseSalaryKobo: 25_000_000, // ₦250,000
       allowances: [{ name: 'Housing Allowance', amountKobo: 5_000_000 }],
       deductions: [{ name: 'Pension (8%)', amountKobo: 2_000_000 }],
     },
   });
-  console.log('Created HR profile for teacher@greenwood.edu.ng (staff ID GRW/STAFF/0001, flagged as HR)');
+  console.log('Created HR profile for teacher@greenwood.edu.ng (staff ID GRW/STAFF/0001)');
 
   // ── A sample leave request, so the leave workflow has something to
   //    demo immediately instead of two empty lists ────────────────────

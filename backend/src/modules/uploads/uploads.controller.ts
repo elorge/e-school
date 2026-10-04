@@ -8,6 +8,9 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../../common/types/auth.types';
 
 const IMAGE_LIMITS = { fileSize: 5 * 1024 * 1024 }; // 5MB
 
@@ -43,6 +46,30 @@ export class UploadsController {
   async uploadStudentPhoto(@Req() req: Request, @Param('studentId') studentId: string, @UploadedFile() file: Express.Multer.File) {
     const url = await this.uploadsService.uploadImage(file.buffer, `elorge/schools/${req.schoolId}/students/${studentId}`);
     await this.prisma.student.update({ where: { id: studentId }, data: { photoUrl: url } });
+    return { url };
+  }
+
+  /**
+   * A STAFF caller may only change their OWN photo; SCHOOL_ADMIN and
+   * help a colleague who can't take their own photo.
+   */
+  @Roles(Role.SCHOOL_ADMIN, Role.STAFF)
+  @Post('staff-photo/:staffProfileId')
+  @UseInterceptors(FileInterceptor('file', { limits: IMAGE_LIMITS }))
+  async uploadStaffPhoto(
+    @Req() req: Request,
+    @Param('staffProfileId') staffProfileId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!file) throw new BadRequestException('No image was uploaded');
+    const profile = await this.prisma.staffProfile.findFirst({ where: { id: staffProfileId, schoolId: req.schoolId! } });
+    if (!profile) throw new NotFoundException('Staff profile not found');
+    if (user.role === Role.STAFF && profile.userId !== user.id) {
+      throw new ForbiddenException('You may only change your own photo');
+    }
+    const url = await this.uploadsService.uploadImage(file.buffer, `elorge/schools/${req.schoolId}/staff/${staffProfileId}`);
+    await this.prisma.staffProfile.update({ where: { id: staffProfileId }, data: { photoUrl: url } });
     return { url };
   }
 }

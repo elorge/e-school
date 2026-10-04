@@ -18,8 +18,12 @@ import {
 } from '@/lib/endpoints/leave';
 import { ApiError } from '@/lib/api';
 
+// Local calendar date, not toISOString() — that is UTC and showed "yesterday" for anyone ahead of UTC just after midnight (e.g. Lagos at 12:55 AM).
+const OTHER = '__other__';
+
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,7 +40,7 @@ export default function MyLeavePage({ params }: { params: { school: string } }) 
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [requests, setRequests] = useState<LeaveRequestRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ leaveTypeId: '', startDate: today(), endDate: today(), reason: '' });
+  const [form, setForm] = useState({ leaveTypeId: '', customType: '', startDate: today(), endDate: today(), reason: '' });
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
@@ -45,7 +49,7 @@ export default function MyLeavePage({ params }: { params: { school: string } }) 
       setTypes(t);
       setBalances(b);
       setRequests(r);
-      if (!form.leaveTypeId && t.length > 0) setForm((f) => ({ ...f, leaveTypeId: t[0].id }));
+      setForm((f) => (f.leaveTypeId ? f : { ...f, leaveTypeId: t[0]?.id ?? OTHER }));
     } catch {
       setError('Could not load leave data.');
     } finally {
@@ -63,8 +67,14 @@ export default function MyLeavePage({ params }: { params: { school: string } }) 
     setSubmitting(true);
     setError(null);
     try {
-      await requestLeave(params.school, form);
-      setForm({ ...form, reason: '' });
+      const useCustom = form.leaveTypeId === OTHER;
+      await requestLeave(params.school, {
+        ...(useCustom ? { leaveTypeName: form.customType.trim() } : { leaveTypeId: form.leaveTypeId }),
+        startDate: form.startDate,
+        endDate: form.endDate,
+        reason: form.reason || undefined,
+      });
+      setForm({ ...form, reason: '', customType: '' });
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not submit this leave request.');
@@ -98,7 +108,7 @@ export default function MyLeavePage({ params }: { params: { school: string } }) 
             const type = types.find((t) => t.id === b.leaveTypeId);
             return (
               <span key={b.id} className="rounded-full bg-black/5 px-3 py-1 text-xs">
-                {type?.name}: {b.daysAllotted - b.daysUsed} of {b.daysAllotted} days left
+                {type?.name}: {b.daysAllotted > 0 ? `${Math.max(b.daysAllotted - b.daysUsed, 0)} of ${b.daysAllotted} days left` : `${b.daysUsed} day(s) taken · no yearly limit`}
               </span>
             );
           })}
@@ -114,24 +124,39 @@ export default function MyLeavePage({ params }: { params: { school: string } }) 
                   {t.name}
                 </option>
               ))}
+              <option value={OTHER}>Other (type your own)…</option>
             </select>
           </label>
+          {form.leaveTypeId === OTHER && (
+            <label className="flex flex-col gap-1 text-sm">
+              Leave type
+              <input
+                className="rounded border px-2 py-1.5"
+                placeholder="e.g. Exam Leave, Bereavement Leave"
+                maxLength={60}
+                value={form.customType}
+                onChange={(e) => setForm({ ...form, customType: e.target.value })}
+                required
+              />
+              <span className="text-xs text-ink/50">Use a leave name, not a person&apos;s name. If it already exists in the list it will use that one; otherwise your admin is told it was added.</span>
+            </label>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-sm">
               Start
-              <input type="date" className="rounded border px-2 py-1.5" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
+              <input type="date" className="rounded border px-2 py-1.5" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value, endDate: e.target.value > form.endDate ? e.target.value : form.endDate })} required />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               End
-              <input type="date" className="rounded border px-2 py-1.5" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} required />
+              <input type="date" className="rounded border px-2 py-1.5" min={form.startDate} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} required />
             </label>
           </div>
           <label className="flex flex-col gap-1 text-sm">
             Reason (optional)
             <textarea className="rounded border px-2 py-1.5" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
           </label>
-          <button disabled={submitting || !form.leaveTypeId} type="submit" className="flex w-fit items-center gap-1.5 rounded bg-ink px-4 py-1.5 text-sm text-white disabled:opacity-50">
-            <Send size={15} /> {submitting ? 'Submitting…' : 'Submit request'}
+          <button disabled={submitting || !form.leaveTypeId || (form.leaveTypeId === OTHER && form.customType.trim().length < 2)} type="submit" className="flex w-fit items-center gap-1.5 rounded bg-ink px-4 py-1.5 text-sm text-white disabled:opacity-50">
+            <Send size={15} /> {submitting ? 'Submitting…' : 'Submit for approval'}
           </button>
         </form>
 
