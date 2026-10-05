@@ -72,19 +72,25 @@ export class StaffIdCardsService {
 
       if (logoBuffer) {
         try {
-          doc.image(logoBuffer, 10, 8, { width: 30, height: 30, fit: [30, 30] });
+          // White rounded badge so the logo stays readable on the green panel
+          doc.roundedRect(21, 6, 36, 36, 6).fill('#ffffff');
+          doc.image(logoBuffer, 25, 10, { fit: [28, 28], align: 'center', valign: 'center' });
         } catch (err) {
           this.logger.warn(`Card logo for school ${schoolId} was not a valid image: ${err}`);
         }
       }
-      doc.fontSize(7).font('Helvetica-Bold').fillColor('#ffffff').text(school.name, 8, 42, { width: 62, align: 'center' });
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#ffffff').text(school.name, 8, 46, { width: 62, align: 'center' });
 
       if (photoBuffer) {
+        doc.save();
         try {
-          doc.rect(14, 66, 50, 60).fill('#ffffff');
-          doc.image(photoBuffer, 15, 67, { width: 48, height: 58, fit: [48, 58] });
+          // 'cover' fills the whole box (cropping any overflow) so a narrow photo leaves no blank strip
+          doc.rect(14, 66, 50, 60).clip();
+          doc.image(photoBuffer, 14, 66, { cover: [50, 60], align: 'center', valign: 'center' });
         } catch (err) {
           this.logger.warn(`Card photo for staff ${staffProfileId} was not a valid image: ${err}`);
+        } finally {
+          doc.restore();
         }
       } else {
         doc.rect(14, 66, 50, 60).fillColor('#ffffff').fill();
