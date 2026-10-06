@@ -8,6 +8,7 @@ import { SUPPORTED_COUNTRIES } from '@/lib/currency';
 import { useMarketingLocale } from '@/lib/marketing-locale';
 import { homeLabelsFor } from '@/lib/i18n/home-labels';
 import { CreditCard, ScanLine, Monitor, Wifi, NotebookPen, Presentation, Pencil, Wallet, Boxes, Calculator, Globe2 } from 'lucide-react';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 const LESSON_NOTE_ICONS = [NotebookPen, Presentation, Pencil];
 const FINANCE_ICONS = [Wallet, Boxes, Calculator];
@@ -100,7 +101,7 @@ export default function HomePageContent() {
           </div>
           <p className="mt-6 text-sm text-ink/50">
             {t.dontSeeCountry}{' '}
-            <a href="mailto:hello@elorgeschools.com" className="text-brand-blue underline">
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand-blue underline">
               {t.talkToUs}
             </a>{' '}
             {t.addingCorridors}
@@ -291,7 +292,7 @@ export default function HomePageContent() {
           </div>
           <p className="mt-8 text-sm text-ink/50">
             {t.interestedInThis}{' '}
-            <a href="mailto:hello@elorgeschools.com" className="text-brand-blue underline">
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand-blue underline">
               {t.talkToUs}
             </a>{' '}
             {t.advisePrefix}

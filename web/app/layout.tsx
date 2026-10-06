@@ -8,6 +8,7 @@ import InstallPrompt from '@/components/InstallPrompt';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import MustChangePasswordGate from '@/components/MustChangePasswordGate';
 import { MarketingLocaleProvider } from '@/lib/marketing-locale';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', weight: ['500', '600', '700'] });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -89,7 +90,7 @@ const organizationJsonLd = {
   logo: `${SITE_URL}/logo.png`,
   description:
     'School management software company, headquartered in Nigeria, offering CBT, verifiable results, lesson notes, ID cards, attendance, and fee management to schools across Africa and beyond.',
-  email: 'hello@elorgeschools.com',
+  email: CONTACT_EMAIL,
   sameAs: [
     process.env.NEXT_PUBLIC_X_URL,
     process.env.NEXT_PUBLIC_FACEBOOK_URL,

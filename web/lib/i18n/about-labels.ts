@@ -27,6 +27,21 @@ export interface AboutLabels {
   closingHeading: string;
   closingBody: string;
   talkToUs: string;
+  heroCtaProducts: string;
+  heroCtaTeam: string;
+  buildKicker: string;
+  buildHeading: string;
+  buildBody: string;
+  learnMore: string;
+  products: { title: string; body: string }[];
+  workKicker: string;
+  workHeading: string;
+  workBody: string;
+  workMissing: string;
+  closingGetStarted: string;
+  closingContact: string;
+  careersLine: string;
+  careersLink: string;
 }
 
 const EN_VALUES = [
@@ -116,6 +131,28 @@ const EN: AboutLabels = {
   closingHeading: 'Want to talk to the team directly?',
   closingBody: "We're a small enough team that a real conversation is always on the table — before you sign up, not just after something goes wrong.",
   talkToUs: 'Talk to us',
+  heroCtaProducts: 'See what we build',
+  heroCtaTeam: 'Meet the team',
+  buildKicker: 'What we build',
+  buildHeading: 'One platform for the records a school lives on.',
+  buildBody: 'Every piece shares the same data, the same login and the same standard of proof — so nothing has to be reconciled by hand.',
+  learnMore: 'Learn more',
+  products: [
+    { title: 'Verifiable results', body: 'QR-stamped report cards a parent can check online with an Admission ID and a result PIN.' },
+    { title: 'Computer-based testing', body: 'Scheduled tests, instant objective grading, and answers that save even if the lab loses signal.' },
+    { title: 'Lesson notes & presenter mode', body: 'Structured notes a teacher can turn into a projector-ready slide deck in one click.' },
+    { title: 'ID cards & gate attendance', body: 'Digital ID cards on registration day, and QR scans at the gate that work offline.' },
+    { title: 'Fees, wallet & finance', body: 'Invoicing, a prepaid wallet and school accounting — in your own currency.' },
+    { title: 'Offline-first by design', body: 'Install it on a phone or desktop and keep working through outages; everything syncs when signal returns.' },
+  ],
+  workKicker: 'Where we work',
+  workHeading: 'Schools can sign up from these countries today.',
+  workBody: 'Each school is billed in its own currency and keeps its own academic calendar and subject list.',
+  workMissing: 'Don\'t see your country? Tell us — we add countries as payment corridors open.',
+  closingGetStarted: 'Get started',
+  closingContact: 'Contact us',
+  careersLine: 'Interested in building this with us?',
+  careersLink: 'See careers',
 };
 
 const FR: AboutLabels = {
@@ -139,6 +176,28 @@ const FR: AboutLabels = {
   closingHeading: "Envie de parler directement à l'équipe ?",
   closingBody: "Nous sommes une équipe assez petite pour qu'une vraie conversation soit toujours possible — avant votre inscription, pas seulement après qu'un problème survienne.",
   talkToUs: 'Contactez-nous',
+  heroCtaProducts: 'Découvrir nos produits',
+  heroCtaTeam: 'Rencontrer l\'équipe',
+  buildKicker: 'Ce que nous construisons',
+  buildHeading: 'Une seule plateforme pour les dossiers dont vit une école.',
+  buildBody: 'Chaque module partage les mêmes données, la même connexion et le même niveau de preuve — rien n\'est à rapprocher à la main.',
+  learnMore: 'En savoir plus',
+  products: [
+    { title: 'Résultats vérifiables', body: 'Des bulletins à cachet QR qu\'un parent peut vérifier en ligne avec un numéro d\'inscription et un PIN de résultat.' },
+    { title: 'Épreuves sur ordinateur', body: 'Des épreuves planifiées, une correction objective instantanée, et des réponses enregistrées même si la salle perd le réseau.' },
+    { title: 'Notes de cours et mode présentateur', body: 'Des notes structurées qu\'un enseignant transforme en diaporama prêt pour le projecteur en un clic.' },
+    { title: 'Cartes d\'identité et présence au portail', body: 'Des cartes d\'identité numériques dès l\'inscription, et des scans QR au portail qui fonctionnent hors ligne.' },
+    { title: 'Frais, portefeuille et finances', body: 'Facturation, portefeuille prépayé et comptabilité scolaire — dans votre propre devise.' },
+    { title: 'Conçu pour fonctionner hors ligne', body: 'Installez-le sur un téléphone ou un ordinateur et continuez à travailler pendant les coupures ; tout se synchronise au retour du réseau.' },
+  ],
+  workKicker: 'Où nous opérons',
+  workHeading: 'Les écoles peuvent s\'inscrire depuis ces pays dès aujourd\'hui.',
+  workBody: 'Chaque école est facturée dans sa propre devise et garde son propre calendrier académique et sa propre liste de matières.',
+  workMissing: 'Votre pays n\'apparaît pas ? Dites-le-nous — nous ajoutons des pays à mesure que les corridors de paiement s\'ouvrent.',
+  closingGetStarted: 'Commencer',
+  closingContact: 'Nous contacter',
+  careersLine: 'Envie de construire cela avec nous ?',
+  careersLink: 'Voir les carrières',
 };
 
 const PT_VALUES = [
@@ -195,6 +254,28 @@ const PT: AboutLabels = {
   closingHeading: 'Quer falar diretamente com a equipa?',
   closingBody: 'Somos uma equipa pequena o suficiente para que uma conversa a sério esteja sempre disponível — antes de se inscrever, não apenas depois de algo correr mal.',
   talkToUs: 'Fale connosco',
+  heroCtaProducts: 'Ver o que construímos',
+  heroCtaTeam: 'Conhecer a equipa',
+  buildKicker: 'O que construímos',
+  buildHeading: 'Uma única plataforma para os registos de que uma escola vive.',
+  buildBody: 'Cada módulo partilha os mesmos dados, o mesmo acesso e o mesmo nível de prova — nada precisa de ser conciliado à mão.',
+  learnMore: 'Saber mais',
+  products: [
+    { title: 'Resultados verificáveis', body: 'Boletins com selo QR que um encarregado de educação pode consultar online com um número de matrícula e um PIN de resultado.' },
+    { title: 'Provas em computador', body: 'Provas agendadas, correção objetiva instantânea e respostas guardadas mesmo que a sala perca o sinal.' },
+    { title: 'Planos de aula e modo apresentador', body: 'Planos estruturados que um professor transforma numa apresentação pronta para o projetor com um clique.' },
+    { title: 'Cartões de identificação e presenças à entrada', body: 'Cartões digitais no dia da matrícula e leituras de QR à entrada que funcionam offline.' },
+    { title: 'Propinas, carteira e finanças', body: 'Faturação, carteira pré-paga e contabilidade escolar — na sua própria moeda.' },
+    { title: 'Pensado para funcionar offline', body: 'Instale num telemóvel ou computador e continue a trabalhar durante falhas; tudo sincroniza quando o sinal volta.' },
+  ],
+  workKicker: 'Onde atuamos',
+  workHeading: 'As escolas já se podem registar a partir destes países.',
+  workBody: 'Cada escola é faturada na sua própria moeda e mantém o seu próprio calendário académico e lista de disciplinas.',
+  workMissing: 'Não vê o seu país? Diga-nos — adicionamos países à medida que os corredores de pagamento abrem.',
+  closingGetStarted: 'Começar',
+  closingContact: 'Fale connosco',
+  careersLine: 'Quer construir isto connosco?',
+  careersLink: 'Ver carreiras',
 };
 
 const ES_VALUES = [
@@ -251,6 +332,28 @@ const ES: AboutLabels = {
   closingHeading: '¿Quiere hablar directamente con el equipo?',
   closingBody: 'Somos un equipo lo bastante pequeño como para que una conversación real siempre esté disponible, antes de registrarse, no solo después de que algo salga mal.',
   talkToUs: 'Hable con nosotros',
+  heroCtaProducts: 'Ver lo que construimos',
+  heroCtaTeam: 'Conocer al equipo',
+  buildKicker: 'Lo que construimos',
+  buildHeading: 'Una sola plataforma para los registros de los que vive un colegio.',
+  buildBody: 'Cada módulo comparte los mismos datos, el mismo acceso y el mismo nivel de prueba, así que nada se concilia a mano.',
+  learnMore: 'Más información',
+  products: [
+    { title: 'Resultados verificables', body: 'Boletines con sello QR que un padre puede consultar en línea con un número de matrícula y un PIN de resultado.' },
+    { title: 'Exámenes por computadora', body: 'Exámenes programados, calificación objetiva instantánea y respuestas que se guardan aunque el laboratorio pierda la señal.' },
+    { title: 'Notas de clase y modo presentador', body: 'Notas estructuradas que un docente convierte en una presentación lista para el proyector con un clic.' },
+    { title: 'Carnés y asistencia en la puerta', body: 'Carnés digitales desde el día de la matrícula y escaneos QR en la puerta que funcionan sin conexión.' },
+    { title: 'Cuotas, billetera y finanzas', body: 'Facturación, billetera prepagada y contabilidad escolar, en su propia moneda.' },
+    { title: 'Pensado para funcionar sin conexión', body: 'Instálelo en un teléfono o computadora y siga trabajando durante los cortes; todo se sincroniza al volver la señal.' },
+  ],
+  workKicker: 'Dónde trabajamos',
+  workHeading: 'Los colegios ya pueden registrarse desde estos países.',
+  workBody: 'Cada colegio se factura en su propia moneda y conserva su propio calendario académico y lista de asignaturas.',
+  workMissing: '¿No ve su país? Cuéntenos: agregamos países a medida que se abren corredores de pago.',
+  closingGetStarted: 'Comenzar',
+  closingContact: 'Contáctenos',
+  careersLine: '¿Quiere construir esto con nosotros?',
+  careersLink: 'Ver carreras',
 };
 
 const ABOUT_LABELS_BY_LOCALE: Record<SupportedLocale, AboutLabels> = {

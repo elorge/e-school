@@ -5,6 +5,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { useMarketingLocale } from '@/lib/marketing-locale';
 import { privacyPageLabelsFor } from '@/lib/i18n/privacy-page-labels';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 /**
  * Legal boilerplate — same note as terms/page.tsx: the [DATE] placeholder
@@ -33,7 +34,7 @@ export default function PrivacyPage() {
 
         <h2 className="mb-2 mt-8 font-display text-lg font-semibold text-ink">{t.contactHeading}</h2>
         <p>
-          {t.contactPrefix} <a href="mailto:hello@elorgeschools.com" className="text-brand-blue underline">hello@elorgeschools.com</a>
+          {t.contactPrefix} <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand-blue underline">{CONTACT_EMAIL}</a>
         </p>
       </main>
       <SiteFooter />

@@ -4,6 +4,7 @@
 import { Mail, MessageCircle, Clock, Users2, Wrench } from 'lucide-react';
 import { useMarketingLocale } from '@/lib/marketing-locale';
 import { contactLabelsFor } from '@/lib/i18n/contact-labels';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const REASON_ICONS = [Users2, Wrench, Clock];
@@ -21,8 +22,8 @@ export default function ContactPageContent() {
         <p className="max-w-md text-lg text-ink/70">{t.heroBody}</p>
 
         <div className="flex w-full max-w-xs flex-col gap-3 pt-4">
-          <a href="mailto:hello@elorgeschools.com" className="btn-primary flex items-center justify-center gap-2">
-            <Mail size={16} /> hello@elorgeschools.com
+          <a href={`mailto:${CONTACT_EMAIL}`} className="btn-primary flex items-center justify-center gap-2">
+            <Mail size={16} /> {CONTACT_EMAIL}
           </a>
           {WHATSAPP_NUMBER && (
             <a

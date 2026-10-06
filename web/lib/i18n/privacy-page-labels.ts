@@ -32,7 +32,7 @@ const EN_SECTIONS = [
   },
   {
     heading: "6. A guardian's rights",
-    body: 'A parent or guardian who wants a student\'s data corrected or removed should contact their school directly, as the school controls that data. Schools can reach us at hello@elorgeschools.com for any data-processing requests they need help fulfilling.',
+    body: 'A parent or guardian who wants a student\'s data corrected or removed should contact their school directly, as the school controls that data. Schools can reach us at hello@elorgeschools.org for any data-processing requests they need help fulfilling.',
   },
   {
     heading: '7. Security',
@@ -63,7 +63,7 @@ const FR_SECTIONS = [
   },
   {
     heading: "6. Les droits d'un tuteur",
-    body: "Un parent ou tuteur souhaitant faire corriger ou supprimer les données d'un élève doit contacter directement son école, car c'est elle qui contrôle ces données. Les écoles peuvent nous joindre à hello@elorgeschools.com pour toute demande de traitement de données qu'elles ont besoin de nous aider à satisfaire.",
+    body: "Un parent ou tuteur souhaitant faire corriger ou supprimer les données d'un élève doit contacter directement son école, car c'est elle qui contrôle ces données. Les écoles peuvent nous joindre à hello@elorgeschools.org pour toute demande de traitement de données qu'elles ont besoin de nous aider à satisfaire.",
   },
   {
     heading: '7. Sécurité',
@@ -94,7 +94,7 @@ const PT_SECTIONS = [
   },
   {
     heading: '6. Direitos de um encarregado de educação',
-    body: 'Um pai ou encarregado de educação que pretenda corrigir ou remover os dados de um aluno deve contactar directamente a sua escola, pois é ela quem controla esses dados. As escolas podem contactar-nos através de hello@elorgeschools.com para qualquer pedido de tratamento de dados com que precisem de ajuda.',
+    body: 'Um pai ou encarregado de educação que pretenda corrigir ou remover os dados de um aluno deve contactar directamente a sua escola, pois é ela quem controla esses dados. As escolas podem contactar-nos através de hello@elorgeschools.org para qualquer pedido de tratamento de dados com que precisem de ajuda.',
   },
   {
     heading: '7. Segurança',
@@ -149,7 +149,7 @@ const ES_SECTIONS = [
   },
   {
     heading: '6. Los derechos de un tutor',
-    body: 'Un padre o tutor que desee corregir o eliminar los datos de un alumno debe comunicarse directamente con su colegio, ya que es el colegio quien controla esos datos. Los colegios pueden escribirnos a hello@elorgeschools.com para cualquier solicitud de tratamiento de datos con la que necesiten ayuda.',
+    body: 'Un padre o tutor que desee corregir o eliminar los datos de un alumno debe comunicarse directamente con su colegio, ya que es el colegio quien controla esos datos. Los colegios pueden escribirnos a hello@elorgeschools.org para cualquier solicitud de tratamiento de datos con la que necesiten ayuda.',
   },
   {
     heading: '7. Seguridad',

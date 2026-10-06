@@ -8,6 +8,7 @@ import { XIcon, FacebookIcon, InstagramIcon, LinkedInIcon, YouTubeIcon } from '.
 import TikTokIcon from './icons/TikTokIcon';
 import { useMarketingLocale } from '@/lib/marketing-locale';
 import { siteFooterLabelsFor } from '@/lib/i18n/site-footer-labels';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 
@@ -116,8 +117,8 @@ export default function SiteFooter() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/40">{t.getInTouchHeading}</p>
             <ul className="flex flex-col gap-2">
               <li>
-                <a href="mailto:hello@elorgeschools.com" className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink">
-                  <Mail size={14} /> hello@elorgeschools.com
+                <a href={`mailto:${CONTACT_EMAIL}`} className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink">
+                  <Mail size={14} /> {CONTACT_EMAIL}
                 </a>
               </li>
               {WHATSAPP_NUMBER && (

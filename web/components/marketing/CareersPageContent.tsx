@@ -4,6 +4,7 @@
 import { Mail, Wifi, Users2, Puzzle, MessageSquare, Handshake, Sparkles } from 'lucide-react';
 import { useMarketingLocale } from '@/lib/marketing-locale';
 import { careersLabelsFor } from '@/lib/i18n/careers-labels';
+import { CONTACT_EMAIL } from '@/lib/site';
 
 // TODO: replace with real open roles as they come up. Kept honest and
 // empty rather than inventing job postings — a fake listing is a bad
@@ -90,7 +91,7 @@ export default function CareersPageContent() {
             </div>
           )}
           <a
-            href="mailto:hello@elorgeschools.com?subject=Interested in joining Elorge"
+            href={`mailto:${CONTACT_EMAIL}?subject=Interested in joining Elorge`}
             className="btn-primary inline-flex items-center gap-2"
           >
             <Mail size={16} /> {t.emailUs}
