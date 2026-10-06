@@ -10,7 +10,6 @@ import { useMarketingLocale } from '@/lib/marketing-locale';
 import { siteFooterLabelsFor } from '@/lib/i18n/site-footer-labels';
 import { CONTACT_EMAIL } from '@/lib/site';
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 
 const SOCIAL_LINKS: { label: string; href: string | undefined; Icon: React.ComponentType<{ size?: number }> }[] = [
   { label: 'X', href: process.env.NEXT_PUBLIC_X_URL, Icon: XIcon },
@@ -121,18 +120,15 @@ export default function SiteFooter() {
                   <Mail size={14} /> {CONTACT_EMAIL}
                 </a>
               </li>
-              {WHATSAPP_NUMBER && (
-                <li>
-                  <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink"
-                  >
-                    <MessageCircle size={14} /> {t.chatOnWhatsApp}
-                  </a>
-                </li>
-              )}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('elorge:open-chat'))}
+                  className="flex items-center gap-1.5 text-sm text-ink/60 hover:text-ink"
+                >
+                  <MessageCircle size={14} /> {t.chatOnWhatsApp}
+                </button>
+              </li>
               <li>
                 <Link href="/signup" className="text-sm text-brand-blue underline">
                   {t.getStarted}

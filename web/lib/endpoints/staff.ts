@@ -11,6 +11,7 @@ export interface SalaryLineItem {
 }
 
 export interface StaffProfile {
+  isHrManager?: boolean; // HR page checks this; backend does not send it yet
   id: string;
   schoolId: string;
   userId: string;

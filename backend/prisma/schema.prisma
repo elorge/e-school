@@ -1090,3 +1090,46 @@ model LeaveRequest {
   @@index([staffProfileId, status])
   @@map("leave_requests")
 }
+// ───────────── Website live chat (Telegram-backed) ─────────────
+enum ChatSender {
+  VISITOR
+  AGENT
+  BOT
+}
+
+model ChatConversation {
+  id             String        @id @default(uuid())
+  token          String        @unique // secret held by the visitor's browser
+  tag            String        @unique // short code agents see in Telegram, e.g. #a1b2c3
+  name           String
+  email          String
+  phone          String
+  countryCode    String
+  locale         String        @default("en")
+  pageUrl        String?
+  waitingSince   DateTime? // set while a visitor is waiting for a human answer
+  nudgeSentAt    DateTime?
+  followUpSentAt DateTime?
+  lastSeenAt     DateTime      @default(now())
+  lastAgentAt    DateTime?
+  createdAt      DateTime      @default(now())
+  messages       ChatMessage[]
+
+  @@index([waitingSince])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  seq            Int              @unique @default(autoincrement())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         ChatSender
+  text           String
+  agentName      String?
+  tgReplyId      Int?             @unique // Telegram message id of an agent reply (de-dupes webhook retries)
+  createdAt      DateTime         @default(now())
+
+  @@index([conversationId, seq])
+  @@map("chat_messages")
+}

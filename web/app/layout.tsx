@@ -5,7 +5,7 @@ import './globals.css';
 import 'katex/dist/katex.min.css';
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import InstallPrompt from '@/components/InstallPrompt';
-import WhatsAppButton from '@/components/WhatsAppButton';
+import ChatWidget from '@/components/ChatWidget';
 import MustChangePasswordGate from '@/components/MustChangePasswordGate';
 import { MarketingLocaleProvider } from '@/lib/marketing-locale';
 import { CONTACT_EMAIL } from '@/lib/site';
@@ -113,7 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <ServiceWorkerRegistration />
           <InstallPrompt />
-          <WhatsAppButton />
+          <ChatWidget />
           <MustChangePasswordGate />
         </MarketingLocaleProvider>
       </body>

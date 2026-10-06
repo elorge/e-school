@@ -183,6 +183,7 @@ export default function SuperAdminPage() {
       <PlatformNav title="Elorge — Super Admin" />
       <div className="mx-auto max-w-4xl px-6 pt-4">
         <Link href="/super-admin/audit-log" className="text-sm text-brand-blue underline">View platform-wide audit log →</Link>
+        <Link href="/super-admin/chats" className="ml-4 text-sm text-brand-blue underline">Website chats →</Link>
       </div>
       <main className="mx-auto max-w-4xl px-6 py-10">
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}

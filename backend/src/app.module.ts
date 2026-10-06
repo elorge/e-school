@@ -36,6 +36,7 @@ import { HealthModule } from './modules/health/health.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { LeaveModule } from './modules/leave/leave.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { envValidationSchema } from './config/env.validation';
@@ -77,6 +78,7 @@ import { envValidationSchema } from './config/env.validation';
     StaffModule,
     PayrollModule,
     LeaveModule,
+    ChatModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

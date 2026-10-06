@@ -6,7 +6,6 @@ import { useMarketingLocale } from '@/lib/marketing-locale';
 import { contactLabelsFor } from '@/lib/i18n/contact-labels';
 import { CONTACT_EMAIL } from '@/lib/site';
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const REASON_ICONS = [Users2, Wrench, Clock];
 
 export default function ContactPageContent() {
@@ -25,16 +24,13 @@ export default function ContactPageContent() {
           <a href={`mailto:${CONTACT_EMAIL}`} className="btn-primary flex items-center justify-center gap-2">
             <Mail size={16} /> {CONTACT_EMAIL}
           </a>
-          {WHATSAPP_NUMBER && (
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary flex items-center justify-center gap-2"
-            >
-              <MessageCircle size={16} /> {t.chatOnWhatsApp}
-            </a>
-          )}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('elorge:open-chat'))}
+            className="btn-secondary flex items-center justify-center gap-2"
+          >
+            <MessageCircle size={16} /> {t.chatOnWhatsApp}
+          </button>
         </div>
       </section>
 

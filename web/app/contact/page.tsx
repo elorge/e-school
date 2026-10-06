@@ -7,7 +7,7 @@ import ContactPageContent from '@/components/marketing/ContactPageContent';
 export const metadata: Metadata = {
   title: 'Contact Elorge Schools',
   description:
-    'Get in touch about setting up your school on Elorge, pricing, or support — email or WhatsApp, a real person replies.',
+    'Get in touch about setting up your school on Elorge, pricing, or support — email or live chat, a real person replies.',
   alternates: { canonical: '/contact' },
 };
 
