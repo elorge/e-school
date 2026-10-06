@@ -24,7 +24,7 @@ const TEAM_STRUCTURE: { name: string; photo: string | null; linkedin: string | n
 ];
 
 // Each product card links to its own page (good for visitors and for SEO).
-const PRODUCT_LINKS: { href: string; icon: React.ComponentType<{ size?: number }> }[] = [
+const PRODUCT_LINKS: { href: string; icon: React.ComponentType<{ size?: number | string }> }[] = [
   { href: '/results', icon: CheckCircle2 },
   { href: '/features/cbt', icon: Monitor },
   { href: '/features/lesson-notes', icon: Presentation },
