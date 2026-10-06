@@ -34,6 +34,8 @@ export default function SiteFooter() {
     { href: '/features/cbt', label: t.linkCbt },
     { href: '/#finance', label: t.linkFinance },
     { href: '/features/lesson-notes', label: t.linkLessonNotes },
+    { href: '/features/id-cards', label: t.linkIdCards },
+    { href: '/pricing', label: t.linkPricing },
     { href: '/results', label: t.linkCheckResult },
     { href: '/#offline', label: t.linkOffline },
   ];

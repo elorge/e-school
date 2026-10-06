@@ -15,6 +15,8 @@ export interface SiteFooterLabels {
   linkFinance: string;
   linkLessonNotes: string;
   linkCheckResult: string;
+  linkPricing: string;
+  linkIdCards: string;
   linkOffline: string;
   linkAbout: string;
   linkCareers: string;
@@ -37,6 +39,8 @@ const EN: SiteFooterLabels = {
   linkFinance: 'Fees, Inventory & Accounting',
   linkLessonNotes: 'Lesson Notes',
   linkCheckResult: 'Check a Result',
+  linkPricing: 'Pricing',
+  linkIdCards: 'ID Cards & Attendance',
   linkOffline: 'Offline-first',
   linkAbout: 'About',
   linkCareers: 'Careers',
@@ -59,6 +63,8 @@ const FR: SiteFooterLabels = {
   linkFinance: 'Frais, inventaire et comptabilité',
   linkLessonNotes: 'Notes de cours',
   linkCheckResult: 'Vérifier un résultat',
+  linkPricing: 'Tarifs',
+  linkIdCards: "Cartes d'identité et présence",
   linkOffline: 'Hors ligne',
   linkAbout: 'À propos',
   linkCareers: 'Carrières',
@@ -81,6 +87,8 @@ const PT: SiteFooterLabels = {
   linkFinance: 'Propinas, Inventário e Contabilidade',
   linkLessonNotes: 'Planos de Aula',
   linkCheckResult: 'Consultar um Resultado',
+  linkPricing: 'Preços',
+  linkIdCards: 'Cartões de Identificação e Presença',
   linkOffline: 'Funciona Offline',
   linkAbout: 'Sobre Nós',
   linkCareers: 'Carreiras',
@@ -103,6 +111,8 @@ const ES: SiteFooterLabels = {
   linkFinance: 'Cuotas, Inventario y Contabilidad',
   linkLessonNotes: 'Notas de Clase',
   linkCheckResult: 'Consultar un Resultado',
+  linkPricing: 'Precios',
+  linkIdCards: 'Tarjetas de Identificación y Asistencia',
   linkOffline: 'Funciona sin conexión',
   linkAbout: 'Nosotros',
   linkCareers: 'Empleo',

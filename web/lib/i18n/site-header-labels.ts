@@ -10,6 +10,7 @@ export interface SiteHeaderLabels {
   sectionOffline: string;
   sectionInfrastructure: string;
   checkResult: string;
+  pricing: string;
   signIn: string;
   getStarted: string;
   toggleMenu: string;
@@ -25,6 +26,7 @@ const EN: SiteHeaderLabels = {
   sectionOffline: 'Offline-first',
   sectionInfrastructure: 'Hardware',
   checkResult: 'Check Result',
+  pricing: 'Pricing',
   signIn: 'Sign in',
   getStarted: 'Get started',
   toggleMenu: 'Toggle menu',
@@ -40,6 +42,7 @@ const FR: SiteHeaderLabels = {
   sectionOffline: 'Hors ligne',
   sectionInfrastructure: 'Matériel',
   checkResult: 'Vérifier un résultat',
+  pricing: 'Tarifs',
   signIn: 'Se connecter',
   getStarted: 'Commencer',
   toggleMenu: 'Basculer le menu',
@@ -55,6 +58,7 @@ const PT: SiteHeaderLabels = {
   sectionOffline: 'Funciona Offline',
   sectionInfrastructure: 'Equipamento',
   checkResult: 'Consultar Resultado',
+  pricing: 'Preços',
   signIn: 'Entrar',
   getStarted: 'Começar',
   toggleMenu: 'Alternar menu',
@@ -70,6 +74,7 @@ const ES: SiteHeaderLabels = {
   sectionOffline: 'Funciona sin conexión',
   sectionInfrastructure: 'Equipo',
   checkResult: 'Consultar Resultado',
+  pricing: 'Precios',
   signIn: 'Iniciar sesión',
   getStarted: 'Comenzar',
   toggleMenu: 'Alternar menú',

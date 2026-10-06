@@ -34,6 +34,7 @@ export default function HomePageContent() {
             {t.signIn}
           </Link>
         </div>
+        <p className="max-w-md rounded-full bg-amber/10 px-4 py-2 text-sm text-ink/70">{t.welcomeHook}</p>
 
         {/* Signature element: a mocked, verified report card */}
         <div className="relative mt-10 w-full max-w-md torn-edge">

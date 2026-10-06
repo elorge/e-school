@@ -4,6 +4,7 @@ import { PLATFORM_DEFAULT_LOCALE, SupportedLocale } from '../locale';
 export interface SignupLabels {
   heading: string;
   subheading: string;
+  welcomeHook: string;
   requestReceivedTitle: string;
   requestReceivedBody: (email: string) => string;
   backToHome: string;
@@ -38,6 +39,7 @@ export interface SignupLabels {
 const EN: SignupLabels = {
   heading: 'Bring your school onto Elorge',
   subheading: 'Wherever your school is, tell us a bit about it. Our team reviews every request and activates your workspace, usually within one business day.',
+  welcomeHook: "Every new school gets a welcome credit. How much? Who knows — it might just keep you running free for a very long time.",
   requestReceivedTitle: 'Request received.',
   requestReceivedBody: (email) => `We'll email ${email} once your workspace is ready.`,
   backToHome: 'Back to home',
@@ -72,6 +74,7 @@ const EN: SignupLabels = {
 const FR: SignupLabels = {
   heading: 'Rejoignez Elorge avec votre école',
   subheading: "Où que soit votre école, parlez-nous-en un peu. Notre équipe examine chaque demande et active votre espace de travail, généralement sous un jour ouvré.",
+  welcomeHook: "Chaque nouvelle école reçoit un crédit de bienvenue. Combien ? Qui sait — il pourrait bien vous faire fonctionner gratuitement très longtemps.",
   requestReceivedTitle: 'Demande reçue.',
   requestReceivedBody: (email) => `Nous enverrons un e-mail à ${email} dès que votre espace de travail sera prêt.`,
   backToHome: "Retour à l'accueil",
@@ -106,6 +109,7 @@ const FR: SignupLabels = {
 const PT: SignupLabels = {
   heading: 'Traga a sua escola para a Elorge',
   subheading: 'Onde quer que a sua escola esteja, conte-nos um pouco sobre ela. A nossa equipa analisa cada pedido e ativa o seu espaço de trabalho, normalmente dentro de um dia útil.',
+  welcomeHook: "Cada nova escola recebe um crédito de boas-vindas. Quanto? Quem sabe — pode muito bem mantê-la a funcionar gratuitamente durante muito tempo.",
   requestReceivedTitle: 'Pedido recebido.',
   requestReceivedBody: (email) => `Enviaremos um e-mail para ${email} assim que o seu espaço de trabalho estiver pronto.`,
   backToHome: 'Voltar ao início',
@@ -140,6 +144,7 @@ const PT: SignupLabels = {
 const ES: SignupLabels = {
   heading: 'Sume a su colegio a Elorge',
   subheading: 'Dondequiera que esté su colegio, cuéntenos un poco sobre él. Nuestro equipo revisa cada solicitud y activa su espacio de trabajo, generalmente dentro de un día hábil.',
+  welcomeHook: "Cada colegio nuevo recibe un crédito de bienvenida. ¿Cuánto? Quién sabe: podría mantenerlo funcionando gratis por mucho tiempo.",
   requestReceivedTitle: 'Solicitud recibida.',
   requestReceivedBody: (email) => `Le enviaremos un correo a ${email} en cuanto su espacio de trabajo esté listo.`,
   backToHome: 'Volver al inicio',

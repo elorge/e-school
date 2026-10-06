@@ -1,7 +1,7 @@
 {
   "name": "Elorge Schools",
   "short_name": "Elorge Schools",
-  "description": "School management built for Nigerian schools — works even when the internet doesn't.",
+  "description": "School management for schools across Africa and beyond — works even when the internet doesn't.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FBFCFE",

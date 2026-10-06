@@ -91,8 +91,13 @@ const organizationJsonLd = {
     'School management software company, headquartered in Nigeria, offering CBT, verifiable results, lesson notes, ID cards, attendance, and fee management to schools across Africa and beyond.',
   email: 'hello@elorgeschools.com',
   sameAs: [
-    // TODO: add real LinkedIn / X / Facebook URLs here once you have them
-  ],
+    process.env.NEXT_PUBLIC_X_URL,
+    process.env.NEXT_PUBLIC_FACEBOOK_URL,
+    process.env.NEXT_PUBLIC_INSTAGRAM_URL,
+    process.env.NEXT_PUBLIC_LINKEDIN_URL,
+    process.env.NEXT_PUBLIC_TIKTOK_URL,
+    process.env.NEXT_PUBLIC_YOUTUBE_URL,
+  ].filter(Boolean),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

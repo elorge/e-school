@@ -29,7 +29,10 @@ export default function SiteHeader() {
   // Standalone pages (not homepage anchors) worth surfacing in the main
   // nav. Kept separate from SECTIONS since these aren't scroll-spied —
   // they're always-static links to their own indexable page.
-  const PAGE_LINKS = [{ href: '/results', label: t.checkResult }];
+  const PAGE_LINKS = [
+    { href: '/pricing', label: t.pricing },
+    { href: '/results', label: t.checkResult },
+  ];
 
   // Highlights whichever section is currently in view, so the nav
   // reflects scroll position instead of staying static the whole time.

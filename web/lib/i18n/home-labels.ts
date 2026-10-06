@@ -6,6 +6,7 @@ export interface HomeLabels {
   heroTitle: string;
   heroSubtitle: string;
   getStarted: string;
+  welcomeHook: string;
   signIn: string;
   mockSchoolName: string;
   mockTermLabel: string;
@@ -157,6 +158,7 @@ const EN: HomeLabels = {
   heroTitle: "A record your parents don't have to take your word for.",
   heroSubtitle: 'Results, ID cards, attendance, fees, computer-based tests, and school finances — in one place, working the way your school actually runs: sometimes with signal, sometimes without, wherever your school is.',
   getStarted: 'Get started',
+  welcomeHook: "Every new school gets a welcome credit. How much? Who knows — it might just keep you running free for a very long time.",
   signIn: 'Sign in',
   mockSchoolName: 'Greenwood College',
   mockTermLabel: '2025/2026 — Term 2',
@@ -214,6 +216,7 @@ const FR: HomeLabels = {
   heroTitle: "Un dossier que vos parents n'ont pas à croire sur parole.",
   heroSubtitle: "Résultats, cartes d'identité, présence, frais, épreuves sur ordinateur et finances scolaires — au même endroit, fonctionnant comme votre école fonctionne réellement : parfois avec réseau, parfois sans, où que soit votre école.",
   getStarted: 'Commencer',
+  welcomeHook: "Chaque nouvelle école reçoit un crédit de bienvenue. Combien ? Qui sait — il pourrait bien vous faire fonctionner gratuitement très longtemps.",
   signIn: 'Se connecter',
   mockSchoolName: 'Collège Greenwood',
   mockTermLabel: '2025/2026 — Trimestre 2',
@@ -318,6 +321,7 @@ const PT: HomeLabels = {
   heroTitle: 'Um registo que os seus pais não têm de acreditar apenas na sua palavra.',
   heroSubtitle: 'Resultados, cartões de identificação, presenças, propinas, provas baseadas em computador, e finanças escolares — num só lugar, a funcionar como a sua escola realmente funciona: às vezes com sinal, às vezes sem, onde quer que a sua escola esteja.',
   getStarted: 'Começar',
+  welcomeHook: "Cada nova escola recebe um crédito de boas-vindas. Quanto? Quem sabe — pode muito bem mantê-la a funcionar gratuitamente durante muito tempo.",
   signIn: 'Iniciar sessão',
   mockSchoolName: 'Colégio Greenwood',
   mockTermLabel: '2025/2026 — 2º Período',
@@ -422,6 +426,7 @@ const ES: HomeLabels = {
   heroTitle: 'Un registro que sus padres no tienen que creer solo por su palabra.',
   heroSubtitle: 'Resultados, carnés, asistencia, cuotas, exámenes por computadora y finanzas escolares, todo en un solo lugar, funcionando como realmente opera su colegio: a veces con señal, a veces sin ella, dondequiera que esté su colegio.',
   getStarted: 'Comenzar',
+  welcomeHook: "Cada colegio nuevo recibe un crédito de bienvenida. ¿Cuánto? Quién sabe: podría mantenerlo funcionando gratis por mucho tiempo.",
   signIn: 'Iniciar sesión',
   mockSchoolName: 'Colegio Greenwood',
   mockTermLabel: '2025/2026 — Trimestre 2',

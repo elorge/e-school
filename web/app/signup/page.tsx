@@ -76,7 +76,9 @@ export default function SignupPage() {
       <SiteHeader />
       <main className="mx-auto max-w-md px-6 py-16">
         <h1 className="mb-2 font-display text-2xl font-semibold">{t.heading}</h1>
-        <p className="mb-8 text-sm text-ink/60">{t.subheading}</p>
+        <p className="mb-4 text-sm text-ink/60">{t.subheading}</p>
+        {!submitted && <p className="mb-8 rounded-xl bg-amber/10 px-4 py-3 text-sm text-ink/70">{t.welcomeHook}</p>}
+        {submitted && <div className="mb-8" />}
 
         {submitted ? (
           <div className="rounded-xl bg-brand-green/10 p-6 text-brand-green-dark">
