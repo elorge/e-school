@@ -186,8 +186,8 @@ export default function PricingPage() {
             >
               Get started
             </Link>
-            <Link href="/contact" className="inline-block rounded-full border border-black/10 px-8 py-3 font-medium text-ink transition hover:bg-black/5">
-              Talk to us about your school
+            <Link href="/demo" className="inline-block rounded-full border border-black/10 px-8 py-3 font-medium text-ink transition hover:bg-black/5">
+              Book a demo
             </Link>
           </div>
         </section>

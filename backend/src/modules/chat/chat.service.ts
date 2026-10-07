@@ -6,12 +6,23 @@ import { randomBytes, timingSafeEqual } from 'crypto';
 import { ChatConversation, ChatSender, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BrevoService } from '../email/brevo.service';
-import { TelegramService } from './telegram.service';
+import { TelegramService } from '../telegram/telegram.service';
+import { LeadsService } from '../leads/leads.service';
+import { DigestService } from '../digest/digest.service';
 import { StartChatDto } from './chat.dto';
 import { agentReplyEmail, chatCopy } from './chat.copy';
 
 const num = (v: string | undefined, d: number) => (v && !Number.isNaN(Number(v)) ? Number(v) : d);
 const TAG_RE = /#([a-f0-9]{6})\b/i;
+
+type AgentReplyOutcome = 'delivered' | 'emailed' | 'email_failed' | 'away_no_email_phone' | 'away_no_contact';
+const OUTCOME_NOTE: Record<AgentReplyOutcome, string> = {
+  delivered: '',
+  emailed: ' (visitor is away — also emailed)',
+  email_failed: ' (visitor is away — email failed, try their phone)',
+  away_no_email_phone: ' (visitor is away, no email — try their phone)',
+  away_no_contact: ' (visitor is away and left no contact details)',
+};
 
 /**
  * Website live chat. Visitors talk to the widget; your team answers from a
@@ -34,6 +45,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramService,
     private readonly brevo: BrevoService,
+    private readonly leads: LeadsService,
+    private readonly digest: DigestService,
   ) {}
 
   onModuleInit() {
@@ -60,6 +73,10 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.addMessage(conv.id, 'VISITOR', dto.message);
+    void this.leads.capture({
+      kind: 'CHAT_STARTED', name: conv.name, email: email || null, phone: phone || null, countryCode: countryCode || null,
+      chatId: conv.id, text: `Started a chat: "${dto.message.slice(0, 200)}"`,
+    });
     const card = [
       `🆕 <b>New chat</b> #${conv.tag}`,
       `👤 ${this.telegram.esc(conv.name)}`,
@@ -169,10 +186,11 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const text: string = m.text.trim();
 
     if (/^\/(start|help)\b/.test(text)) {
-      await this.telegram.notify('To answer a visitor, <b>long-press their message and tap Reply</b>.\n/waiting — chats still waiting for an answer');
+      await this.telegram.notify('To answer a visitor, <b>long-press their message and tap Reply</b>.\n/waiting — chats still waiting for an answer\n/summary — the numbers for this week');
       return;
     }
     if (/^\/waiting\b/.test(text)) { await this.reportWaiting(); return; }
+    if (/^\/summary\b/.test(text)) { await this.telegram.notify(await this.digest.build(), m.message_id); return; }
     if (text.startsWith('/')) return;
 
     const tag = TAG_RE.exec(m.reply_to_message?.text ?? '')?.[1]?.toLowerCase();
@@ -185,29 +203,45 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (await this.prisma.chatMessage.findUnique({ where: { tgReplyId: m.message_id } })) return;
 
     const agentName: string = String(m.from?.first_name ?? 'Elorge team').slice(0, 40);
+    let outcome: AgentReplyOutcome;
     try {
-      await this.prisma.chatMessage.create({
-        data: { conversationId: conv.id, sender: 'AGENT', text: text.slice(0, 1000), agentName, tgReplyId: m.message_id },
-      });
+      outcome = await this.deliverAgentReply(conv, text, agentName, m.message_id);
     } catch (e) {
       if ((e as Prisma.PrismaClientKnownRequestError).code === 'P2002') return; // lost a race with a retry
       throw e;
     }
+    await this.telegram.notify(`✅ Delivered to #${tag}${OUTCOME_NOTE[outcome]}`, m.message_id);
+  }
+
+  /** Answer from the platform admin page instead of Telegram. Same effects as a Telegram reply. */
+  async replyFromAdmin(conversationId: string, text: string, userId: string) {
+    const conv = await this.prisma.chatConversation.findUnique({ where: { id: conversationId } });
+    if (!conv) throw new NotFoundException('Chat not found');
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const agentName = (user?.fullName ?? 'Elorge team').trim().split(/\s+/)[0].slice(0, 40) || 'Elorge team';
+    const outcome = await this.deliverAgentReply(conv, text, agentName);
+    // Tell the team in Telegram so nobody answers the same visitor twice.
+    await this.telegram.notify(
+      `💬 <b>#${conv.tag}</b> answered from the admin page by ${this.telegram.esc(agentName)}:\n${this.telegram.esc(text)}${OUTCOME_NOTE[outcome]}`,
+    );
+    return { ok: true, outcome };
+  }
+
+  /** Saves an agent's answer, ends the visitor's waiting state, and emails them if they have left the page. */
+  private async deliverAgentReply(conv: ChatConversation, text: string, agentName: string, tgReplyId?: number): Promise<AgentReplyOutcome> {
+    await this.prisma.chatMessage.create({
+      data: { conversationId: conv.id, sender: 'AGENT', text: text.slice(0, 1000), agentName, ...(tgReplyId ? { tgReplyId } : {}) },
+    });
     await this.prisma.chatConversation.update({
       where: { id: conv.id },
       data: { waitingSince: null, nudgeSentAt: null, followUpSentAt: null, lastAgentAt: new Date() },
     });
 
-    const away = Date.now() - conv.lastSeenAt.getTime() > this.awayMs;
-    let note = `✅ Delivered to #${tag}`;
-    if (away && !conv.email) {
-      note += conv.phone ? ' (visitor is away, no email — try their phone)' : ' (visitor is away and left no contact details)';
-    } else if (away) {
-      const { subject, html } = agentReplyEmail({ locale: conv.locale, name: this.firstName(conv.name), agent: agentName, text, siteUrl: this.siteUrl });
-      const sent = await this.brevo.send({ to: [{ email: conv.email, name: conv.name }], subject, htmlContent: html, tags: ['chat-reply'] });
-      note += sent ? ' (visitor is away — also emailed)' : ' (visitor is away — email failed, try their phone)';
-    }
-    await this.telegram.notify(note, m.message_id);
+    if (Date.now() - conv.lastSeenAt.getTime() <= this.awayMs) return 'delivered';
+    if (!conv.email) return conv.phone ? 'away_no_email_phone' : 'away_no_contact';
+    const { subject, html } = agentReplyEmail({ locale: conv.locale, name: this.firstName(conv.name), agent: agentName, text, siteUrl: this.siteUrl });
+    const sent = await this.brevo.send({ to: [{ email: conv.email, name: conv.name }], subject, htmlContent: html, tags: ['chat-reply'] });
+    return sent ? 'emailed' : 'email_failed';
   }
 
   private async reportWaiting() {

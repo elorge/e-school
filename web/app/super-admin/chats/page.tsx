@@ -1,15 +1,15 @@
 // web/app/super-admin/chats/page.tsx
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import PlatformNav from '@/components/PlatformNav';
 import LoadingScreen from '@/components/LoadingScreen';
 import { getSessionUser } from '@/lib/session';
 import {
-  deletePlatformChat, getPlatformChat, listPlatformChats, type ChatDetail, type ChatSummary,
+  deletePlatformChat, getPlatformChat, listPlatformChats, replyPlatformChat, type ChatDetail, type ChatSummary,
 } from '@/lib/endpoints/platform-chats';
-import { Bot, Headset, Mail, MessageCircle, Phone, Search, Trash2 } from 'lucide-react';
+import { Bot, Headset, Mail, MessageCircle, Phone, Search, Send, Trash2 } from 'lucide-react';
 
 const countryName = (code: string) => {
   if (!code) return '';
@@ -26,6 +26,9 @@ export default function PlatformChatsPage() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ChatDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
+  const transcript = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -49,6 +52,41 @@ export default function PlatformChatsPage() {
     const iv = setInterval(() => void load(), 15000);
     return () => { clearTimeout(t); clearInterval(iv); };
   }, [load]);
+
+  // Arriving from a lead ("Open chat") — load that conversation straight away.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('open');
+    if (id) getPlatformChat(id).then(setSelected).catch(() => undefined);
+  }, []);
+
+  // Keep the open conversation live: pick up new visitor messages every 5 s.
+  const openId = selected?.id;
+  useEffect(() => {
+    if (!openId) return;
+    const iv = setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        const d = await getPlatformChat(openId);
+        setSelected((cur) => (cur && cur.id === openId && cur.messages.length !== d.messages.length ? d : cur));
+      } catch { /* next tick retries */ }
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [openId]);
+
+  const messageCount = selected?.messages.length ?? 0;
+  useEffect(() => { transcript.current?.scrollTo({ top: transcript.current.scrollHeight }); }, [openId, messageCount]);
+
+  async function sendReply() {
+    const text = reply.trim();
+    if (!text || !selected || sending) return;
+    setSending(true);
+    try {
+      await replyPlatformChat(selected.id, text);
+      setReply('');
+      setSelected(await getPlatformChat(selected.id));
+      void load();
+    } catch { setError('Failed to send reply'); } finally { setSending(false); }
+  }
 
   async function open(id: string) {
     try { setSelected(await getPlatformChat(id)); } catch { setError('Failed to open chat'); }
@@ -181,7 +219,7 @@ export default function PlatformChatsPage() {
                   </div>
                 )}
 
-                <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto rounded-lg bg-black/[0.02] p-3">
+                <div ref={transcript} className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto rounded-lg bg-black/[0.02] p-3">
                   {selected.messages.map((m) => (
                     <div key={m.id} className={`flex flex-col ${m.sender === 'VISITOR' ? 'items-start' : 'items-end'}`}>
                       <span className="mb-1 flex items-center gap-1 text-[11px] text-ink/50">
@@ -202,7 +240,25 @@ export default function PlatformChatsPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-ink/40">Agents reply from the Telegram group, not from this page.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendReply(); } }}
+                    maxLength={1000}
+                    placeholder={`Reply to ${selected.name}…`}
+                    className="w-full rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-ink/40 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+                  />
+                  <button
+                    onClick={() => void sendReply()}
+                    disabled={!reply.trim() || sending}
+                    aria-label="Send reply"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-blue text-white transition hover:bg-brand-blue-dark disabled:opacity-40"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
+                <p className="text-xs text-ink/40">The visitor sees your reply in their chat (or by email if they have left). It is also posted to the Telegram group so nobody answers twice.</p>
               </div>
             )}
           </div>

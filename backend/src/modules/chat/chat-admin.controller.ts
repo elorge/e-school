@@ -1,9 +1,13 @@
 // backend/src/modules/chat/chat-admin.controller.ts
-import { Controller, Delete, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../../common/types/auth.types';
+import { ChatService } from './chat.service';
+import { SendChatMessageDto } from './chat.dto';
 
 // Never select `token` here: it is the visitor's private key to their own chat.
 const CONTACT_FIELDS = {
@@ -15,7 +19,7 @@ const CONTACT_FIELDS = {
 @UseGuards(RolesGuard)
 @Controller('platform/chats')
 export class ChatAdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly chat: ChatService) {}
 
   @Roles(Role.SUPER_ADMIN)
   @Get()
@@ -58,6 +62,13 @@ export class ChatAdminController {
     });
     if (!conv) throw new NotFoundException('Chat not found');
     return conv;
+  }
+
+  /** Answer a visitor from the admin page (the visitor sees it exactly like a Telegram reply). */
+  @Roles(Role.SUPER_ADMIN)
+  @Post(':id/reply')
+  reply(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: SendChatMessageDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.chat.replyFromAdmin(id, dto.text, user.id);
   }
 
   /** For data-deletion requests. Messages go with it (cascade). */

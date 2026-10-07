@@ -31,6 +31,7 @@ export default function SiteHeader() {
   // they're always-static links to their own indexable page.
   const PAGE_LINKS = [
     { href: '/pricing', label: t.pricing },
+    { href: '/demo', label: t.bookDemo },
     { href: '/results', label: t.checkResult },
   ];
 

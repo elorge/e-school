@@ -37,6 +37,11 @@ import { StaffModule } from './modules/staff/staff.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { LeaveModule } from './modules/leave/leave.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { LeadsModule } from './modules/leads/leads.module';
+import { DemosModule } from './modules/demos/demos.module';
+import { DigestModule } from './modules/digest/digest.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { envValidationSchema } from './config/env.validation';
@@ -78,7 +83,12 @@ import { envValidationSchema } from './config/env.validation';
     StaffModule,
     PayrollModule,
     LeaveModule,
+    TelegramModule,
     ChatModule,
+    AnalyticsModule,
+    LeadsModule,
+    DemosModule,
+    DigestModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

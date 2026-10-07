@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../../common/services/audit.service';
+import { StaffAlertsService } from '../telegram/staff-alerts.service';
 import { LedgerSource, LedgerStatus, LedgerType, Role, Prisma } from '@prisma/client';
 import { LOW_BALANCE_WARNING_THRESHOLD_KOBO } from '../../common/constants';
 import { formatMoney } from '../../common/utils/currency.util';
@@ -16,6 +17,7 @@ export class WalletService {
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
     private readonly audit: AuditService,
+    private readonly alerts: StaffAlertsService,
   ) {}
 
   /** Balance is always derived — never stored directly. See spec doc §7.4. Balance for a single school is unambiguous since every entry for that school shares the school's one currency. */
@@ -218,6 +220,8 @@ export class WalletService {
       }),
     );
 
+    void this.alerts.manualTransferClaim(schoolId, amountKobo, reference);
+
     return entry;
   }
 
@@ -301,6 +305,7 @@ export class WalletService {
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
+      void this.alerts.lowBalance(schoolId, newBalanceKobo);
       await this.notifyAdmins(
         schoolId,
         (admin, schoolName, currency, locale) =>
@@ -353,6 +358,7 @@ export class WalletService {
 
     const newBalanceKobo = await this.getBalanceKobo(schoolId);
     if (newBalanceKobo < LOW_BALANCE_WARNING_THRESHOLD_KOBO) {
+      void this.alerts.lowBalance(schoolId, newBalanceKobo);
       await this.notifyAdmins(
         schoolId,
         (admin, schoolName, currency, locale) =>

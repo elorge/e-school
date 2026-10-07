@@ -36,6 +36,7 @@ export default function SiteFooter() {
     { href: '/features/lesson-notes', label: t.linkLessonNotes },
     { href: '/features/id-cards', label: t.linkIdCards },
     { href: '/pricing', label: t.linkPricing },
+    { href: '/demo', label: t.linkDemo },
     { href: '/results', label: t.linkCheckResult },
     { href: '/#offline', label: t.linkOffline },
   ];

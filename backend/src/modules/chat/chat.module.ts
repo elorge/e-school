@@ -4,12 +4,12 @@ import { HttpModule } from '@nestjs/axios';
 import { BrevoService } from '../email/brevo.service';
 import { ChatController, TelegramWebhookController } from './chat.controller';
 import { ChatAdminController } from './chat-admin.controller';
+import { DigestModule } from '../digest/digest.module';
 import { ChatService } from './chat.service';
-import { TelegramService } from './telegram.service';
 
 @Module({
-  imports: [HttpModule.register({ timeout: 8000 })],
+  imports: [HttpModule.register({ timeout: 8000 }), DigestModule],
   controllers: [ChatController, TelegramWebhookController, ChatAdminController],
-  providers: [ChatService, TelegramService, BrevoService],
+  providers: [ChatService, BrevoService],
 })
 export class ChatModule {}

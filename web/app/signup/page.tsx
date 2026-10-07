@@ -7,6 +7,7 @@ import { requestSignup } from '@/lib/endpoints/schools';
 import { SUPPORTED_COUNTRIES, currencyForCountry } from '@/lib/currency';
 import { SUPPORTED_LOCALES, LOCALE_LABELS, localeForCountry } from '@/lib/locale';
 import { useMarketingLocale } from '@/lib/marketing-locale';
+import { track } from '@/lib/analytics';
 import { signupLabelsFor } from '@/lib/i18n/signup-labels';
 import { apiErrorMessage } from '@/lib/i18n/error-messages';
 import SiteHeader from '@/components/SiteHeader';
@@ -61,6 +62,7 @@ export default function SignupPage() {
     setIsSubmitting(true);
     try {
       await requestSignup({ ...form, currency });
+      track('signup_submitted', { locale: pageLocale });
       setSubmitted(true);
     } catch (err) {
       // Known codes (workspace name / school code already taken) get a

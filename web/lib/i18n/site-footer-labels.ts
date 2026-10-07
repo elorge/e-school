@@ -16,6 +16,7 @@ export interface SiteFooterLabels {
   linkLessonNotes: string;
   linkCheckResult: string;
   linkPricing: string;
+  linkDemo: string;
   linkIdCards: string;
   linkOffline: string;
   linkAbout: string;
@@ -40,6 +41,7 @@ const EN: SiteFooterLabels = {
   linkLessonNotes: 'Lesson Notes',
   linkCheckResult: 'Check a Result',
   linkPricing: 'Pricing',
+  linkDemo: 'Book a Demo',
   linkIdCards: 'ID Cards & Attendance',
   linkOffline: 'Offline-first',
   linkAbout: 'About',
@@ -64,6 +66,7 @@ const FR: SiteFooterLabels = {
   linkLessonNotes: 'Notes de cours',
   linkCheckResult: 'Vérifier un résultat',
   linkPricing: 'Tarifs',
+  linkDemo: 'Réserver une démo',
   linkIdCards: "Cartes d'identité et présence",
   linkOffline: 'Hors ligne',
   linkAbout: 'À propos',
@@ -88,6 +91,7 @@ const PT: SiteFooterLabels = {
   linkLessonNotes: 'Planos de Aula',
   linkCheckResult: 'Consultar um Resultado',
   linkPricing: 'Preços',
+  linkDemo: 'Agendar demonstração',
   linkIdCards: 'Cartões de Identificação e Presença',
   linkOffline: 'Funciona Offline',
   linkAbout: 'Sobre Nós',
@@ -112,6 +116,7 @@ const ES: SiteFooterLabels = {
   linkLessonNotes: 'Notas de Clase',
   linkCheckResult: 'Consultar un Resultado',
   linkPricing: 'Precios',
+  linkDemo: 'Reservar demostración',
   linkIdCards: 'Tarjetas de Identificación y Asistencia',
   linkOffline: 'Funciona sin conexión',
   linkAbout: 'Nosotros',

@@ -11,8 +11,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Platform & tenancy ─────────────────────────────────────────────────
@@ -1132,4 +1133,82 @@ model ChatMessage {
 
   @@index([conversationId, seq])
   @@map("chat_messages")
+}
+
+// ───────────── First-party, cookie-free marketing analytics ─────────────
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  name        String // page_view | chat_started | signup_submitted
+  path        String
+  sessionId   String // random per browser tab session; no cookie, no IP stored
+  referrer    String? // referring host only (e.g. google.com)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  locale      String?
+  device      String? // mobile | desktop
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([name, createdAt])
+  @@index([sessionId])
+  @@map("analytics_events")
+}
+
+// ───────────── Lead tracking, demo requests and the weekly Telegram summary ─────────────
+enum LeadStatus {
+  NEW
+  CONTACTED
+  DEMO_BOOKED
+  SIGNED_UP
+  LOST
+}
+
+enum LeadActivityKind {
+  CHAT_STARTED
+  DEMO_REQUESTED
+  SIGNUP_REQUESTED
+  NOTE
+  STATUS_CHANGED
+}
+
+/// One row per person. Chats, demo requests and signup requests with the same email
+/// all land on the same lead; chats with no email each get their own lead.
+model Lead {
+  id             String         @id @default(uuid())
+  name           String
+  email          String?        @unique // lower-cased
+  phone          String?
+  countryCode    String?
+  schoolName     String?
+  status         LeadStatus     @default(NEW)
+  chatId         String? // latest website chat (ChatConversation.id), to jump to its transcript
+  lastActivityAt DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  activities     LeadActivity[]
+
+  @@index([status, lastActivityAt])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id        String           @id @default(uuid())
+  leadId    String
+  lead      Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  kind      LeadActivityKind
+  text      String
+  author    String? // admin who wrote a note / changed status; null for automatic entries
+  createdAt DateTime         @default(now())
+
+  @@index([leadId, createdAt])
+  @@map("lead_activities")
+}
+
+/// One row per week a Telegram summary was sent. The primary key is the Monday of that
+/// week, so inserting it is an atomic "claim" — two server instances can never both send.
+model DigestRun {
+  weekOf String   @id // 'YYYY-MM-DD' of the Monday, in DIGEST_TIMEZONE
+  sentAt DateTime @default(now())
+
+  @@map("digest_runs")
 }

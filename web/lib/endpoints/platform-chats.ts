@@ -36,3 +36,7 @@ export function getPlatformChat(id: string): Promise<ChatDetail> {
 export function deletePlatformChat(id: string): Promise<void> {
   return apiFetch(`/platform/chats/${id}`, { method: 'DELETE' });
 }
+
+export function replyPlatformChat(id: string, text: string): Promise<{ ok: boolean; outcome: string }> {
+  return apiFetch(`/platform/chats/${id}/reply`, { method: 'POST', body: JSON.stringify({ text }) });
+}

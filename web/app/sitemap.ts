@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/features/lesson-notes', priority: 0.9 },
     { path: '/features/id-cards', priority: 0.9 },
     { path: '/pricing', priority: 0.9 },
+    { path: '/demo', priority: 0.9 },
     { path: '/results', priority: 0.9 },
     { path: '/about', priority: 0.7 },
     { path: '/careers', priority: 0.6 },

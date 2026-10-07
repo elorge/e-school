@@ -31,6 +31,9 @@ export default function HomePageContent() {
           <Link href="/signup" className="rounded-full bg-brand-blue px-6 py-3 font-medium text-white transition hover:bg-brand-blue-dark">
             {t.getStarted}
           </Link>
+          <Link href="/demo" className="rounded-full border border-brand-blue/30 px-6 py-3 font-medium text-brand-blue transition hover:bg-brand-blue/5">
+            {t.bookDemo}
+          </Link>
           <Link href="/login" className="rounded-full border border-black/10 px-6 py-3 font-medium text-ink transition hover:bg-black/5">
             {t.signIn}
           </Link>

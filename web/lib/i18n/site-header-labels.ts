@@ -11,6 +11,7 @@ export interface SiteHeaderLabels {
   sectionInfrastructure: string;
   checkResult: string;
   pricing: string;
+  bookDemo: string;
   signIn: string;
   getStarted: string;
   toggleMenu: string;
@@ -27,6 +28,7 @@ const EN: SiteHeaderLabels = {
   sectionInfrastructure: 'Hardware',
   checkResult: 'Check Result',
   pricing: 'Pricing',
+  bookDemo: 'Book a demo',
   signIn: 'Sign in',
   getStarted: 'Get started',
   toggleMenu: 'Toggle menu',
@@ -43,6 +45,7 @@ const FR: SiteHeaderLabels = {
   sectionInfrastructure: 'Matériel',
   checkResult: 'Vérifier un résultat',
   pricing: 'Tarifs',
+  bookDemo: 'Réserver une démo',
   signIn: 'Se connecter',
   getStarted: 'Commencer',
   toggleMenu: 'Basculer le menu',
@@ -59,6 +62,7 @@ const PT: SiteHeaderLabels = {
   sectionInfrastructure: 'Equipamento',
   checkResult: 'Consultar Resultado',
   pricing: 'Preços',
+  bookDemo: 'Agendar demonstração',
   signIn: 'Entrar',
   getStarted: 'Começar',
   toggleMenu: 'Alternar menu',
@@ -75,6 +79,7 @@ const ES: SiteHeaderLabels = {
   sectionInfrastructure: 'Equipo',
   checkResult: 'Consultar Resultado',
   pricing: 'Precios',
+  bookDemo: 'Reservar demostración',
   signIn: 'Iniciar sesión',
   getStarted: 'Comenzar',
   toggleMenu: 'Alternar menú',

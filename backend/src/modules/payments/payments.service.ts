@@ -5,6 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { StaffAlertsService } from '../telegram/staff-alerts.service';
 import { minorToMajor, majorToMinor } from '../../common/utils/currency.util';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly http: HttpService,
+    private readonly alerts: StaffAlertsService,
   ) {}
 
   /**
@@ -78,11 +80,19 @@ export class PaymentsService {
   }
 
   async handleFlutterwaveEvent(payload: any) {
+    if (payload.event === 'charge.completed' && payload.data?.status === 'failed') {
+      void this.alerts.paymentFailed({
+        txRef: payload.data?.tx_ref, schoolId: payload.data?.meta?.schoolId,
+        amount: payload.data?.amount, currency: payload.data?.currency, reason: payload.data?.processor_response,
+      });
+      return;
+    }
     if (payload.event !== 'charge.completed' || payload.data?.status !== 'successful') return;
     const data = payload.data;
     const schoolId = await this.resolveSchoolId(data?.meta?.schoolId);
     if (!schoolId) {
       this.logger.error(`Flutterwave charge.completed with unresolvable schoolId — tx ${data?.tx_ref}`);
+      void this.alerts.paymentProblem('A successful payment arrived with no valid school attached.', data?.tx_ref);
       return;
     }
 
@@ -98,6 +108,7 @@ export class PaymentsService {
       this.logger.error(
         `Flutterwave charge.completed currency mismatch for school ${schoolId}: webhook says ${data.currency}, school is ${school.currency} — tx ${data?.tx_ref}`,
       );
+      void this.alerts.paymentProblem(`Currency mismatch: payment was in ${data.currency} but ${school.name} is set to ${school.currency}.`, data?.tx_ref);
       return;
     }
 

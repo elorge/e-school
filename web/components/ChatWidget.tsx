@@ -9,6 +9,7 @@ import { useMarketingLocale } from '@/lib/marketing-locale';
 import { chatLabelsFor } from '@/lib/i18n/chat-labels';
 import { SUPPORTED_COUNTRIES } from '@/lib/currency';
 import { CONTACT_EMAIL } from '@/lib/site';
+import { track } from '@/lib/analytics';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const STORE_KEY = 'elorge-chat-v1';
@@ -16,7 +17,7 @@ const INPUT =
   'w-full rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink/40 focus:border-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue/20';
 
 /** Marketing pages only — never inside a school's own app, result lookup or CBT sessions. */
-const SHOW_ON = ['/', '/about', '/contact', '/pricing', '/careers', '/signup', '/features'];
+const SHOW_ON = ['/', '/about', '/contact', '/pricing', '/careers', '/signup', '/demo', '/features'];
 
 interface ChatMsg {
   id: string;
@@ -180,6 +181,7 @@ export default function ChatWidget() {
       lastSeq.current = Math.max(0, ...data.messages.map((m) => m.seq));
       setMsgs(data.messages);
       setToken(data.token);
+      track('chat_started', { locale });
       setForm((f) => ({ ...f, message: '' }));
     } catch { setError(t.errSend); } finally { setBusy(false); }
   }

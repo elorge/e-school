@@ -6,6 +6,8 @@ import { WalletService } from '../wallet/wallet.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../../common/services/audit.service';
+import { StaffAlertsService } from '../telegram/staff-alerts.service';
+import { LeadsService } from '../leads/leads.service';
 import { SignupRequestStatus } from '@prisma/client';
 import { PLATFORM_DEFAULT_PRICE_PER_STUDENT_KOBO, WELCOME_BONUS_KOBO, DEFAULT_LEAVE_TYPES } from '../../common/constants';
 import { timezoneForCountry } from '../../common/utils/timezone.util';
@@ -20,6 +22,8 @@ export class SchoolsService {
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
     private readonly audit: AuditService,
+    private readonly alerts: StaffAlertsService,
+    private readonly leads: LeadsService,
   ) {}
 
   findBySlug(slug: string) {
@@ -194,6 +198,13 @@ export class SchoolsService {
       `${data.schoolName} is waiting for approval.`,
       '/super-admin',
     );
+    void this.leads.capture({
+      kind: 'SIGNUP_REQUESTED', name: data.adminName, email: data.adminEmail, phone: data.phone, countryCode: data.countryCode,
+      schoolName: data.schoolName, text: `Requested a school account for ${data.schoolName}`,
+    });
+    void this.alerts.newSchoolSignup({
+      schoolName: data.schoolName, countryCode: data.countryCode, adminName: data.adminName, adminEmail: data.adminEmail, phone: data.phone,
+    });
 
     return result;
   }
@@ -248,6 +259,9 @@ export class SchoolsService {
     await this.prisma.schoolSignupRequest.update({
       where: { id: requestId },
       data: { status: SignupRequestStatus.APPROVED, reviewedAt: new Date() },
+    });
+    void this.leads.markSignedUp({
+      email: request.adminEmail, name: request.adminName, schoolName: request.schoolName, phone: request.phone, countryCode: request.countryCode,
     });
 
     return school;
